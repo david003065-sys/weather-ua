@@ -1,0 +1,90 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html lang="{{ .Lang }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ block "title" . }}Живая погода{{ end }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ block "description" . }}{{ .Text.CitiesTitle }} — premium live weather.{{ end }}">
+    <meta name="theme-color" content="#020617">
+
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="/static/script.js" defer></script>
+</head>
+<body class="theme-dark">
+<script id="__WEATHER__" type="application/json">{{ .WeatherJSON }}</script>
+<script src="/static/theme.js"></script>
+<div
+    class="weather-app fade-in"
+    data-weather-code="{{ .WeatherCode }}"
+    data-is-night="{{ .IsNight }}"
+    data-city-id="{{ .CityID }}"
+>
+    <div class="weather-bg">
+        <div class="weather-layer weather-layer--base"></div>
+        <div class="weather-layer weather-layer--sun"></div>
+        <div class="weather-layer weather-layer--clouds"></div>
+        <div class="weather-layer weather-layer--rain"></div>
+        <div class="weather-layer weather-layer--snow"></div>
+        <div class="weather-layer weather-layer--stars"></div>
+    </div>
+
+    <header class="site-header">
+        <div class="shell shell--header">
+            <a href="/?lang={{ .Lang }}" class="brand-link" aria-label="{{ .Text.BrandTop }} {{ .Text.BrandBottom }} — на главную">
+                <div class="brand">
+                    <div class="brand-mark" aria-hidden="true">
+                        <div class="brand-thermo">
+                            <div class="brand-thermo__bulb"></div>
+                            <div class="brand-thermo__column"></div>
+                        </div>
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-text__label">{{ .Text.BrandTop }}</span>
+                        <span class="brand-text__title">{{ .Text.BrandBottom }}</span>
+                    </div>
+                </div>
+            </a>
+            <nav class="nav" aria-label="Основная навигация">
+                <a href="/?lang={{ .Lang }}" class="nav-link {{ if .IsIndex }}nav-link--active{{ end }}">{{ .Text.NavNow }}</a>
+                <a href="/?lang={{ .Lang }}#cities" class="nav-link">{{ .Text.NavCities }}</a>
+            </nav>
+            <div class="lang-switch" aria-label="Выбор языка">
+                <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
+                <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
+                <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="site-main" aria-live="polite">
+        <div class="shell">
+            {{ if .IsIndex }}
+                {{ template "index-content" . }}
+            {{ else }}
+                {{ template "city-content" . }}
+            {{ end }}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="shell shell--footer">
+            <span class="footer-badge">{{ .Text.Footer }}</span>
+        </div>
+    </footer>
+</div>
+</body>
+</html>
+{{ end }}
+

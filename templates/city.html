@@ -1,0 +1,194 @@
+{{ define "title" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }} — {{ .CityName }}{{ end }}
+
+{{ define "description" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }}: {{ .CityName }} · {{ .Text.ForecastTitle }}.{{ end }}
+
+{{ define "city-content" }}
+<section class="city-hero" aria-labelledby="city-title">
+    <div class="city-hero__top">
+        <div class="city-hero__info">
+            <span class="city-hero__badge">{{ .Text.CityBadge }}</span>
+            <h1 id="city-title" class="city-hero__title">{{ .CityName }}</h1>
+            <p class="city-hero__subtitle">{{ .CurrentDescription }}</p>
+            {{ if .CityLocation }}
+            <p class="city-hero__location">{{ .CityLocation }}</p>
+            {{ end }}
+            {{ if gt .DuplicatesCount 0 }}
+            <div class="city-hero__duplicates">
+                <span class="city-hero__duplicates-label">{{ .DuplicatesLabel }}</span>
+                <a href="{{ .DuplicatesURL }}" class="city-hero__duplicates-link">
+                    {{- if eq .Lang "en" -}}
+                        Choose another
+                    {{- else if eq .Lang "uk" -}}
+                        Обрати інший
+                    {{- else -}}
+                        Выбрать другой
+                    {{- end -}}
+                </a>
+            </div>
+            {{ end }}
+        </div>
+        <div class="city-hero__icon-wrap" aria-hidden="true">
+            <svg class="weather-icon weather-icon--hero" viewBox="0 0 80 80" role="img">
+                <title>{{ .CurrentDescription }}</title>
+                <defs>
+                    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#e5f0ff"/>
+                        <stop offset="100%" stop-color="#cbd5f5"/>
+                    </linearGradient>
+                </defs>
+                <g class="weather-icon__cloud">
+                    <ellipse cx="30" cy="40" rx="16" ry="12" fill="url(#cloudGradient)"/>
+                    <ellipse cx="48" cy="40" rx="16" ry="12" fill="url(#cloudGradient)"/>
+                    <ellipse cx="39" cy="35" rx="18" ry="13" fill="url(#cloudGradient)"/>
+                </g>
+                <g class="weather-icon__drops">
+                    <line x1="30" y1="50" x2="27" y2="58"/>
+                    <line x1="40" y1="50" x2="37" y2="58"/>
+                    <line x1="50" y1="50" x2="47" y2="58"/>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <div class="city-hero__main">
+        <div class="city-hero__temp-block" aria-label="{{ .Text.CurrentWeatherAria }}">
+            <div class="city-hero__temp">
+                <span id="js-current-temp" class="city-hero__temp-value">{{ printf "%.0f" .CurrentTemp }}</span>
+                <span class="city-hero__temp-unit">°C</span>
+            </div>
+            <div class="city-hero__meta-grid">
+                <div class="metric">
+                    <span class="metric__label">{{ .Text.MetricHumidity }}</span>
+                    <span id="js-current-humidity" class="metric__value">{{ printf "%.0f" .CurrentHumidity }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric__label">{{ .Text.MetricWind }}</span>
+                    <span id="js-current-wind" class="metric__value">{{ printf "%.0f" .CurrentWind }} км/ч</span>
+                </div>
+                <div class="metric">
+                    <span class="metric__label">{{ .Text.MetricPressure }}</span>
+                    <span class="metric__value">{{ printf "%.0f" .CurrentPressure }} мм</span>
+                </div>
+            </div>
+            {{ if .TodayLabel }}
+            <div class="city-hero__summary">
+                <p class="city-hero__summary-text">
+                    {{ .Text.Today }} ({{ .TodayLabel }}):
+                    {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°.
+                    {{ if .TomorrowLabel }}
+                    {{ .Text.Tomorrow }} ({{ .TomorrowLabel }}):
+                    {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°.
+                    {{ end }}
+                    {{ if .TrendText }}
+                    <br>{{ .TrendText }}
+                    {{ end }}
+                </p>
+            </div>
+            {{ end }}
+        </div>
+
+        <div class="city-hero__forecast" aria-label="{{ .Text.ForecastAria }}">
+            <header class="section-header section-header--compact">
+                <div class="section-header__labels">
+                    <span class="section-label">{{ .Text.ForecastLabel }}</span>
+                    <h2 class="section-title">{{ .Text.ForecastTitle }}</h2>
+                </div>
+            </header>
+            <div class="forecast-row">
+                {{ range .Forecast }}
+                <div class="forecast-card">
+                    <span class="forecast-card__day">{{ .Label }}</span>
+                    <span class="forecast-card__icon" aria-hidden="true">{{ .Icon }}</span>
+                    <span class="forecast-card__status">{{ .Description }}</span>
+                    <div class="forecast-card__temps">
+                        <span class="forecast-card__temp-max">{{ printf "%.0f" .MaxTemp }}°</span>
+                        <span class="forecast-card__temp-min">{{ printf "%.0f" .MinTemp }}°</span>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="hourly-section" aria-label="{{ .Text.ForecastAria }}">
+    <header class="section-header section-header--compact">
+        <div class="section-header__labels">
+            <span class="section-label">{{ .Text.ForecastLabel }}</span>
+            <h2 class="section-title">{{ .Text.Today }} — {{ .Text.ShortForecastAria }}</h2>
+        </div>
+    </header>
+    <div class="hourly-row">
+        {{ range .Hourly }}
+        <div class="hourly-card">
+            <span class="hourly-time">{{ .TimeLabel }}</span>
+            <span class="hourly-icon" aria-hidden="true">{{ .Icon }}</span>
+            <span class="hourly-temp">{{ printf "%.0f" .Temperature }}°</span>
+        </div>
+        {{ end }}
+    </div>
+</section>
+
+<section class="chart-section" aria-labelledby="chart-title">
+    <header class="section-header section-header--compact">
+        <div class="section-header__labels">
+            <span class="section-label">{{ .Text.TrendLabel }}</span>
+            <h2 id="chart-title" class="section-title">{{ .Text.ChartTitle }}</h2>
+        </div>
+    </header>
+    <div class="chart-card">
+        <canvas
+            id="cityTempChart"
+            class="chart-card__canvas js-temp-chart"
+            data-labels='[
+                {{- range $i, $d := .Forecast -}}
+                    {{- if $i}}, {{ end -}}
+                    {{ printf "%q" $d.Label }}
+                {{- end -}}
+            ]'
+            data-min='[
+                {{- range $i, $d := .Forecast -}}
+                    {{- if $i}}, {{ end -}}
+                    {{ printf "%.1f" $d.MinTemp }}
+                {{- end -}}
+            ]'
+            data-max='[
+                {{- range $i, $d := .Forecast -}}
+                    {{- if $i}}, {{ end -}}
+                    {{ printf "%.1f" $d.MaxTemp }}
+                {{- end -}}
+            ]'
+            aria-label="{{ .Text.ChartAria }}"
+            role="img"
+        ></canvas>
+    </div>
+</section>
+
+<section class="city-switch" aria-label="{{ .Text.OtherCitiesAria }}">
+    <header class="section-header section-header--compact">
+        <div class="section-header__labels">
+            <span class="section-label">{{ .Text.CitiesLabel }}</span>
+            <h2 class="section-title">{{ .Text.QuickSwitchTitle }}</h2>
+        </div>
+    </header>
+    <div class="city-switch__grid">
+        {{ range .Cities }}
+        <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-switch__card {{ if eq .ID $.CityID }}city-switch__card--active{{ end }}">
+            <div class="city-switch__row">
+                <span class="city-switch__name">{{ .Name }}</span>
+                <span class="city-switch__temp">{{ printf "%.0f" .Temperature }}°</span>
+            </div>
+            <div class="city-switch__meta">
+                <span class="city-switch__icon" aria-hidden="true">{{ .Icon }}</span>
+                <span class="city-switch__desc">{{ .Description }}</span>
+            </div>
+        </a>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
+
+{{ define "city-page" }}
+{{ template "layout" . }}
+{{ end }}
+

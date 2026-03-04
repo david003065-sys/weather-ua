@@ -1,0 +1,191 @@
+{{ define "title" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }} — {{ .Text.NavNow }}{{ end }}
+
+{{ define "description" }}{{ .Text.CitiesTitle }}: Днепр, Киев, Павлоград, Вольногорск.{{ end }}
+
+{{ define "index-content" }}
+<section class="hero" aria-labelledby="hero-title">
+    <div class="hero-main">
+        <div class="hero-main__header">
+            <div class="hero-main__location">
+                <span class="hero-main__badge">{{ .Text.BadgeNow }}</span>
+                <h1 id="hero-title" class="hero-main__city">{{ .CurrentCityName }}</h1>
+            </div>
+            <div class="hero-main__icon" aria-hidden="true">
+                <svg class="weather-icon weather-icon--hero" viewBox="0 0 80 80" role="img">
+                    <title>Солнечно</title>
+                    <defs>
+                        <radialGradient id="sunGradient" cx="50%" cy="0%" r="70%">
+                            <stop offset="0%" stop-color="#fde68a"/>
+                            <stop offset="45%" stop-color="#fbbf24"/>
+                            <stop offset="100%" stop-color="#f97316"/>
+                        </radialGradient>
+                    </defs>
+                    <circle class="weather-icon__sun-core" cx="40" cy="40" r="16" fill="url(#sunGradient)"/>
+                    <g class="weather-icon__sun-rays">
+                        <line x1="40" y1="7" x2="40" y2="0"/>
+                        <line x1="40" y1="80" x2="40" y2="73"/>
+                        <line x1="7" y1="40" x2="0" y2="40"/>
+                        <line x1="80" y1="40" x2="73" y2="40"/>
+                        <line x1="12" y1="12" x2="6" y2="6"/>
+                        <line x1="68" y1="68" x2="74" y2="74"/>
+                        <line x1="12" y1="68" x2="6" y2="74"/>
+                        <line x1="68" y1="12" x2="74" y2="6"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        <div class="hero-main__body">
+            <div class="hero-main__temperature">
+                <span id="js-current-temp" class="hero-main__temp-value">{{ printf "%.0f" .CurrentTemp }}</span>
+                <span class="hero-main__temp-unit">°C</span>
+            </div>
+            <div class="hero-main__meta">
+                <p class="hero-main__status">{{ .CurrentDescription }}</p>
+                <div class="hero-main__details" aria-label="{{ .Text.CurrentMetricsAria }}">
+                    <div class="hero-main__detail">
+                        <span class="detail-label">{{ .Text.MetricWind }}</span>
+                        <span class="detail-value">{{ printf "%.0f" .CurrentWind }} км/ч</span>
+                    </div>
+                    <div class="hero-main__detail">
+                        <span class="detail-label">{{ .Text.MetricHumidity }}</span>
+                        <span class="detail-value">{{ printf "%.0f" .CurrentHumidity }}%</span>
+                    </div>
+                    <div class="hero-main__detail">
+                        <span class="detail-label">{{ .Text.MetricPressure }}</span>
+                        <span class="detail-value">{{ printf "%.0f" .CurrentPressure }} мм</span>
+                    </div>
+                </div>
+            </div>
+            {{ if .TodayLabel }}
+            <div class="hero-main__summary" aria-label="{{ .Text.ShortForecastAria }}">
+                <div class="hero-main__summary-row">
+                    <div class="hero-main__summary-item">
+                        <span class="detail-label">{{ .Text.Today }} ({{ .TodayLabel }})</span>
+                        <span class="detail-value">
+                            {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°
+                        </span>
+                    </div>
+                    {{ if .TomorrowLabel }}
+                    <div class="hero-main__summary-item">
+                        <span class="detail-label">{{ .Text.Tomorrow }} ({{ .TomorrowLabel }})</span>
+                        <span class="detail-value">
+                            {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°
+                        </span>
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+            <button id="js-geo-btn" class="btn btn-ghost hero-main__geo">
+                {{- if eq .Lang "en" -}}
+                    Detect my location
+                {{- else if eq .Lang "uk" -}}
+                    Визначити моє місцезнаходження
+                {{- else -}}
+                    Определить моё местоположение
+                {{- end -}}
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="search-section" aria-label="Поиск населённого пункта">
+    <div class="search-shell">
+        <div class="search-input-wrap">
+            <input
+                id="js-place-search"
+                type="text"
+                class="search-input"
+                autocomplete="off"
+                placeholder="{{ .Text.SearchPlaceholder }}"
+            >
+        </div>
+        <div id="js-place-suggestions" class="search-suggestions" role="listbox" aria-label="Подсказки населённых пунктов"></div>
+    </div>
+</section>
+
+<section id="cities" class="cities" aria-labelledby="cities-title">
+    <header class="section-header">
+        <div class="section-header__labels">
+            <span class="section-label">{{ .Text.CitiesLabel }}</span>
+            <h2 id="cities-title" class="section-title">{{ .Text.CitiesTitle }}</h2>
+        </div>
+    </header>
+
+    <div class="cities-grid cities-grid--collapsed" id="js-cities-grid" data-lang="{{ .Lang }}">
+        {{ range .Cities }}
+        <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-card" data-city-id="{{ .ID }}">
+            <div class="city-card__header">
+                <span class="city-card__name">{{ .Name }}</span>
+                <span class="city-card__icon" aria-hidden="true">{{ .Icon }}</span>
+            </div>
+            <div class="city-card__temperature">
+                <span class="city-card__temp-value">{{ printf "%.0f" .Temperature }}</span>
+                <span class="city-card__temp-unit">°C</span>
+            </div>
+            <p class="city-card__status">{{ .Description }}</p>
+            <div class="city-card__footer">
+                <div class="city-card__meta">
+                    <span class="meta-pair">
+                        <span class="meta-pair__label">{{ $.Text.MetricWind }}</span>
+                        <span class="meta-pair__value">{{ printf "%.0f" .WindSpeed }} км/ч</span>
+                    </span>
+                    <span class="meta-pair">
+                        <span class="meta-pair__label">{{ $.Text.MetricHumidity }}</span>
+                        <span class="meta-pair__value">{{ printf "%.0f" .Humidity }}%</span>
+                    </span>
+                </div>
+                <span class="city-card__link">
+                    <span class="city-card__link-text">{{ $.Text.MoreLink }}</span>
+                    <span class="city-card__link-arrow" aria-hidden="true">→</span>
+                </span>
+            </div>
+        </a>
+        {{ end }}
+    </div>
+    <div class="cities-toggle-wrap">
+        <button
+            type="button"
+            id="js-cities-toggle"
+            class="btn btn-outline cities-toggle"
+            data-label-more="{{ if eq .Lang "en" }}More{{ else if eq .Lang "uk" }}Ще{{ else }}Ещё{{ end }}"
+            data-label-less="{{ if eq .Lang "en" }}Collapse{{ else if eq .Lang "uk" }}Згорнути{{ else }}Свернуть{{ end }}"
+        >
+            {{ if eq .Lang "en" }}More{{ else if eq .Lang "uk" }}Ще{{ else }}Ещё{{ end }}
+        </button>
+    </div>
+</section>
+
+<section class="recent-section" aria-label="Недавние города">
+    <header class="section-header">
+        <div class="section-header__labels">
+            <span class="section-label">
+                {{ if eq .Lang "en" }}History{{ else if eq .Lang "uk" }}Історія{{ else }}Недавние{{ end }}
+            </span>
+            <h2 class="section-title">
+                {{ if eq .Lang "en" }}Recent cities{{ else if eq .Lang "uk" }}Недавні міста{{ else }}Недавние города{{ end }}
+            </h2>
+        </div>
+    </header>
+    <div id="js-recent-list" class="cities-grid favorites-grid"></div>
+</section>
+
+<section class="favorites-section" aria-label="Избранные города">
+    <header class="section-header">
+        <div class="section-header__labels">
+            <span class="section-label">
+                {{ if eq .Lang "en" }}Cities{{ else if eq .Lang "uk" }}Міста{{ else }}Города{{ end }}
+            </span>
+            <h2 class="section-title">
+                {{ if eq .Lang "en" }}Favourites{{ else if eq .Lang "uk" }}Обрані міста{{ else }}Избранные города{{ end }}
+            </h2>
+        </div>
+    </header>
+    <div id="js-favorites-list" class="cities-grid favorites-grid"></div>
+</section>
+{{ end }}
+
+{{ define "index-page" }}
+{{ template "layout" . }}
+{{ end }}
+

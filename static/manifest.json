@@ -1,0 +1,16 @@
+{
+  "name": "Живая погода",
+  "short_name": "Погода",
+  "start_url": "/?lang=ru",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "64x64 192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+
