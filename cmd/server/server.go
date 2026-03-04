@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"bss/internal/bootstrap"
 	"bss/internal/handlers"
 	"bss/internal/places"
 	"bss/internal/weather"
@@ -22,6 +23,11 @@ func Run() error {
 	weatherClient := weather.NewClient(10*time.Minute, 5*time.Second)
 
 	logger := log.New(os.Stdout, "[weather-ua] ", log.LstdFlags|log.Lshortfile)
+
+	// гарантируем наличие data/places.db (автоматическая загрузка GeoNames на первом запуске)
+	if err := bootstrap.EnsureData(logger); err != nil {
+		logger.Printf("bootstrap data failed: %v", err)
+	}
 
 	var placesStore *places.Store
 	const placesRelPath = "data/places.db"
