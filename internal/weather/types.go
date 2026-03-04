@@ -45,5 +45,7 @@ type WeatherData struct {
 	Hourly   []Hourly
 	Sunrise  time.Time
 	Sunset   time.Time
+	Timezone         string
+	UTCOffsetSeconds int
 }
 

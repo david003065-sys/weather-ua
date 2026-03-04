@@ -141,20 +141,24 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	hourly := c.buildHourly(apiRes)
 
 	data := &WeatherData{
-		CityID:   city.ID,
-		CityName: city.Name,
-		Current:  current,
-		Forecast: forecast,
-		Hourly:   hourly,
-		Sunrise:  sunrise,
-		Sunset:   sunset,
+		CityID:           city.ID,
+		CityName:         city.Name,
+		Current:          current,
+		Forecast:         forecast,
+		Hourly:           hourly,
+		Sunrise:          sunrise,
+		Sunset:           sunset,
+		Timezone:         apiRes.Timezone,
+		UTCOffsetSeconds: apiRes.UTCOffsetSeconds,
 	}
 
 	return data, nil
 }
 
 type openMeteoResponse struct {
-	CurrentWeather *struct {
+	Timezone         string `json:"timezone"`
+	UTCOffsetSeconds int    `json:"utc_offset_seconds"`
+	CurrentWeather   *struct {
 		Temperature float64 `json:"temperature"`
 		Windspeed   float64 `json:"windspeed"`
 		WeatherCode int     `json:"weathercode"`

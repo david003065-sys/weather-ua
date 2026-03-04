@@ -225,7 +225,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		TomorrowMin:       tomorrowMin,
 		TomorrowMax:       tomorrowMax,
 		Cities:            summaries,
-		WeatherJSON:       buildWeatherJSON(heroData.Sunrise, heroData.Sunset, ""),
+		WeatherJSON:       buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
@@ -355,7 +355,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		TrendText:         trend,
 		Cities:            cityCards,
 		Hourly:            hourly,
-		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, ""),
+		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -819,7 +819,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		TrendText:         trend,
 		Cities:            cityCards,
 		Hourly:            hourly,
-		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, ""),
+		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
 		DuplicatesCount:   dupCount,
 		DuplicatesLabel:   dupLabel,
 		DuplicatesURL:     dupURL,
@@ -830,29 +830,41 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildWeatherJSON(sunrise, sunset time.Time, tz string) template.JS {
+func buildWeatherJSON(sunrise, sunset time.Time, tz string, offsetSeconds int) template.JS {
 	if sunrise.IsZero() || sunset.IsZero() {
 		return template.JS("{}")
 	}
+
+	sunriseMinutes := sunrise.Hour()*60 + sunrise.Minute()
+	sunsetMinutes := sunset.Hour()*60 + sunset.Minute()
+
 	payload := struct {
 		Sun struct {
-			SunriseISO string `json:"sunriseISO"`
-			SunsetISO  string `json:"sunsetISO"`
+			SunriseISO     string `json:"sunriseISO"`
+			SunsetISO      string `json:"sunsetISO"`
+			SunriseMinutes int    `json:"sunriseMinutes"`
+			SunsetMinutes  int    `json:"sunsetMinutes"`
 		} `json:"sun"`
 		Meta struct {
-			TZ string `json:"tz"`
+			TZ            string `json:"tz"`
+			OffsetSeconds int    `json:"offsetSeconds"`
 		} `json:"meta"`
 	}{
 		Sun: struct {
-			SunriseISO string `json:"sunriseISO"`
-			SunsetISO  string `json:"sunsetISO"`
+			SunriseISO     string `json:"sunriseISO"`
+			SunsetISO      string `json:"sunsetISO"`
+			SunriseMinutes int    `json:"sunriseMinutes"`
+			SunsetMinutes  int    `json:"sunsetMinutes"`
 		}{
-			SunriseISO: sunrise.UTC().Format(time.RFC3339),
-			SunsetISO:  sunset.UTC().Format(time.RFC3339),
+			SunriseISO:     sunrise.UTC().Format(time.RFC3339),
+			SunsetISO:      sunset.UTC().Format(time.RFC3339),
+			SunriseMinutes: sunriseMinutes,
+			SunsetMinutes:  sunsetMinutes,
 		},
 		Meta: struct {
-			TZ string `json:"tz"`
-		}{TZ: tz},
+			TZ            string `json:"tz"`
+			OffsetSeconds int    `json:"offsetSeconds"`
+		}{TZ: tz, OffsetSeconds: offsetSeconds},
 	}
 	b, _ := json.Marshal(payload)
 	return template.JS(b)

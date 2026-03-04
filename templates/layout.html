@@ -60,10 +60,23 @@
                 <a href="/?lang={{ .Lang }}" class="nav-link {{ if .IsIndex }}nav-link--active{{ end }}">{{ .Text.NavNow }}</a>
                 <a href="/?lang={{ .Lang }}#cities" class="nav-link">{{ .Text.NavCities }}</a>
             </nav>
-            <div class="lang-switch" aria-label="Выбор языка">
-                <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
-                <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
-                <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
+            <div class="header-controls">
+                <div class="theme-switch" aria-label="Theme mode">
+                    <button type="button" class="theme-switch__item" data-theme-mode="auto">
+                        {{- if eq .Lang "en" -}}Auto{{- else if eq .Lang "uk" -}}Авто{{- else -}}Авто{{- end -}}
+                    </button>
+                    <button type="button" class="theme-switch__item" data-theme-mode="light">
+                        {{- if eq .Lang "en" -}}Light{{- else if eq .Lang "uk" -}}Світла{{- else -}}Светлая{{- end -}}
+                    </button>
+                    <button type="button" class="theme-switch__item" data-theme-mode="dark">
+                        {{- if eq .Lang "en" -}}Dark{{- else if eq .Lang "uk" -}}Темна{{- else -}}Тёмная{{- end -}}
+                    </button>
+                </div>
+                <div class="lang-switch" aria-label="Выбор языка">
+                    <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
+                    <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
+                    <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
+                </div>
             </div>
         </div>
     </header>

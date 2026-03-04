@@ -512,7 +512,14 @@ body.theme-light .weather-app::before {
     transform: scaleX(1);
 }
 
-.lang-switch {
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.lang-switch,
+.theme-switch {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -523,7 +530,8 @@ body.theme-light .weather-app::before {
     box-shadow: 0 10px 25px rgba(15, 23, 42, 0.45);
 }
 
-.lang-switch__item {
+.lang-switch__item,
+.theme-switch__item {
     font-size: 0.75rem;
     padding: 0.1rem 0.45rem;
     border-radius: 999px;
@@ -534,12 +542,14 @@ body.theme-light .weather-app::before {
         color var(--transition-fast);
 }
 
-.lang-switch__item--active {
+.lang-switch__item--active,
+.theme-switch__item--active {
     background: linear-gradient(90deg, #38bdf8, #f97316);
     color: #0b1120;
 }
 
-.lang-switch__item:hover {
+.lang-switch__item:hover,
+.theme-switch__item:hover {
     color: #e5e7eb;
 }
 
