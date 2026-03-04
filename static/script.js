@@ -228,7 +228,7 @@
     // PWA: register service worker
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
-            navigator.serviceWorker.register("/static/service-worker.js").catch(function (e) {
+            navigator.serviceWorker.register("/static/sw.js").catch(function (e) {
                 console.error("SW registration failed", e);
             });
         });
