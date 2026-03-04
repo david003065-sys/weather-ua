@@ -40,6 +40,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const url = new URL(request.url);
+  if (url.pathname.startsWith("/api/")) {
+    // не кешируем API‑запросы погоды, всегда ходим в сеть
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {
