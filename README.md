@@ -99,15 +99,15 @@
    - **Branch**: `main`
    - **Build Command**:
 
-     ```bash
-     go build -o server ./cmd/server
-     ```
+   ```bash
+   go build -o app ./cmd/server
+   ```
 
    - **Start Command**:
 
-     ```bash
-     ./server
-     ```
+   ```bash
+   ./app
+   ```
 
    - **Instance Type**: Free (бесплатный план).
 

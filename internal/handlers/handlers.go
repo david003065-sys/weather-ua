@@ -564,6 +564,13 @@ func (s *Server) GeoRedirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
+// Health — простой endpoint для проверки живости сервиса.
+func (s *Server) Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
 // --- /api/places: search suggestions ---
 
 type apiPlace struct {

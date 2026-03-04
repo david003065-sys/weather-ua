@@ -57,6 +57,7 @@ func Run() error {
 	mux.HandleFunc("/api/place_weather", srv.APIPlaceWeather)
 	mux.HandleFunc("/api/places", srv.PlacesSuggest)
 	mux.HandleFunc("/weather/geo", srv.GeoRedirect)
+	mux.HandleFunc("/health", srv.Health)
 
 	fileServer := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
