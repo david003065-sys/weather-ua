@@ -49,3 +49,15 @@ type WeatherData struct {
 	UTCOffsetSeconds int
 }
 
+// CachedWeather хранит ответ погоды и время кэширования.
+type CachedWeather struct {
+	Weather   *WeatherData
+	Timestamp time.Time
+}
+
+// WeatherCache — кэш погоды по ключу (город или place:id).
+// Ограничение: не более одного запроса к API на ключ в течение CacheTTL (10 мин).
+type WeatherCache struct {
+	Data map[string]CachedWeather
+}
+

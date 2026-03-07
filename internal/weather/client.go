@@ -10,9 +10,15 @@ import (
 	"time"
 )
 
+// Logger для сообщений кэша (если nil — логирование отключено).
+type Logger interface {
+	Printf(format string, args ...interface{})
+}
+
 type Client struct {
 	httpClient *http.Client
 	cacheTTL   time.Duration
+	logger     Logger
 
 	mu    sync.RWMutex
 	cache map[string]cachedWeather
@@ -23,6 +29,8 @@ type cachedWeather struct {
 	expiresAt time.Time
 }
 
+var errRateLimited = errors.New("weather api 429 too many requests")
+
 func NewClient(cacheTTL, timeout time.Duration) *Client {
 	return &Client{
 		httpClient: &http.Client{
@@ -31,6 +39,11 @@ func NewClient(cacheTTL, timeout time.Duration) *Client {
 		cacheTTL: cacheTTL,
 		cache:    make(map[string]cachedWeather),
 	}
+}
+
+// SetLogger задаёт логгер для сообщений кэша (weather cache hit/miss/update).
+func (c *Client) SetLogger(l Logger) {
+	c.logger = l
 }
 
 func (c *Client) GetWeather(ctx context.Context, cityID string) (*WeatherData, error) {
@@ -61,12 +74,22 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	c.mu.RUnlock()
 
 	if cached.data != nil && now.Before(cached.expiresAt) {
+		if c.logger != nil {
+			c.logger.Printf("weather cache hit")
+		}
 		return cached.data, nil
+	}
+
+	if c.logger != nil {
+		c.logger.Printf("weather cache miss")
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
 		if cached.data != nil {
+			if c.logger != nil && errors.Is(err, errRateLimited) {
+				c.logger.Printf("weather api 429, using cache")
+			}
 			return cached.data, nil
 		}
 		return nil, err
@@ -79,6 +102,9 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	}
 	c.mu.Unlock()
 
+	if c.logger != nil {
+		c.logger.Printf("weather cache update")
+	}
 	return data, nil
 }
 
@@ -99,6 +125,9 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, errRateLimited
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("weather api status: %s", resp.Status)
 	}
