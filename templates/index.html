@@ -36,7 +36,7 @@
         </div>
         <div class="hero-main__body">
             <div class="hero-main__temperature">
-                <span id="js-current-temp" class="hero-main__temp-value">{{ printf "%.0f" .CurrentTemp }}</span>
+                <span id="js-current-temp" class="hero-main__temp-value">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
                 <span class="hero-main__temp-unit">°C</span>
             </div>
             <div class="hero-main__meta">

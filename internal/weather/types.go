@@ -47,6 +47,8 @@ type WeatherData struct {
 	Sunset   time.Time
 	Timezone         string
 	UTCOffsetSeconds int
+	// IsFallback: true если данные недоступны (429 и кэша нет) — показать "Данные временно недоступны".
+	IsFallback bool
 }
 
 // CachedWeather хранит ответ погоды и время кэширования.

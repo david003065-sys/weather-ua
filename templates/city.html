@@ -53,7 +53,7 @@
     <div class="city-hero__main">
         <div class="city-hero__temp-block" aria-label="{{ .Text.CurrentWeatherAria }}">
             <div class="city-hero__temp">
-                <span id="js-current-temp" class="city-hero__temp-value">{{ printf "%.0f" .CurrentTemp }}</span>
+                <span id="js-current-temp" class="city-hero__temp-value">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
                 <span class="city-hero__temp-unit">°C</span>
             </div>
             <div class="city-hero__meta-grid">

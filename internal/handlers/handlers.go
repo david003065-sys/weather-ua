@@ -69,33 +69,35 @@ type TextSet struct {
 	ChartAria           string
 	OtherCitiesAria     string
 	QuickSwitchTitle    string
-	SearchPlaceholder   string
-	Footer              string
-	MoreLink            string
+	SearchPlaceholder       string
+	Footer                  string
+	MoreLink                string
+	WeatherUnavailableMsg   string
 }
 
 type IndexPageData struct {
-	IsIndex           bool
-	WeatherCode       int
-	IsNight           bool
-	Lang              string
-	Path              string
-	Text              TextSet
-	CityID            string
-	CurrentCityName   string
-	CurrentTemp       float64
+	IsIndex            bool
+	WeatherCode        int
+	IsNight            bool
+	Lang               string
+	Path               string
+	Text               TextSet
+	CityID             string
+	CurrentCityName    string
+	CurrentTemp        float64
 	CurrentDescription string
-	CurrentWind       float64
-	CurrentHumidity   float64
-	CurrentPressure   float64
-	TodayLabel        string
-	TodayMin          float64
-	TodayMax          float64
-	TomorrowLabel     string
-	TomorrowMin       float64
-	TomorrowMax       float64
-	Cities            []CitySummary
-	WeatherJSON       template.JS
+	CurrentWind        float64
+	CurrentHumidity    float64
+	CurrentPressure    float64
+	WeatherUnavailable bool
+	TodayLabel         string
+	TodayMin           float64
+	TodayMax           float64
+	TomorrowLabel      string
+	TomorrowMin        float64
+	TomorrowMax        float64
+	Cities             []CitySummary
+	WeatherJSON        template.JS
 }
 
 type DailyView struct {
@@ -115,21 +117,22 @@ type HourlyView struct {
 }
 
 type CityPageData struct {
-	IsIndex          bool
-	WeatherCode      int
-	IsNight          bool
-	Lang             string
-	Path             string
-	Text             TextSet
-	CityID           string
-	CityName         string
-	CityLocation     string
-	CurrentTemp      float64
+	IsIndex            bool
+	WeatherCode        int
+	IsNight            bool
+	Lang               string
+	Path               string
+	Text               TextSet
+	CityID             string
+	CityName           string
+	CityLocation       string
+	CurrentTemp        float64
 	CurrentDescription string
-	CurrentWind      float64
-	CurrentHumidity  float64
-	CurrentPressure  float64
-	Forecast         []DailyView
+	CurrentWind        float64
+	CurrentHumidity    float64
+	CurrentPressure    float64
+	WeatherUnavailable bool
+	Forecast           []DailyView
 	TodayLabel       string
 	TodayMin         float64
 	TodayMax         float64
@@ -173,11 +176,15 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			heroData = data
 		}
 
+		desc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+		if data.IsFallback {
+			desc = text.WeatherUnavailableMsg
+		}
 		summaries = append(summaries, CitySummary{
 			ID:          data.CityID,
 			Name:        weather.LocalizedCityName(data.CityID, lang),
 			Temperature: data.Current.Temperature,
-			Description: weather.LocalizedDescription(data.Current.WeatherCode, lang),
+			Description: desc,
 			Icon:        data.Current.Icon,
 			WindSpeed:   data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
@@ -204,28 +211,33 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		tomorrowMax = tomorrow.MaxTemp
 	}
 
+	currentDesc := weather.LocalizedDescription(heroData.Current.WeatherCode, lang)
+	if heroData.IsFallback {
+		currentDesc = text.WeatherUnavailableMsg
+	}
 	page := IndexPageData{
-		IsIndex:           true,
-		WeatherCode:       heroData.Current.WeatherCode,
-		IsNight:           heroData.Current.IsNight,
-		Lang:              lang,
-		Path:              r.URL.Path,
-		Text:              text,
-		CityID:            "",
-		CurrentCityName:   weather.LocalizedCityName(heroData.CityID, lang),
-		CurrentTemp:       heroData.Current.Temperature,
-		CurrentDescription: weather.LocalizedDescription(heroData.Current.WeatherCode, lang),
-		CurrentWind:       heroData.Current.WindSpeed,
-		CurrentHumidity:   heroData.Current.Humidity,
-		CurrentPressure:   heroData.Current.Pressure,
-		TodayLabel:        todayLabel,
-		TodayMin:          todayMin,
-		TodayMax:          todayMax,
-		TomorrowLabel:     tomorrowLabel,
-		TomorrowMin:       tomorrowMin,
-		TomorrowMax:       tomorrowMax,
-		Cities:            summaries,
-		WeatherJSON:       buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
+		IsIndex:            true,
+		WeatherCode:        heroData.Current.WeatherCode,
+		IsNight:            heroData.Current.IsNight,
+		Lang:               lang,
+		Path:               r.URL.Path,
+		Text:               text,
+		CityID:             "",
+		CurrentCityName:    weather.LocalizedCityName(heroData.CityID, lang),
+		CurrentTemp:        heroData.Current.Temperature,
+		CurrentDescription: currentDesc,
+		CurrentWind:        heroData.Current.WindSpeed,
+		CurrentHumidity:    heroData.Current.Humidity,
+		CurrentPressure:    heroData.Current.Pressure,
+		WeatherUnavailable: heroData.IsFallback,
+		TodayLabel:         todayLabel,
+		TodayMin:           todayMin,
+		TodayMax:           todayMax,
+		TomorrowLabel:      tomorrowLabel,
+		TomorrowMin:        tomorrowMin,
+		TomorrowMax:        tomorrowMax,
+		Cities:             summaries,
+		WeatherJSON:        buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
@@ -309,11 +321,15 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
+		cardDesc := weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		if d.IsFallback {
+			cardDesc = text.WeatherUnavailableMsg
+		}
 		cityCards = append(cityCards, CitySummary{
 			ID:          d.CityID,
 			Name:        weather.LocalizedCityName(d.CityID, lang),
 			Temperature: d.Current.Temperature,
-			Description: weather.LocalizedDescription(d.Current.WeatherCode, lang),
+			Description: cardDesc,
 			Icon:        d.Current.Icon,
 			WindSpeed:   d.Current.WindSpeed,
 			Humidity:    d.Current.Humidity,
@@ -331,31 +347,36 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	currentDesc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	if data.IsFallback {
+		currentDesc = text.WeatherUnavailableMsg
+	}
 	page := CityPageData{
-		IsIndex:           false,
-		WeatherCode:       data.Current.WeatherCode,
-		IsNight:           data.Current.IsNight,
-		Lang:              lang,
-		Path:              r.URL.Path,
-		Text:              text,
-		CityID:            data.CityID,
-		CityName:          weather.LocalizedCityName(data.CityID, lang),
-		CurrentTemp:       data.Current.Temperature,
-		CurrentDescription: weather.LocalizedDescription(data.Current.WeatherCode, lang),
-		CurrentWind:       data.Current.WindSpeed,
-		CurrentHumidity:   data.Current.Humidity,
-		CurrentPressure:   data.Current.Pressure,
-		Forecast:          forecast,
-		TodayLabel:        todayLabel,
-		TodayMin:          todayMin,
-		TodayMax:          todayMax,
-		TomorrowLabel:     tomorrowLabel,
-		TomorrowMin:       tomorrowMin,
-		TomorrowMax:       tomorrowMax,
-		TrendText:         trend,
-		Cities:            cityCards,
-		Hourly:            hourly,
-		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		IsIndex:            false,
+		WeatherCode:        data.Current.WeatherCode,
+		IsNight:            data.Current.IsNight,
+		Lang:               lang,
+		Path:               r.URL.Path,
+		Text:               text,
+		CityID:             data.CityID,
+		CityName:           weather.LocalizedCityName(data.CityID, lang),
+		CurrentTemp:        data.Current.Temperature,
+		CurrentDescription: currentDesc,
+		CurrentWind:        data.Current.WindSpeed,
+		CurrentHumidity:    data.Current.Humidity,
+		CurrentPressure:    data.Current.Pressure,
+		WeatherUnavailable: data.IsFallback,
+		Forecast:           forecast,
+		TodayLabel:         todayLabel,
+		TodayMin:           todayMin,
+		TodayMax:           todayMax,
+		TomorrowLabel:      tomorrowLabel,
+		TomorrowMin:        tomorrowMin,
+		TomorrowMax:        tomorrowMax,
+		TrendText:          trend,
+		Cities:             cityCards,
+		Hourly:             hourly,
+		WeatherJSON:        buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -771,11 +792,15 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 			s.logger.Printf("get weather for %s: %v", c.ID, err)
 			continue
 		}
+		cardDesc := weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		if d.IsFallback {
+			cardDesc = text.WeatherUnavailableMsg
+		}
 		cityCards = append(cityCards, CitySummary{
 			ID:          d.CityID,
 			Name:        weather.LocalizedCityName(d.CityID, lang),
 			Temperature: d.Current.Temperature,
-			Description: weather.LocalizedDescription(d.Current.WeatherCode, lang),
+			Description: cardDesc,
 			Icon:        d.Current.Icon,
 			WindSpeed:   d.Current.WindSpeed,
 			Humidity:    d.Current.Humidity,
@@ -794,35 +819,40 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 
 	dupCount, dupLabel, dupURL := s.computePlaceDuplicates(ctx, place, lang, displayName)
 
+	currentDesc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	if data.IsFallback {
+		currentDesc = text.WeatherUnavailableMsg
+	}
 	page := CityPageData{
-		IsIndex:           false,
-		WeatherCode:       data.Current.WeatherCode,
-		IsNight:           data.Current.IsNight,
-		Lang:              lang,
-		Path:              r.URL.Path,
-		Text:              text,
-		CityID:            "", // нет автообновления через /api/weather
-		CityName:          displayName,
-		CityLocation:      locationSubtitle,
-		CurrentTemp:       data.Current.Temperature,
-		CurrentDescription: weather.LocalizedDescription(data.Current.WeatherCode, lang),
-		CurrentWind:       data.Current.WindSpeed,
-		CurrentHumidity:   data.Current.Humidity,
-		CurrentPressure:   data.Current.Pressure,
-		Forecast:          forecast,
-		TodayLabel:        todayLabel,
-		TodayMin:          todayMin,
-		TodayMax:          todayMax,
-		TomorrowLabel:     tomorrowLabel,
-		TomorrowMin:       tomorrowMin,
-		TomorrowMax:       tomorrowMax,
-		TrendText:         trend,
-		Cities:            cityCards,
-		Hourly:            hourly,
-		WeatherJSON:       buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
-		DuplicatesCount:   dupCount,
-		DuplicatesLabel:   dupLabel,
-		DuplicatesURL:     dupURL,
+		IsIndex:            false,
+		WeatherCode:        data.Current.WeatherCode,
+		IsNight:            data.Current.IsNight,
+		Lang:               lang,
+		Path:               r.URL.Path,
+		Text:               text,
+		CityID:             "", // нет автообновления через /api/weather
+		CityName:           displayName,
+		CityLocation:       locationSubtitle,
+		CurrentTemp:        data.Current.Temperature,
+		CurrentDescription: currentDesc,
+		CurrentWind:        data.Current.WindSpeed,
+		CurrentHumidity:    data.Current.Humidity,
+		CurrentPressure:    data.Current.Pressure,
+		WeatherUnavailable: data.IsFallback,
+		Forecast:           forecast,
+		TodayLabel:         todayLabel,
+		TodayMin:           todayMin,
+		TodayMax:           todayMax,
+		TomorrowLabel:      tomorrowLabel,
+		TomorrowMin:        tomorrowMin,
+		TomorrowMax:        tomorrowMax,
+		TrendText:          trend,
+		Cities:             cityCards,
+		Hourly:             hourly,
+		WeatherJSON:        buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		DuplicatesCount:    dupCount,
+		DuplicatesLabel:    dupLabel,
+		DuplicatesURL:      dupURL,
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -1230,9 +1260,10 @@ func texts(lang string) TextSet {
 			ChartAria:          "Temperature changes over 3 days",
 			OtherCitiesAria:    "Other cities",
 			QuickSwitchTitle:   "Quick switch",
-			SearchPlaceholder:  "Type a settlement…",
-			Footer:             "Data: Open‑Meteo · Updated every 10 minutes",
-			MoreLink:           "Details",
+			SearchPlaceholder:     "Type a settlement…",
+			Footer:                "Data: Open‑Meteo · Updated every 10 minutes",
+			MoreLink:              "Details",
+			WeatherUnavailableMsg: "Data temporarily unavailable",
 		}
 	case "uk":
 		return TextSet{
@@ -1262,9 +1293,10 @@ func texts(lang string) TextSet {
 			ChartAria:          "Зміна температури за 3 дні",
 			OtherCitiesAria:    "Інші міста",
 			QuickSwitchTitle:   "Швидкий перехід",
-			SearchPlaceholder:  "Введи населений пункт…",
-			Footer:             "Дані: Open‑Meteo · Оновлення кожні 10 хвилин",
-			MoreLink:           "Докладніше",
+			SearchPlaceholder:     "Введи населений пункт…",
+			Footer:                "Дані: Open‑Meteo · Оновлення кожні 10 хвилин",
+			MoreLink:              "Докладніше",
+			WeatherUnavailableMsg: "Дані тимчасово недоступні",
 		}
 	default: // ru
 		return TextSet{
@@ -1294,9 +1326,10 @@ func texts(lang string) TextSet {
 			ChartAria:          "График изменения температуры за 3 дня",
 			OtherCitiesAria:    "Другие города",
 			QuickSwitchTitle:   "Быстрый переход",
-			SearchPlaceholder:  "Введи населённый пункт…",
-			Footer:             "Данные: Open‑Meteo · Обновление каждые 10 минут",
-			MoreLink:           "Подробнее",
+			SearchPlaceholder:     "Введи населённый пункт…",
+			Footer:                "Данные: Open‑Meteo · Обновление каждые 10 минут",
+			MoreLink:              "Подробнее",
+			WeatherUnavailableMsg: "Данные временно недоступны",
 		}
 	}
 }
