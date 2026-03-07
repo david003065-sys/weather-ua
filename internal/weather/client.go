@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +20,11 @@ type Logger interface {
 // minIntervalBetweenAPI — минимум между запросами к API, чтобы не получать 429.
 const minIntervalBetweenAPI = 1 * time.Second
 
-// cacheTTL — время жизни записи в кэше (не чаще одного запроса на ключ за этот период).
+// cacheTTL — время жизни успешного ответа в кэше.
 const cacheTTLDefault = 10 * time.Minute
+
+// cacheTTLOn429 — когда API вернул 429 и кэша нет, кэшируем fallback на это время, чтобы не слать запросы снова.
+const cacheTTLOn429 = 2 * time.Minute
 
 type Client struct {
 	httpClient *http.Client
@@ -65,9 +69,17 @@ func (c *Client) SetLogger(l Logger) {
 	c.logger = l
 }
 
-// normalizeCacheKey возвращает стабильный ключ кэша: без пробелов по краям, нижний регистр.
+// normalizeCacheKey возвращает стабильный ключ: strings.ToLower(city) или для локации — lat_lon до 3 знаков.
 func normalizeCacheKey(key string) string {
 	return strings.ToLower(strings.TrimSpace(key))
+}
+
+// cacheKeyFromLatLon возвращает стабильный ключ по координатам (округление до 3 знаков).
+func cacheKeyFromLatLon(lat, lon float64) string {
+	const prec = 3
+	latR := float64(int(lat*1e3+0.5)) / 1e3
+	lonR := float64(int(lon*1e3+0.5)) / 1e3
+	return "loc:" + strconv.FormatFloat(latR, 'f', prec, 64) + "_" + strconv.FormatFloat(lonR, 'f', prec, 64)
 }
 
 func (c *Client) GetWeather(ctx context.Context, cityID string) (*WeatherData, error) {
@@ -80,9 +92,12 @@ func (c *Client) GetWeather(ctx context.Context, cityID string) (*WeatherData, e
 }
 
 // GetWeatherForLocation возвращает погоду по произвольным координатам.
-// cacheKey должен быть стабильным (например, "place:123").
+// cacheKey — стабильный ключ (например "place:123"); если пустой — используется lat_lon до 3 знаков.
 func (c *Client) GetWeatherForLocation(ctx context.Context, cacheKey, name string, lat, lon float64) (*WeatherData, error) {
 	key := normalizeCacheKey(cacheKey)
+	if key == "" {
+		key = cacheKeyFromLatLon(lat, lon)
+	}
 	city := City{
 		ID:        key,
 		Name:      name,
@@ -105,71 +120,64 @@ func (c *Client) getKeyLock(key string) *sync.Mutex {
 func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city City) (*WeatherData, error) {
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
-	logKey := cacheKey
-	if logKey == "" {
-		logKey = city.Name
-	}
 
-	// 1) Быстрая проверка кэша без блокировки других ключей.
+	// 1) Cache hit: запись есть и моложе 10 минут — возвращаем из кэша.
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
 	c.mu.RUnlock()
 
-	if cached.data != nil && !cached.data.IsFallback && now.Before(cached.expiresAt) {
+	if cached.data != nil && now.Before(cached.expiresAt) {
 		if c.logger != nil {
-			ageStr := "?"
-			if !cached.storedAt.IsZero() {
-				ageStr = now.Sub(cached.storedAt).Round(time.Second).String()
-			}
-			c.logger.Printf("weather cache hit: city=%s age=%s", logKey, ageStr)
+			c.logger.Printf("weather cache hit")
 		}
 		return cached.data, nil
 	}
 
-	// 2) Кэш просрочен или пуст — нужен запрос. Один запрос на ключ (stampede protection).
+	// 2) Кэш пуст или просрочен. Один запрос на ключ (stampede protection).
 	keyLock := c.getKeyLock(cacheKey)
 	keyLock.Lock()
 	defer keyLock.Unlock()
 
-	// 3) Повторная проверка кэша после получения блокировки (другой goroutine мог уже заполнить).
 	c.mu.RLock()
 	cached = c.cache[cacheKey]
 	c.mu.RUnlock()
-	if cached.data != nil && !cached.data.IsFallback && now.Before(cached.expiresAt) {
+	if cached.data != nil && now.Before(cached.expiresAt) {
 		if c.logger != nil {
-			ageStr := "?"
-			if !cached.storedAt.IsZero() {
-				ageStr = now.Sub(cached.storedAt).Round(time.Second).String()
-			}
-			c.logger.Printf("weather cache hit: city=%s age=%s", logKey, ageStr)
+			c.logger.Printf("weather cache hit")
 		}
 		return cached.data, nil
 	}
 
 	if c.logger != nil {
-		c.logger.Printf("weather cache miss: city=%s", logKey)
+		c.logger.Printf("weather cache miss")
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		if errors.Is(err, errRateLimited) && cached.data != nil && !cached.data.IsFallback {
+		if errors.Is(err, errRateLimited) && cached.data != nil {
 			if c.logger != nil {
-				c.logger.Printf("weather api 429 fallback from cache: city=%s", logKey)
+				c.logger.Printf("weather api 429 fallback")
 			}
 			return cached.data, nil
 		}
 		if errors.Is(err, errRateLimited) {
-			// 429 и кэша нет — отдаём fallback, страница не ломается.
 			fallback := c.buildFallbackWeatherData(city)
+			c.mu.Lock()
+			c.cache[cacheKey] = cachedWeather{
+				data:      fallback,
+				expiresAt: now.Add(cacheTTLOn429),
+				storedAt:  now,
+			}
+			c.mu.Unlock()
 			if c.logger != nil {
-				c.logger.Printf("weather cache stale fallback: city=%s (api 429, no cache)", logKey)
+				c.logger.Printf("weather api 429 fallback")
 			}
 			return fallback, nil
 		}
 		return nil, err
 	}
 
-	// Успех — пишем в кэш.
+	// Успех — сохраняем в кэш на 10 минут.
 	c.mu.Lock()
 	c.cache[cacheKey] = cachedWeather{
 		data:      data,
@@ -179,7 +187,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	c.mu.Unlock()
 
 	if c.logger != nil {
-		c.logger.Printf("weather cache store: city=%s", logKey)
+		c.logger.Printf("weather cache store")
 	}
 	return data, nil
 }
