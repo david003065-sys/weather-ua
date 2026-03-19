@@ -33,7 +33,7 @@ type Client struct {
 	logger     Logger
 
 	mu    sync.RWMutex
-	cache map[string]cachedWeather
+	cache map[string]CachedWeather
 
 	apiMu          sync.Mutex
 	lastAPIRequest time.Time
@@ -41,13 +41,6 @@ type Client struct {
 	// keyMu защищает ключи в keyLocks; по одному ин-флайт запросу на ключ (защита от stampede).
 	keyMu    sync.Mutex
 	keyLocks map[string]*sync.Mutex
-}
-
-type cachedWeather struct {
-	data      *WeatherData
-	expiresAt time.Time
-	storedAt  time.Time
-	isValid   bool
 }
 
 var errRateLimited = errors.New("weather api 429 too many requests")
@@ -61,7 +54,7 @@ func NewClient(cacheTTL, timeout time.Duration) *Client {
 			Timeout: timeout,
 		},
 		cacheTTL: cacheTTL,
-		cache:    make(map[string]cachedWeather),
+		cache:    make(map[string]CachedWeather),
 		keyLocks: make(map[string]*sync.Mutex),
 	}
 }
@@ -123,87 +116,147 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
 
-	// 1) Cache hit
+	// кэш считается валидным, если он моложе TTL
+	retryAfterDur := 5 * time.Minute
+
+	// read cached entry (may be zero-values)
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
 	c.mu.RUnlock()
 
-	if cached.data != nil && now.Before(cached.expiresAt) {
-		if cached.isValid {
-			if c.logger != nil {
-				c.logger.Printf("weather cache hit valid")
-			}
-			return cached.data, nil
-		}
+	hasValid := cached.Data != nil && cached.IsValid
+	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
+
+	// cache hit valid
+	if fresh {
 		if c.logger != nil {
-			c.logger.Printf("weather cache hit fallback")
+			c.logger.Printf("weather cache hit valid")
 		}
-		return cached.data, nil
+		return cached.Data, nil
 	}
 
-	// 2) Кэш пуст или просрочен. Один запрос на ключ (stampede protection).
+	// cache hit stale / retry blocking
+	if cached.RetryAfter.After(now) {
+		if c.logger != nil {
+			c.logger.Printf("weather api request blocked by RetryAfter")
+		}
+		if hasValid {
+			if c.logger != nil {
+				c.logger.Printf("weather cache hit stale")
+			}
+			if c.logger != nil {
+				c.logger.Printf("fallback stale cache")
+			}
+			return cached.Data, nil
+		}
+		if c.logger != nil {
+			c.logger.Printf("fallback no cache")
+		}
+		return c.buildFallbackWeatherData(city), nil
+	}
+
+	// stampede protection per key
 	keyLock := c.getKeyLock(cacheKey)
 	keyLock.Lock()
 	defer keyLock.Unlock()
 
+	// re-check after acquiring lock (dedup)
 	c.mu.RLock()
 	cached = c.cache[cacheKey]
 	c.mu.RUnlock()
-	if cached.data != nil && now.Before(cached.expiresAt) {
-		if cached.isValid {
-			if c.logger != nil {
-				c.logger.Printf("weather cache hit valid")
-			}
-			return cached.data, nil
+
+	hasValid = cached.Data != nil && cached.IsValid
+	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
+
+	if fresh {
+		if c.logger != nil {
+			c.logger.Printf("weather api request deduplicated")
 		}
 		if c.logger != nil {
-			c.logger.Printf("weather cache hit fallback")
+			c.logger.Printf("weather cache hit valid")
 		}
-		return cached.data, nil
+		return cached.Data, nil
+	}
+
+	if cached.RetryAfter.After(now) {
+		if c.logger != nil {
+			c.logger.Printf("weather api request blocked by RetryAfter")
+		}
+		if hasValid {
+			if c.logger != nil {
+				c.logger.Printf("weather cache hit stale")
+			}
+			if c.logger != nil {
+				c.logger.Printf("fallback stale cache")
+			}
+			return cached.Data, nil
+		}
+		if c.logger != nil {
+			c.logger.Printf("fallback no cache")
+		}
+		return c.buildFallbackWeatherData(city), nil
 	}
 
 	if c.logger != nil {
 		c.logger.Printf("weather cache miss")
 	}
 
+	if c.logger != nil {
+		c.logger.Printf("weather api request started")
+	}
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		// Если это 429 — используем старые ВАЛИДНЫЕ данные, если они есть.
+		// handle 429 with retryAfter; do NOT cache fallback as valid data
+		now2 := time.Now()
+		retryUntil := now2.Add(retryAfterDur)
+
+		c.mu.Lock()
+		entry := c.cache[cacheKey]
+		entry.LastError = err.Error()
+		entry.RetryAfter = retryUntil
+		c.cache[cacheKey] = entry
+		c.mu.Unlock()
+
 		if errors.Is(err, errRateLimited) {
-			if cached.data != nil && cached.isValid {
+			if cached.Data != nil && cached.IsValid {
 				if c.logger != nil {
 					c.logger.Printf("weather api 429 fallback from stale cache")
 				}
-				return cached.data, nil
+				if c.logger != nil {
+					c.logger.Printf("fallback stale cache")
+				}
+				return cached.Data, nil
 			}
-
 			if c.logger != nil {
 				c.logger.Printf("weather api 429 fallback without cache")
 			}
 			return c.buildFallbackWeatherData(city), nil
 		}
 
-		// Любые другие ошибки: отдаём валидный кэш, если он есть, иначе fallback без кэширования.
-		if cached.data != nil && cached.isValid {
+		// other errors: stale valid if exists
+		if cached.Data != nil && cached.IsValid {
 			if c.logger != nil {
-				c.logger.Printf("weather api error fallback from stale cache")
+				c.logger.Printf("weather cache hit stale")
 			}
-			return cached.data, nil
+			if c.logger != nil {
+				c.logger.Printf("fallback stale cache")
+			}
+			return cached.Data, nil
 		}
-
 		if c.logger != nil {
-			c.logger.Printf("weather fallback used")
+			c.logger.Printf("fallback no cache")
 		}
 		return c.buildFallbackWeatherData(city), nil
 	}
 
-	// Успех — сохраняем ВАЛИДНЫЕ данные в кэш на 10 минут.
+	// success: store valid data
 	c.mu.Lock()
-	c.cache[cacheKey] = cachedWeather{
-		data:      data,
-		expiresAt: now.Add(c.cacheTTL),
-		storedAt:  now,
-		isValid:   true,
+	c.cache[cacheKey] = CachedWeather{
+		Data:      data,
+		Timestamp: now,
+		IsValid:   true,
+		LastError: "",
+		RetryAfter: time.Time{},
 	}
 	c.mu.Unlock()
 

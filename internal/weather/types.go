@@ -53,9 +53,11 @@ type WeatherData struct {
 
 // CachedWeather хранит ответ погоды и время кэширования.
 type CachedWeather struct {
-	Weather   *WeatherData
+	Data      *WeatherData
 	Timestamp time.Time
 	IsValid   bool
+	LastError string
+	RetryAfter time.Time
 }
 
 // WeatherCache — кэш погоды по ключу (город или place:id).
