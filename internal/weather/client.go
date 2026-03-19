@@ -26,6 +26,12 @@ const minIntervalBetweenAPI = 1 * time.Second
 // cacheTTL — время жизни успешного ответа в кэше.
 const cacheTTLDefault = 10 * time.Minute
 
+// Global API cooldown after 429 responses.
+var (
+	apiBlockedUntil time.Time
+	apiBlockMu      sync.RWMutex
+)
+
 type Client struct {
 	httpClient *http.Client
 	cacheTTL   time.Duration
@@ -41,6 +47,11 @@ type Client struct {
 	keyMu    sync.Mutex
 	keyLocks map[string]*sync.Mutex
 }
+
+var (
+	errRateLimited       = errors.New("open-meteo rate limited")
+	errAPIGloballyBlocked = errors.New("api globally blocked")
+)
 
 func NewClient(cacheTTL, timeout time.Duration) *Client {
 	if cacheTTL <= 0 {
@@ -121,6 +132,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
 	if fresh {
 		if c.logger != nil {
+			c.logger.Printf("cache hit")
 			c.logger.Printf("weather cache hit valid")
 		}
 		return cached.Data, nil
@@ -139,6 +151,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
 	if fresh {
 		if c.logger != nil {
+			c.logger.Printf("cache hit")
 			c.logger.Printf("weather request deduplicated")
 			c.logger.Printf("weather cache hit valid")
 		}
@@ -149,6 +162,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	// under heavy load (prevents mass Open-Meteo requests on every page render).
 	if hasValid {
 		if c.logger != nil {
+			c.logger.Printf("cache hit")
 			c.logger.Printf("using cache (stale)")
 			c.logger.Printf("API call skipped (rate limited)")
 		}
@@ -156,12 +170,26 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	}
 
 	if c.logger != nil {
+		c.logger.Printf("cache miss")
 		c.logger.Printf("weather cache miss")
 		c.logger.Printf("open-meteo request started")
+		c.logger.Printf("API request started")
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
+		if errors.Is(err, errAPIGloballyBlocked) {
+			if c.logger != nil {
+				c.logger.Printf("API blocked")
+			}
+			return c.buildFallbackWeatherData(city), nil
+		}
+		if errors.Is(err, errRateLimited) {
+			if c.logger != nil {
+				c.logger.Printf("429 detected")
+			}
+			return c.buildFallbackWeatherData(city), nil
+		}
 		if hasValid {
 			if c.logger != nil {
 				c.logger.Printf("weather cache hit stale")
@@ -257,6 +285,13 @@ func (c *Client) WarmCache(ctx context.Context) {
 }
 
 func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, error) {
+	if isAPIGloballyBlocked() {
+		if c.logger != nil {
+			c.logger.Printf("API globally blocked, skipping request")
+		}
+		return nil, errAPIGloballyBlocked
+	}
+
 	if c.logger != nil {
 		c.logger.Printf("open-meteo request started")
 	}
@@ -323,6 +358,14 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if c.logger != nil {
+				c.logger.Printf("429 detected")
+				c.logger.Printf("API LIMIT HIT → blocking for 1 hour")
+			}
+			blockAPIForOneHour()
+			return nil, errRateLimited
+		}
 		if c.logger != nil {
 			c.logger.Printf("open-meteo non-200 status: %s body=%s", resp.Status, snippet(bodyBytes, 500))
 		}
@@ -411,6 +454,18 @@ func snippet(b []byte, max int) string {
 		return strings.ReplaceAll(string(b), "\n", " ")
 	}
 	return strings.ReplaceAll(string(b[:max]), "\n", " ") + "...(truncated)"
+}
+
+func isAPIGloballyBlocked() bool {
+	apiBlockMu.RLock()
+	defer apiBlockMu.RUnlock()
+	return time.Now().Before(apiBlockedUntil)
+}
+
+func blockAPIForOneHour() {
+	apiBlockMu.Lock()
+	apiBlockedUntil = time.Now().Add(1 * time.Hour)
+	apiBlockMu.Unlock()
 }
 
 type openMeteoResponse struct {
