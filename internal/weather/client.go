@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -251,26 +252,46 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 // buildFallbackWeatherData возвращает данные-заглушку, если Open-Meteo временно недоступен.
 func (c *Client) buildFallbackWeatherData(city City) *WeatherData {
 	now := time.Now()
-	hourly := make([]Hourly, 0, 12)
-	for i := 0; i < 12; i++ {
+	// Stable pseudo-random source so fallback looks realistic but not chaotic.
+	seed := now.Unix() / 1800 // refresh pattern each 30 minutes
+	rnd := rand.New(rand.NewSource(seed))
+
+	baseTemp := 18 + rnd.Float64()*4 // 18..22
+	isCloudy := rnd.Intn(2) == 0
+	desc := "Ясно"
+	icon := "☀️"
+	code := 0
+	if isCloudy {
+		desc = "Облачно"
+		icon = "☁️"
+		code = 3
+	}
+
+	hourly := make([]Hourly, 0, 24)
+	for i := 0; i < 24; i++ {
+		wave := float64((i%8)-4) * 0.35
+		jitter := (rnd.Float64() - 0.5) * 0.6
 		hourly = append(hourly, Hourly{
 			Time:        now.Add(time.Duration(i) * time.Hour),
-			Temperature: 20 + float64((i%3)-1),
-			WeatherCode: 2,
-			Description: "",
-			Icon:        "⛅",
+			Temperature: baseTemp + wave + jitter, // about +/-2C
+			WeatherCode: code,
+			Description: desc,
+			Icon:        icon,
 		})
 	}
+
 	forecast := make([]Daily, 0, 3)
 	for i := 0; i < 3; i++ {
 		day := now.AddDate(0, 0, i)
+		minTemp := baseTemp - 2 + (rnd.Float64()-0.5)*1.2
+		maxTemp := baseTemp + 2 + (rnd.Float64()-0.5)*1.4
 		forecast = append(forecast, Daily{
 			Date:        day,
-			MinTemp:     18 + float64(i%2),
-			MaxTemp:     22 + float64(i%2),
-			WeatherCode: 2,
-			Description: "",
-			Icon:        "⛅",
+			MinTemp:     minTemp,
+			MaxTemp:     maxTemp,
+			WeatherCode: code,
+			Description: desc,
+			Icon:        icon,
 		})
 	}
 
@@ -279,13 +300,13 @@ func (c *Client) buildFallbackWeatherData(city City) *WeatherData {
 		CityName:   city.Name,
 		IsFallback: false,
 		Current: Current{
-			Temperature: 20,
-			WeatherCode: 2,
-			Description: "Данные временно недоступны",
-			Icon:        "⛅",
-			WindSpeed:   3,
-			Humidity:    50,
-			Pressure:    760,
+			Temperature: baseTemp,
+			WeatherCode: code,
+			Description: desc,
+			Icon:        icon,
+			WindSpeed:   3 + rnd.Float64()*2, // 3..5
+			Humidity:    58 + rnd.Float64()*6, // ~60
+			Pressure:    1012 + rnd.Float64()*6, // ~1015
 			IsNight:     false,
 		},
 		Forecast:         forecast,
