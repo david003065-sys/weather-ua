@@ -145,8 +145,19 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		return cached.Data, nil
 	}
 
+	// strict cache-first: stale valid cache is preferable to extra API calls
+	// under heavy load (prevents mass Open-Meteo requests on every page render).
+	if hasValid {
+		if c.logger != nil {
+			c.logger.Printf("using cache (stale)")
+			c.logger.Printf("API call skipped (rate limited)")
+		}
+		return cached.Data, nil
+	}
+
 	if c.logger != nil {
 		c.logger.Printf("weather cache miss")
+		c.logger.Printf("open-meteo request started")
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
