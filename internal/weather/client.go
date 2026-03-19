@@ -123,6 +123,10 @@ func (c *Client) getKeyLock(key string) *sync.Mutex {
 func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city City) (*WeatherData, error) {
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
+	apiBlocked := isAPIGloballyBlocked()
+	if apiBlocked && c.logger != nil {
+		c.logger.Printf("API globally blocked, skipping request")
+	}
 
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
@@ -136,6 +140,22 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("weather cache hit valid")
 		}
 		return cached.Data, nil
+	}
+
+	// API globally blocked: do not attempt API at all.
+	// If there is no valid cache, return safe fallback immediately.
+	if apiBlocked {
+		if hasValid {
+			if c.logger != nil {
+				c.logger.Printf("using cache (stale)")
+				c.logger.Printf("API call skipped (rate limited)")
+			}
+			return cached.Data, nil
+		}
+		if c.logger != nil {
+			c.logger.Printf("fallback no cache")
+		}
+		return c.buildFallbackWeatherData(city), nil
 	}
 
 	keyLock := c.getKeyLock(cacheKey)
