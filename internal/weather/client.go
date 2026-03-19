@@ -49,7 +49,14 @@ type Client struct {
 	// keyMu защищает ключи в keyLocks; по одному ин-флайт запросу на ключ (защита от stampede).
 	keyMu    sync.Mutex
 	keyLocks map[string]*sync.Mutex
+
+	// in-memory fallback cache to avoid recompute/log spam loops
+	lastFallback     *WeatherData
+	lastFallbackTime time.Time
+	lastFallbackLog  time.Time
 }
+
+const fallbackReuseWindow = 30 * time.Second
 
 var (
 	errRateLimited       = errors.New("open-meteo rate limited")
@@ -155,10 +162,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			}
 			return cached.Data, nil
 		}
-		if c.logger != nil {
-			c.logger.Printf("fallback no cache")
-		}
-		return c.buildFallbackWeatherData(city), nil
+		return c.getOrCreateFallback(city), nil
 	}
 
 	keyLock := c.getKeyLock(cacheKey)
@@ -205,13 +209,13 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			if c.logger != nil {
 				c.logger.Printf("API blocked")
 			}
-			return c.buildFallbackWeatherData(city), nil
+			return c.getOrCreateFallback(city), nil
 		}
 		if errors.Is(err, errRateLimited) {
 			if c.logger != nil {
 				c.logger.Printf("429 detected")
 			}
-			return c.buildFallbackWeatherData(city), nil
+			return c.getOrCreateFallback(city), nil
 		}
 		if hasValid {
 			if c.logger != nil {
@@ -225,10 +229,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		entry.LastError = err.Error()
 		c.cache[cacheKey] = entry
 		c.mu.Unlock()
-		if c.logger != nil {
-			c.logger.Printf("fallback no cache")
-		}
-		return c.buildFallbackWeatherData(city), nil
+		return c.getOrCreateFallback(city), nil
 	}
 
 	c.mu.Lock()
@@ -511,6 +512,26 @@ func snippet(b []byte, max int) string {
 		return strings.ReplaceAll(string(b), "\n", " ")
 	}
 	return strings.ReplaceAll(string(b[:max]), "\n", " ") + "...(truncated)"
+}
+
+func (c *Client) getOrCreateFallback(city City) *WeatherData {
+	now := time.Now()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.lastFallback != nil && now.Sub(c.lastFallbackTime) < fallbackReuseWindow {
+		// Reuse recent fallback and avoid repeated logging/recompute.
+		return c.lastFallback
+	}
+
+	fb := c.buildFallbackWeatherData(city)
+	c.lastFallback = fb
+	c.lastFallbackTime = now
+	if c.logger != nil && (c.lastFallbackLog.IsZero() || now.Sub(c.lastFallbackLog) >= fallbackReuseWindow) {
+		c.logger.Printf("fallback no cache")
+		c.lastFallbackLog = now
+	}
+	return fb
 }
 
 func isAPIGloballyBlocked() bool {
