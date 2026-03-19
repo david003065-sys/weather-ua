@@ -59,15 +59,21 @@
             <div class="city-hero__meta-grid">
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricHumidity }}</span>
-                    <span id="js-current-humidity" class="metric__value">{{ printf "%.0f" .CurrentHumidity }}%</span>
+                    <span id="js-current-humidity" class="metric__value">
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}%{{ end }}
+                    </span>
                 </div>
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricWind }}</span>
-                    <span id="js-current-wind" class="metric__value">{{ printf "%.0f" .CurrentWind }} км/ч</span>
+                    <span id="js-current-wind" class="metric__value">
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }} км/ч{{ end }}
+                    </span>
                 </div>
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricPressure }}</span>
-                    <span class="metric__value">{{ printf "%.0f" .CurrentPressure }} мм</span>
+                    <span class="metric__value">
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }} мм{{ end }}
+                    </span>
                 </div>
             </div>
             {{ if .TodayLabel }}
@@ -176,7 +182,7 @@
         <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-switch__card {{ if eq .ID $.CityID }}city-switch__card--active{{ end }}">
             <div class="city-switch__row">
                 <span class="city-switch__name">{{ .Name }}</span>
-                <span class="city-switch__temp">{{ printf "%.0f" .Temperature }}°</span>
+                <span class="city-switch__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Temperature }}°{{ end }}</span>
             </div>
             <div class="city-switch__meta">
                 <span class="city-switch__icon" aria-hidden="true">{{ .Icon }}</span>

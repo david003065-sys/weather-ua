@@ -174,11 +174,12 @@
 
         function applyWeather(data) {
             if (!data || !data.current) return;
-            if (tempEl) tempEl.textContent = Math.round(data.current.temperature);
+            var isFallback = !!data.current.isFallback;
+            if (tempEl) tempEl.textContent = isFallback ? "—" : Math.round(data.current.temperature);
             if (descEl) descEl.textContent = data.current.description;
-            if (windEl) windEl.textContent = Math.round(data.current.wind) + " км/ч";
-            if (humEl) humEl.textContent = Math.round(data.current.humidity) + "%";
-            updateBackgroundByTemp(data.current.temperature);
+            if (windEl) windEl.textContent = isFallback ? "—" : Math.round(data.current.wind) + " км/ч";
+            if (humEl) humEl.textContent = isFallback ? "—" : Math.round(data.current.humidity) + "%";
+            if (!isFallback) updateBackgroundByTemp(data.current.temperature);
         }
 
         function cacheKey(id, l) {
@@ -646,7 +647,7 @@
                 temp.className = "city-card__temperature";
                 var tempVal = document.createElement("span");
                 tempVal.className = "city-card__temp-value";
-                tempVal.textContent = Math.round(data.current.temperature);
+                tempVal.textContent = data.current.isFallback ? "—" : Math.round(data.current.temperature);
                 var tempUnit = document.createElement("span");
                 tempUnit.className = "city-card__temp-unit";
                 tempUnit.textContent = "°C";
@@ -716,7 +717,7 @@
                 temp.className = "city-card__temperature";
                 var tempVal = document.createElement("span");
                 tempVal.className = "city-card__temp-value";
-                tempVal.textContent = Math.round(data.current.temperature);
+                tempVal.textContent = data.current.isFallback ? "—" : Math.round(data.current.temperature);
                 var tempUnit = document.createElement("span");
                 tempUnit.className = "city-card__temp-unit";
                 tempUnit.textContent = "°C";

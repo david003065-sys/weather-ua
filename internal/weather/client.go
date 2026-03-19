@@ -23,8 +23,9 @@ const minIntervalBetweenAPI = 1 * time.Second
 // cacheTTL — время жизни успешного ответа в кэше.
 const cacheTTLDefault = 10 * time.Minute
 
-// cacheTTLOn429 — когда API вернул 429 и кэша нет, кэшируем fallback на это время, чтобы не слать запросы снова.
-const cacheTTLOn429 = 10 * time.Minute
+// cacheTTLOn429 — короткое время между попытками после ошибки API (429/иных ошибок).
+// fallback мы НЕ сохраняем как валидный кэш: он используется только для ответа клиенту.
+const cacheTTLOn429 = 2 * time.Minute
 
 type Client struct {
 	httpClient *http.Client
@@ -46,6 +47,7 @@ type cachedWeather struct {
 	data      *WeatherData
 	expiresAt time.Time
 	storedAt  time.Time
+	isValid   bool
 }
 
 var errRateLimited = errors.New("weather api 429 too many requests")
@@ -121,14 +123,20 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
 
-	// 1) Cache hit: запись есть и моложе 10 минут — возвращаем из кэша.
+	// 1) Cache hit
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
 	c.mu.RUnlock()
 
 	if cached.data != nil && now.Before(cached.expiresAt) {
+		if cached.isValid {
+			if c.logger != nil {
+				c.logger.Printf("weather cache hit valid")
+			}
+			return cached.data, nil
+		}
 		if c.logger != nil {
-			c.logger.Printf("weather cache hit")
+			c.logger.Printf("weather cache hit fallback")
 		}
 		return cached.data, nil
 	}
@@ -142,8 +150,14 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	cached = c.cache[cacheKey]
 	c.mu.RUnlock()
 	if cached.data != nil && now.Before(cached.expiresAt) {
+		if cached.isValid {
+			if c.logger != nil {
+				c.logger.Printf("weather cache hit valid")
+			}
+			return cached.data, nil
+		}
 		if c.logger != nil {
-			c.logger.Printf("weather cache hit")
+			c.logger.Printf("weather cache hit fallback")
 		}
 		return cached.data, nil
 	}
@@ -154,53 +168,47 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		// 429 и другие ошибки: если в кэше есть хоть какие-то данные — отдаём их.
-		if cached.data != nil {
-			if errors.Is(err, errRateLimited) {
+		// Если это 429 — используем старые ВАЛИДНЫЕ данные, если они есть.
+		if errors.Is(err, errRateLimited) {
+			if cached.data != nil && cached.isValid {
 				if c.logger != nil {
-					c.logger.Printf("weather api 429 fallback")
+					c.logger.Printf("weather api 429 fallback from stale cache")
 				}
-			} else {
-				if c.logger != nil {
-					c.logger.Printf("weather api error fallback")
-				}
+				return cached.data, nil
+			}
+
+			if c.logger != nil {
+				c.logger.Printf("weather api 429 fallback without cache")
+			}
+			return c.buildFallbackWeatherData(city), nil
+		}
+
+		// Любые другие ошибки: отдаём валидный кэш, если он есть, иначе fallback без кэширования.
+		if cached.data != nil && cached.isValid {
+			if c.logger != nil {
+				c.logger.Printf("weather api error fallback from stale cache")
 			}
 			return cached.data, nil
 		}
 
-		// Кэша нет — отдаём fallback и сохраняем в кэш, чтобы не спамить API.
-		fallback := c.buildFallbackWeatherData(city)
-		c.mu.Lock()
-		c.cache[cacheKey] = cachedWeather{
-			data:      fallback,
-			expiresAt: now.Add(cacheTTLOn429),
-			storedAt:  now,
+		if c.logger != nil {
+			c.logger.Printf("weather fallback used")
 		}
-		c.mu.Unlock()
-
-		if errors.Is(err, errRateLimited) {
-			if c.logger != nil {
-				c.logger.Printf("weather api 429 fallback")
-			}
-		} else {
-			if c.logger != nil {
-				c.logger.Printf("weather fallback used")
-			}
-		}
-		return fallback, nil
+		return c.buildFallbackWeatherData(city), nil
 	}
 
-	// Успех — сохраняем в кэш на 10 минут.
+	// Успех — сохраняем ВАЛИДНЫЕ данные в кэш на 10 минут.
 	c.mu.Lock()
 	c.cache[cacheKey] = cachedWeather{
 		data:      data,
 		expiresAt: now.Add(c.cacheTTL),
 		storedAt:  now,
+		isValid:   true,
 	}
 	c.mu.Unlock()
 
 	if c.logger != nil {
-		c.logger.Printf("weather cache store")
+		c.logger.Printf("weather cache store valid")
 	}
 	return data, nil
 }

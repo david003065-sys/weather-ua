@@ -55,6 +55,7 @@ type WeatherData struct {
 type CachedWeather struct {
 	Weather   *WeatherData
 	Timestamp time.Time
+	IsValid   bool
 }
 
 // WeatherCache — кэш погоды по ключу (город или place:id).

@@ -44,15 +44,21 @@
                 <div class="hero-main__details" aria-label="{{ .Text.CurrentMetricsAria }}">
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricWind }}</span>
-                        <span class="detail-value">{{ printf "%.0f" .CurrentWind }} км/ч</span>
+                        <span class="detail-value">
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }} км/ч{{ end }}
+                        </span>
                     </div>
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricHumidity }}</span>
-                        <span class="detail-value">{{ printf "%.0f" .CurrentHumidity }}%</span>
+                        <span class="detail-value">
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}%{{ end }}
+                        </span>
                     </div>
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricPressure }}</span>
-                        <span class="detail-value">{{ printf "%.0f" .CurrentPressure }} мм</span>
+                        <span class="detail-value">
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }} мм{{ end }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -120,7 +126,7 @@
                 <span class="city-card__icon" aria-hidden="true">{{ .Icon }}</span>
             </div>
             <div class="city-card__temperature">
-                <span class="city-card__temp-value">{{ printf "%.0f" .Temperature }}</span>
+                <span class="city-card__temp-value">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Temperature }}{{ end }}</span>
                 <span class="city-card__temp-unit">°C</span>
             </div>
             <p class="city-card__status">{{ .Description }}</p>
@@ -128,11 +134,15 @@
                 <div class="city-card__meta">
                     <span class="meta-pair">
                         <span class="meta-pair__label">{{ $.Text.MetricWind }}</span>
-                        <span class="meta-pair__value">{{ printf "%.0f" .WindSpeed }} км/ч</span>
+                        <span class="meta-pair__value">
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .WindSpeed }} км/ч{{ end }}
+                        </span>
                     </span>
                     <span class="meta-pair">
                         <span class="meta-pair__label">{{ $.Text.MetricHumidity }}</span>
-                        <span class="meta-pair__value">{{ printf "%.0f" .Humidity }}%</span>
+                        <span class="meta-pair__value">
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Humidity }}%{{ end }}
+                        </span>
                     </span>
                 </div>
                 <span class="city-card__link">

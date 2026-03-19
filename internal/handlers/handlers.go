@@ -40,6 +40,7 @@ type CitySummary struct {
 	Icon        string
 	WindSpeed   float64
 	Humidity    float64
+	WeatherUnavailable bool
 }
 
 type TextSet struct {
@@ -188,6 +189,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			Icon:        data.Current.Icon,
 			WindSpeed:   data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
+			WeatherUnavailable: data.IsFallback,
 		})
 	}
 
@@ -356,6 +358,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 			Icon:        d.Current.Icon,
 			WindSpeed:   d.Current.WindSpeed,
 			Humidity:    d.Current.Humidity,
+			WeatherUnavailable: d.IsFallback,
 		})
 	}
 
@@ -421,6 +424,7 @@ type apiCurrent struct {
 	Temperature float64 `json:"temperature"`
 	Description string  `json:"description"`
 	Icon        string  `json:"icon"`
+	IsFallback  bool    `json:"isFallback"`
 	Wind        float64 `json:"wind"`
 	Humidity    float64 `json:"humidity"`
 }
@@ -481,6 +485,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
 			}(),
 			Icon:        data.Current.Icon,
+			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
 		},
@@ -567,6 +572,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
 			}(),
 			Icon:        data.Current.Icon,
+			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
 		},
@@ -839,6 +845,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 			Icon:        d.Current.Icon,
 			WindSpeed:   d.Current.WindSpeed,
 			Humidity:    d.Current.Humidity,
+			WeatherUnavailable: d.IsFallback,
 		})
 	}
 
