@@ -329,6 +329,9 @@ func (c *Client) WarmCache(ctx context.Context) {
 }
 
 func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, error) {
+	if c.logger != nil {
+		c.logger.Printf("open-meteo request started")
+	}
 	c.apiMu.Lock()
 	elapsed := time.Since(c.lastAPIRequest)
 	if elapsed < minIntervalBetweenAPI {
@@ -346,7 +349,7 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	c.apiMu.Unlock()
 
 	url := fmt.Sprintf(
-		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&timezone=auto&current_weather=true&hourly=temperature_2m,weathercode,relativehumidity_2m,surface_pressure&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&forecast_days=3",
+		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&current_weather=true&hourly=temperature_2m,weathercode,relativehumidity_2m,surface_pressure&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto&forecast_days=3",
 		city.Latitude, city.Longitude,
 	)
 
@@ -365,7 +368,7 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 		return nil, errRateLimited
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("weather api status: %s", resp.Status)
+		return nil, fmt.Errorf("open-meteo status: %s", resp.Status)
 	}
 
 	var apiRes openMeteoResponse
@@ -415,6 +418,9 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 		Sunset:           sunset,
 		Timezone:         apiRes.Timezone,
 		UTCOffsetSeconds: apiRes.UTCOffsetSeconds,
+	}
+	if c.logger != nil {
+		c.logger.Printf("open-meteo success")
 	}
 
 	return data, nil
