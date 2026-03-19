@@ -138,14 +138,13 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	// cache hit stale / retry blocking
 	if cached.RetryAfter.After(now) {
 		if c.logger != nil {
-			c.logger.Printf("weather api request blocked by RetryAfter")
+			c.logger.Printf("weather api blocked by retry-after")
+			c.logger.Printf("skipping API call (retry window active)")
 		}
 		if hasValid {
 			if c.logger != nil {
 				c.logger.Printf("weather cache hit stale")
-			}
-			if c.logger != nil {
-				c.logger.Printf("fallback stale cache")
+				c.logger.Printf("using stale cache")
 			}
 			return cached.Data, nil
 		}
@@ -180,14 +179,13 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 
 	if cached.RetryAfter.After(now) {
 		if c.logger != nil {
-			c.logger.Printf("weather api request blocked by RetryAfter")
+			c.logger.Printf("weather api blocked by retry-after")
+			c.logger.Printf("skipping API call (retry window active)")
 		}
 		if hasValid {
 			if c.logger != nil {
 				c.logger.Printf("weather cache hit stale")
-			}
-			if c.logger != nil {
-				c.logger.Printf("fallback stale cache")
+				c.logger.Printf("using stale cache")
 			}
 			return cached.Data, nil
 		}
@@ -218,12 +216,13 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		c.mu.Unlock()
 
 		if errors.Is(err, errRateLimited) {
+			if c.logger != nil {
+				c.logger.Printf("weather api 429 detected")
+			}
 			if cached.Data != nil && cached.IsValid {
 				if c.logger != nil {
 					c.logger.Printf("weather api 429 fallback from stale cache")
-				}
-				if c.logger != nil {
-					c.logger.Printf("fallback stale cache")
+					c.logger.Printf("using stale cache")
 				}
 				return cached.Data, nil
 			}
