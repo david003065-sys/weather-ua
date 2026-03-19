@@ -47,7 +47,7 @@ type WeatherData struct {
 	Sunset   time.Time
 	Timezone         string
 	UTCOffsetSeconds int
-	// IsFallback: true если данные недоступны (429 и кэша нет) — показать "Данные временно недоступны".
+	// IsFallback: true если данные временно недоступны — показать "Данные временно недоступны".
 	IsFallback bool
 }
 
@@ -57,9 +57,6 @@ type CachedWeather struct {
 	Timestamp time.Time
 	IsValid   bool
 	LastError string
-	RetryAfter time.Time
-	RetryCount int
-	LastForcedAttempt time.Time
 }
 
 // WeatherCache — кэш погоды по ключу (город или place:id).

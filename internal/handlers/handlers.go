@@ -194,7 +194,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if heroData == nil {
-		// Погода недоступна (API ошибки/429/таймаут). Страницу рендерим всё равно,
+		// Погода недоступна (ошибка/таймаут Open-Meteo). Страницу рендерим всё равно,
 		// показываем fallback-данные.
 		if len(cities) > 0 {
 			c0 := cities[0]

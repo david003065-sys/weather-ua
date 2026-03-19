@@ -17,17 +17,11 @@ type Logger interface {
 	Printf(format string, args ...interface{})
 }
 
-// minIntervalBetweenAPI — минимум между запросами к API, чтобы не получать 429.
+// minIntervalBetweenAPI — минимум между запросами к Open-Meteo.
 const minIntervalBetweenAPI = 1 * time.Second
 
 // cacheTTL — время жизни успешного ответа в кэше.
 const cacheTTLDefault = 10 * time.Minute
-
-const (
-	retryBaseDelay          = 1 * time.Minute
-	retryMaxDelay           = 10 * time.Minute
-	forcedAttemptMinInterval = 90 * time.Second
-)
 
 type Client struct {
 	httpClient *http.Client
@@ -44,8 +38,6 @@ type Client struct {
 	keyMu    sync.Mutex
 	keyLocks map[string]*sync.Mutex
 }
-
-var errRateLimited = errors.New("weather api 429 too many requests")
 
 func NewClient(cacheTTL, timeout time.Duration) *Client {
 	if cacheTTL <= 0 {
@@ -118,15 +110,12 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
 
-	// read cached entry
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
 	c.mu.RUnlock()
 
 	hasValid := cached.Data != nil && cached.IsValid
 	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
-
-	// cache hit valid
 	if fresh {
 		if c.logger != nil {
 			c.logger.Printf("weather cache hit valid")
@@ -134,12 +123,10 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		return cached.Data, nil
 	}
 
-	// stampede protection per key
 	keyLock := c.getKeyLock(cacheKey)
 	keyLock.Lock()
 	defer keyLock.Unlock()
 
-	// re-check after acquiring lock (dedup)
 	c.mu.RLock()
 	cached = c.cache[cacheKey]
 	c.mu.RUnlock()
@@ -147,7 +134,6 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	now = time.Now()
 	hasValid = cached.Data != nil && cached.IsValid
 	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
-
 	if fresh {
 		if c.logger != nil {
 			c.logger.Printf("weather request deduplicated")
@@ -156,109 +142,36 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		return cached.Data, nil
 	}
 
-	// retry-after gate with controlled forced attempts when no valid cache exists
-	if cached.RetryAfter.After(now) {
+	if c.logger != nil {
+		c.logger.Printf("weather cache miss")
+	}
+
+	data, err := c.fetchFromAPI(ctx, city)
+	if err != nil {
 		if hasValid {
 			if c.logger != nil {
-				c.logger.Printf("weather api blocked by retry-after")
-				c.logger.Printf("skipping API call (retry window active)")
 				c.logger.Printf("weather cache hit stale")
 				c.logger.Printf("using stale cache")
 			}
 			return cached.Data, nil
 		}
-
-		// No valid cache at all: allow one forced attempt per short interval.
-		canForce := cached.LastForcedAttempt.IsZero() || now.Sub(cached.LastForcedAttempt) >= forcedAttemptMinInterval
-		if !canForce {
-			if c.logger != nil {
-				c.logger.Printf("weather api blocked by retry-after")
-				c.logger.Printf("skipping API call (retry window active)")
-				c.logger.Printf("fallback no cache")
-			}
-			return c.buildFallbackWeatherData(city), nil
-		}
-
-		// mark forced attempt timestamp before request under the same key-lock
-		c.mu.Lock()
-		entry := c.cache[cacheKey]
-		entry.LastForcedAttempt = now
-		c.cache[cacheKey] = entry
-		c.mu.Unlock()
-		if c.logger != nil {
-			c.logger.Printf("forced API attempt")
-		}
-	}
-
-	if c.logger != nil {
-		c.logger.Printf("weather cache miss")
-	}
-
-	if c.logger != nil {
-		c.logger.Printf("weather api request started")
-	}
-	data, err := c.fetchFromAPI(ctx, city)
-	if err != nil {
-		// handle errors with exponential retry-after; do NOT cache fallback as valid data
-		now2 := time.Now()
-		nextRetryCount := cached.RetryCount + 1
-		delay := retryBaseDelay << (nextRetryCount - 1)
-		if delay > retryMaxDelay {
-			delay = retryMaxDelay
-		}
-		retryUntil := now2.Add(delay)
-
 		c.mu.Lock()
 		entry := c.cache[cacheKey]
 		entry.LastError = err.Error()
-		entry.RetryAfter = retryUntil
-		entry.RetryCount = nextRetryCount
 		c.cache[cacheKey] = entry
 		c.mu.Unlock()
-
-		if errors.Is(err, errRateLimited) {
-			if c.logger != nil {
-				c.logger.Printf("weather api 429 detected")
-			}
-			if cached.Data != nil && cached.IsValid {
-				if c.logger != nil {
-					c.logger.Printf("weather api 429 fallback from stale cache")
-					c.logger.Printf("using stale cache")
-				}
-				return cached.Data, nil
-			}
-			if c.logger != nil {
-				c.logger.Printf("weather api 429 fallback without cache")
-			}
-			return c.buildFallbackWeatherData(city), nil
-		}
-
-		// other errors: stale valid if exists
-		if cached.Data != nil && cached.IsValid {
-			if c.logger != nil {
-				c.logger.Printf("weather cache hit stale")
-			}
-			if c.logger != nil {
-				c.logger.Printf("fallback stale cache")
-			}
-			return cached.Data, nil
-		}
 		if c.logger != nil {
 			c.logger.Printf("fallback no cache")
 		}
 		return c.buildFallbackWeatherData(city), nil
 	}
 
-	// success: store valid data
 	c.mu.Lock()
 	c.cache[cacheKey] = CachedWeather{
 		Data:      data,
 		Timestamp: now,
 		IsValid:   true,
 		LastError: "",
-		RetryAfter: time.Time{},
-		RetryCount: 0,
-		LastForcedAttempt: time.Time{},
 	}
 	c.mu.Unlock()
 
@@ -268,7 +181,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	return data, nil
 }
 
-// buildFallbackWeatherData возвращает данные-заглушку при 429 без кэша (страница рендерится).
+// buildFallbackWeatherData возвращает данные-заглушку, если Open-Meteo временно недоступен.
 func (c *Client) buildFallbackWeatherData(city City) *WeatherData {
 	return &WeatherData{
 		CityID:     city.ID,
@@ -364,9 +277,6 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, errRateLimited
-	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("open-meteo status: %s", resp.Status)
 	}
@@ -374,6 +284,9 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	var apiRes openMeteoResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiRes); err != nil {
 		return nil, err
+	}
+	if c.logger != nil {
+		c.logger.Printf("open-meteo parsed")
 	}
 
 	if apiRes.CurrentWeather == nil || apiRes.Daily == nil {
