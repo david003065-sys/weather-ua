@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"html/template"
 	"log"
 	"net/http"
@@ -27,23 +26,6 @@ func Run() error {
 	logger := log.New(os.Stdout, "[weather-ua] ", log.LstdFlags|log.Lshortfile)
 	weatherClient.SetLogger(logger)
 	logger.Printf("weather client created once, cache TTL 10m")
-
-	// Bootstrap: первый запрос к API (Киев), чтобы появился первый валидный кэш.
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-		defer cancel()
-		_, _ = weatherClient.GetWeather(ctx, "kyiv")
-	}()
-
-	// Background warming: популярные города каждые 10 минут.
-	go func() {
-		weatherClient.WarmCache(context.Background())
-		ticker := time.NewTicker(10 * time.Minute)
-		defer ticker.Stop()
-		for range ticker.C {
-			weatherClient.WarmCache(context.Background())
-		}
-	}()
 
 	// гарантируем наличие data/places.db (автоматическая загрузка GeoNames на первом запуске)
 	if err := bootstrap.EnsureData(logger); err != nil {

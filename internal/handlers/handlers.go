@@ -177,7 +177,10 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			heroData = data
 		}
 
-		desc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+		desc := strings.TrimSpace(data.Current.Description)
+		if desc == "" {
+			desc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+		}
 		if data.IsFallback {
 			desc = text.WeatherUnavailableMsg
 		}
@@ -346,7 +349,10 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
-		cardDesc := weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		cardDesc := strings.TrimSpace(d.Current.Description)
+		if cardDesc == "" {
+			cardDesc = weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		}
 		if d.IsFallback {
 			cardDesc = text.WeatherUnavailableMsg
 		}
@@ -373,7 +379,10 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	currentDesc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	currentDesc := strings.TrimSpace(data.Current.Description)
+	if currentDesc == "" {
+		currentDesc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	}
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
 	}
@@ -482,6 +491,9 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 				if data.IsFallback {
 					return text.WeatherUnavailableMsg
 				}
+				if s := strings.TrimSpace(data.Current.Description); s != "" {
+					return s
+				}
 				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
 			}(),
 			Icon:        data.Current.Icon,
@@ -568,6 +580,9 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			Description: func() string {
 				if data.IsFallback {
 					return text.WeatherUnavailableMsg
+				}
+				if s := strings.TrimSpace(data.Current.Description); s != "" {
+					return s
 				}
 				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
 			}(),
@@ -833,7 +848,10 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 			s.logger.Printf("get weather for %s: %v", c.ID, err)
 			continue
 		}
-		cardDesc := weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		cardDesc := strings.TrimSpace(d.Current.Description)
+		if cardDesc == "" {
+			cardDesc = weather.LocalizedDescription(d.Current.WeatherCode, lang)
+		}
 		if d.IsFallback {
 			cardDesc = text.WeatherUnavailableMsg
 		}
@@ -861,7 +879,10 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 
 	dupCount, dupLabel, dupURL := s.computePlaceDuplicates(ctx, place, lang, displayName)
 
-	currentDesc := weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	currentDesc := strings.TrimSpace(data.Current.Description)
+	if currentDesc == "" {
+		currentDesc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+	}
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
 	}
