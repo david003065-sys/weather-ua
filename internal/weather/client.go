@@ -127,15 +127,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	hasValid := cached.Data != nil && cached.IsValid
 	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
 
-	// cache hit valid
-	if fresh {
-		if c.logger != nil {
-			c.logger.Printf("weather cache hit valid")
-		}
-		return cached.Data, nil
-	}
-
-	// cache hit stale / retry blocking
+	// retry window blocks ANY api attempt first
 	if cached.RetryAfter.After(now) {
 		if c.logger != nil {
 			c.logger.Printf("weather api blocked by retry-after")
@@ -152,6 +144,14 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("fallback no cache")
 		}
 		return c.buildFallbackWeatherData(city), nil
+	}
+
+	// cache hit valid
+	if fresh {
+		if c.logger != nil {
+			c.logger.Printf("weather cache hit valid")
+		}
+		return cached.Data, nil
 	}
 
 	// stampede protection per key
@@ -167,16 +167,6 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	hasValid = cached.Data != nil && cached.IsValid
 	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
 
-	if fresh {
-		if c.logger != nil {
-			c.logger.Printf("weather api request deduplicated")
-		}
-		if c.logger != nil {
-			c.logger.Printf("weather cache hit valid")
-		}
-		return cached.Data, nil
-	}
-
 	if cached.RetryAfter.After(now) {
 		if c.logger != nil {
 			c.logger.Printf("weather api blocked by retry-after")
@@ -193,6 +183,14 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("fallback no cache")
 		}
 		return c.buildFallbackWeatherData(city), nil
+	}
+
+	if fresh {
+		if c.logger != nil {
+			c.logger.Printf("weather request deduplicated")
+			c.logger.Printf("weather cache hit valid")
+		}
+		return cached.Data, nil
 	}
 
 	if c.logger != nil {
