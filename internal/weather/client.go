@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -177,6 +180,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 
 	if c.logger != nil {
 		c.logger.Printf("weather cache store valid")
+		c.logger.Printf("cache store success")
 	}
 	return data, nil
 }
@@ -245,14 +249,17 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	if c.logger != nil {
 		c.logger.Printf("open-meteo request started")
 	}
+	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	c.apiMu.Lock()
 	elapsed := time.Since(c.lastAPIRequest)
 	if elapsed < minIntervalBetweenAPI {
 		wait := minIntervalBetweenAPI - elapsed
 		c.apiMu.Unlock()
 		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		case <-reqCtx.Done():
+			return nil, reqCtx.Err()
 		case <-time.After(wait):
 			// продолжаем
 		}
@@ -261,36 +268,85 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	c.lastAPIRequest = time.Now()
 	c.apiMu.Unlock()
 
-	url := fmt.Sprintf(
-		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&current_weather=true&hourly=temperature_2m,weathercode,relativehumidity_2m,surface_pressure&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto&forecast_days=3",
-		city.Latitude, city.Longitude,
-	)
+	baseURL := "https://api.open-meteo.com/v1/forecast"
+	q := url.Values{}
+	q.Set("latitude", strconv.FormatFloat(city.Latitude, 'f', 4, 64))
+	q.Set("longitude", strconv.FormatFloat(city.Longitude, 'f', 4, 64))
+	q.Set("current_weather", "true")
+	q.Set("hourly", "temperature_2m,weathercode,relativehumidity_2m,surface_pressure")
+	q.Set("daily", "temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset")
+	q.Set("timezone", "auto")
+	q.Set("forecast_days", "3")
+	fullURL := baseURL + "?" + q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if c.logger != nil {
+		c.logger.Printf("open-meteo request url: %s", fullURL)
+	}
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		if c.logger != nil {
+			c.logger.Printf("open-meteo network error: %v", err)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if c.logger != nil {
+		c.logger.Printf("open-meteo response status code: %d", resp.StatusCode)
+	}
+
+	bodyBytes, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		if c.logger != nil {
+			c.logger.Printf("open-meteo read body failed: %v", readErr)
+		}
+		return nil, readErr
+	}
+	if c.logger != nil && os.Getenv("WEATHER_DEBUG") == "1" {
+		c.logger.Printf("open-meteo response body: %s", snippet(bodyBytes, 1000))
+	}
 
 	if resp.StatusCode != http.StatusOK {
+		if c.logger != nil {
+			c.logger.Printf("open-meteo non-200 status: %s body=%s", resp.Status, snippet(bodyBytes, 500))
+		}
 		return nil, fmt.Errorf("open-meteo status: %s", resp.Status)
 	}
 
 	var apiRes openMeteoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiRes); err != nil {
+	if err := json.Unmarshal(bodyBytes, &apiRes); err != nil {
+		if c.logger != nil {
+			c.logger.Printf("open-meteo decode failed: %v body=%s", err, snippet(bodyBytes, 500))
+		}
 		return nil, err
 	}
 	if c.logger != nil {
-		c.logger.Printf("open-meteo parsed")
+		c.logger.Printf("open-meteo decode success")
 	}
 
 	if apiRes.CurrentWeather == nil || apiRes.Daily == nil {
+		if c.logger != nil {
+			c.logger.Printf("open-meteo parsed empty payload")
+		}
 		return nil, errors.New("missing current_weather in response")
+	}
+	if c.logger != nil {
+		hCount := 0
+		dCount := 0
+		if apiRes.Hourly != nil {
+			hCount = len(apiRes.Hourly.Temperature2M)
+		}
+		if apiRes.Daily != nil {
+			dCount = len(apiRes.Daily.TempMax)
+		}
+		c.logger.Printf("open-meteo parsed current weather: temp=%.1f wind=%.1f", apiRes.CurrentWeather.Temperature, apiRes.CurrentWeather.Windspeed)
+		c.logger.Printf("open-meteo parsed hourly count: %d", hCount)
+		c.logger.Printf("open-meteo parsed daily count: %d", dCount)
 	}
 
 	humidity := c.extractHumidity(apiRes)
@@ -337,6 +393,13 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	}
 
 	return data, nil
+}
+
+func snippet(b []byte, max int) string {
+	if len(b) <= max {
+		return strings.ReplaceAll(string(b), "\n", " ")
+	}
+	return strings.ReplaceAll(string(b[:max]), "\n", " ") + "...(truncated)"
 }
 
 type openMeteoResponse struct {
