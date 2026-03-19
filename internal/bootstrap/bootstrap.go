@@ -25,7 +25,20 @@ import (
 func EnsureData(logger *log.Logger) error {
 	const dbPath = "data/places.db"
 	if _, err := os.Stat(dbPath); err == nil {
-		return nil
+		// Проверяем, что places.type действительно заполнен типами (не "місто" для всех строк).
+		// Если данные устарели — пересобираем DB, но не ломаем схему/поиск.
+		needRebuild, err := needsRebuildPlacesByType(dbPath)
+		if err == nil && !needRebuild {
+			return nil
+		}
+		if logger != nil {
+			if err != nil {
+				logger.Printf("[bootstrap] type-check failed, rebuilding places.db anyway: %v", err)
+			} else {
+				logger.Printf("[bootstrap] places.db type looks outdated (mostly/only 'місто'); rebuilding…")
+			}
+		}
+		_ = os.Remove(dbPath)
 	}
 
 	if logger != nil {
@@ -59,6 +72,33 @@ func EnsureData(logger *log.Logger) error {
 		logger.Printf("[bootstrap] places db generated at %s", dbPath)
 	}
 	return nil
+}
+
+func needsRebuildPlacesByType(dbPath string) (bool, error) {
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_busy_timeout=5000", dbPath))
+	if err != nil {
+		return false, err
+	}
+	defer db.Close()
+
+	// Быстрая эвристика: если в таблице только один distinct type и это "місто" — значит типы
+	// загружаются некорректно (жёстко).
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(DISTINCT type) FROM places;`).Scan(&count); err != nil {
+		return true, err
+	}
+	if count <= 1 {
+		var t string
+		if err := db.QueryRow(`SELECT type FROM places LIMIT 1;`).Scan(&t); err != nil {
+			return true, err
+		}
+		t = strings.TrimSpace(t)
+		if t == "" || t == "місто" {
+			return true, nil
+		}
+		return false, nil
+	}
+	return false, nil
 }
 
 func ensureGeoFiles(dir string, logger *log.Logger) error {
@@ -167,6 +207,7 @@ type city struct {
 	lon       string
 	admin1    string
 	oblast    string
+	featureCode string
 }
 
 type ruAltName struct {
@@ -312,6 +353,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 			lon:       lon,
 			admin1:    admin1Code,
 			oblast:    oblastName,
+			featureCode: featureCode,
 		}
 		cities = append(cities, c)
 		idSet[geonameID] = struct{}{}
@@ -320,6 +362,22 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		return nil, nil, err
 	}
 	return cities, idSet, nil
+}
+
+func typeFromFeatureCode(featureCode string) string {
+	// В base places.type пишем короткие укр-значения:
+	// - "місто" | "селище" | "село"
+	// Остальное — пустая строка, чтобы UI показал "населённый пункт".
+	switch strings.TrimSpace(featureCode) {
+	case "PPLA", "PPLA2", "PPLA3", "PPLA4":
+		return "місто"
+	case "PPL":
+		return "селище"
+	case "PPLC":
+		return "село"
+	default:
+		return ""
+	}
 }
 
 func loadRuAltNames(path string, ids map[string]struct{}) (map[string]ruAltName, error) {
@@ -399,10 +457,12 @@ func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
 		if alt, ok := ruNames[c.geonameID]; ok && alt.name != "" {
 			ru = alt.name
 		}
-		line := fmt.Sprintf("%s;%s;%s;;місто;%s;%s\n",
+		typ := typeFromFeatureCode(c.featureCode)
+		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s\n",
 			escapeSemi(c.nameUK),
 			escapeSemi(ru),
 			escapeSemi(c.oblast),
+			typ,
 			c.lat,
 			c.lon,
 		)

@@ -24,6 +24,7 @@ type city struct {
 	lon       string
 	admin1    string // admin1 code like "01"
 	oblast    string
+	featureCode string // GeoNames feature code (PPL/PPLA*/PPLC)
 }
 
 type ruAltName struct {
@@ -201,6 +202,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 			lon:       lon,
 			admin1:    admin1Code,
 			oblast:    oblastName,
+			featureCode: featureCode,
 		}
 		cities = append(cities, c)
 		idSet[geonameID] = struct{}{}
@@ -209,6 +211,22 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		return nil, nil, err
 	}
 	return cities, idSet, nil
+}
+
+func typeFromFeatureCode(featureCode string) string {
+	// В базу places.type пишем короткие укр-значения:
+	// - "місто" | "селище" | "село"
+	// Остальное — пустая строка, чтобы UI показал "населённый пункт".
+	switch strings.TrimSpace(featureCode) {
+	case "PPLA", "PPLA2", "PPLA3", "PPLA4":
+		return "місто"
+	case "PPL":
+		return "селище"
+	case "PPLC":
+		return "село"
+	default:
+		return ""
+	}
 }
 
 // loadRuAltNames scans alternateNamesV2.txt once and collects best RU name for given geoname IDs.
@@ -294,11 +312,13 @@ func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
 		if alt, ok := ruNames[c.geonameID]; ok && alt.name != "" {
 			ru = alt.name
 		}
+		typ := typeFromFeatureCode(c.featureCode)
 		// raion всегда пустой (двойной ;;)
-		line := fmt.Sprintf("%s;%s;%s;;місто;%s;%s\n",
+		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s\n",
 			escapeSemi(c.nameUK),
 			escapeSemi(ru),
 			escapeSemi(c.oblast),
+			typ,
 			c.lat,
 			c.lon,
 		)

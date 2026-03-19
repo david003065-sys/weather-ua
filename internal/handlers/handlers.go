@@ -192,8 +192,31 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if heroData == nil {
-		http.Error(w, "service temporarily unavailable", http.StatusServiceUnavailable)
-		return
+		// Погода недоступна (API ошибки/429/таймаут). Страницу рендерим всё равно,
+		// показываем fallback-данные.
+		if len(cities) > 0 {
+			c0 := cities[0]
+			heroData = &weather.WeatherData{
+				CityID: c0.ID,
+				// CityName не используется напрямую в шаблоне, но пусть будет.
+				CityName: c0.Name,
+				IsFallback: true,
+				Current: weather.Current{
+					Temperature: 0,
+					WeatherCode: 3, // neutral cloudy-like background
+					Description: "",
+					Icon:        "❔",
+					WindSpeed:   0,
+					Humidity:    0,
+					Pressure:    0,
+					IsNight:     false,
+				},
+			}
+		} else {
+			// На практике cities не пустой (weather.AllCities()),
+			// но на всякий случай вернём empty index.
+			heroData = &weather.WeatherData{IsFallback: true}
+		}
 	}
 
 	var todayLabel, tomorrowLabel string
@@ -433,6 +456,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
+	text := texts(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -450,7 +474,12 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		Lang:     lang,
 		Current: apiCurrent{
 			Temperature: data.Current.Temperature,
-			Description: weather.LocalizedDescription(data.Current.WeatherCode, lang),
+			Description: func() string {
+				if data.IsFallback {
+					return text.WeatherUnavailableMsg
+				}
+				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
+			}(),
 			Icon:        data.Current.Icon,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
@@ -496,6 +525,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
+	text := texts(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -530,7 +560,12 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		Lang:     lang,
 		Current: apiCurrent{
 			Temperature: data.Current.Temperature,
-			Description: weather.LocalizedDescription(data.Current.WeatherCode, lang),
+			Description: func() string {
+				if data.IsFallback {
+					return text.WeatherUnavailableMsg
+				}
+				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
+			}(),
 			Icon:        data.Current.Icon,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
@@ -1061,19 +1096,21 @@ func deriveOblastNames(oblastRaw string) (string, string, string) {
 
 func deriveTypeNames(base string) (string, string, string) {
 	b := strings.ToLower(strings.TrimSpace(base))
+	if b == "" {
+		return "", "", ""
+	}
 	switch b {
-	case "місто":
+	// Ukrainian/Russian canonical
+	case "місто", "город", "city":
 		return "місто", "город", "city"
-	case "селище":
+	case "селище", "посёлок", "поселок", "town", "settlement":
 		return "селище", "посёлок", "settlement"
-	case "село":
+	case "село", "village":
 		return "село", "село", "village"
 	default:
-		if base == "" {
-			return "", "", ""
-		}
-		// Если тип неизвестен, возвращаем его как есть для всех языков.
-		return base, base, base
+		// Если тип неизвестен/не задан — не подставляем "город",
+		// чтобы UI показал "населённый пункт".
+		return "", "", ""
 	}
 }
 
@@ -1122,6 +1159,27 @@ func formatPlaceLocation(p *places.Place, lang string) string {
 	if p.Raion != nil {
 		raion = strings.TrimSpace(*p.Raion)
 	}
+	typeUK, typeRU, typeEN := deriveTypeNames(p.Type)
+	var typ string
+	switch lang {
+	case "uk":
+		typ = typeUK
+	case "en":
+		typ = typeEN
+	default:
+		typ = typeRU
+	}
+	if typ == "" {
+		// Если тип отсутствует или неизвестен — не подставляем "город", показываем общий вариант.
+		switch lang {
+		case "uk":
+			typ = "населений пункт"
+		case "en":
+			typ = "settlement"
+		default:
+			typ = "населённый пункт"
+		}
+	}
 	oblastUK, oblastRU, oblastEN := deriveOblastNames(p.Oblast)
 	var oblast string
 	switch lang {
@@ -1134,7 +1192,10 @@ func formatPlaceLocation(p *places.Place, lang string) string {
 	}
 	oblast = strings.TrimSpace(oblast)
 
-	parts := make([]string, 0, 3)
+	parts := make([]string, 0, 4)
+	if typ != "" {
+		parts = append(parts, typ)
+	}
 	if raion != "" {
 		parts = append(parts, raion)
 	}

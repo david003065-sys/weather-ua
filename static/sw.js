@@ -1,10 +1,9 @@
-const CACHE_NAME = "weather-ua-pwa-v1";
+const CACHE_NAME = "weather-ua-pwa-v2";
 
 const URLS_TO_CACHE = [
-  "/",
-  "/?lang=ru",
   "/static/style.css",
   "/static/script.js",
+  "/static/theme.js",
   "/static/manifest.json",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
@@ -43,6 +42,23 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) {
     // не кешируем API‑запросы погоды, всегда ходим в сеть
+    return;
+  }
+
+  const accept = request.headers.get("accept") || "";
+  const isDocument =
+    request.mode === "navigate" || accept.includes("text/html");
+
+  if (isDocument) {
+    // Для HTML всегда сначала пробуем сеть (чтобы не отдавать устаревшую/сломавшуюся страницу).
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
+          return new Response("", { status: 503 });
+        })
+      )
+    );
     return;
   }
 

@@ -24,7 +24,7 @@ const minIntervalBetweenAPI = 1 * time.Second
 const cacheTTLDefault = 10 * time.Minute
 
 // cacheTTLOn429 — когда API вернул 429 и кэша нет, кэшируем fallback на это время, чтобы не слать запросы снова.
-const cacheTTLOn429 = 2 * time.Minute
+const cacheTTLOn429 = 10 * time.Minute
 
 type Client struct {
 	httpClient *http.Client
@@ -154,27 +154,40 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		if errors.Is(err, errRateLimited) && cached.data != nil {
-			if c.logger != nil {
-				c.logger.Printf("weather api 429 fallback")
+		// 429 и другие ошибки: если в кэше есть хоть какие-то данные — отдаём их.
+		if cached.data != nil {
+			if errors.Is(err, errRateLimited) {
+				if c.logger != nil {
+					c.logger.Printf("weather api 429 fallback")
+				}
+			} else {
+				if c.logger != nil {
+					c.logger.Printf("weather api error fallback")
+				}
 			}
 			return cached.data, nil
 		}
+
+		// Кэша нет — отдаём fallback и сохраняем в кэш, чтобы не спамить API.
+		fallback := c.buildFallbackWeatherData(city)
+		c.mu.Lock()
+		c.cache[cacheKey] = cachedWeather{
+			data:      fallback,
+			expiresAt: now.Add(cacheTTLOn429),
+			storedAt:  now,
+		}
+		c.mu.Unlock()
+
 		if errors.Is(err, errRateLimited) {
-			fallback := c.buildFallbackWeatherData(city)
-			c.mu.Lock()
-			c.cache[cacheKey] = cachedWeather{
-				data:      fallback,
-				expiresAt: now.Add(cacheTTLOn429),
-				storedAt:  now,
-			}
-			c.mu.Unlock()
 			if c.logger != nil {
 				c.logger.Printf("weather api 429 fallback")
 			}
-			return fallback, nil
+		} else {
+			if c.logger != nil {
+				c.logger.Printf("weather fallback used")
+			}
 		}
-		return nil, err
+		return fallback, nil
 	}
 
 	// Успех — сохраняем в кэш на 10 минут.

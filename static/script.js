@@ -322,9 +322,15 @@
 
         function pickType(place) {
             if (!place) return "";
-            if (lang === "uk") return place.type_uk || place.type_ru || place.type_en || "";
-            if (lang === "ru") return place.type_ru || place.type_uk || place.type_en || "";
-            return place.type_en || place.type_uk || place.type_ru || "";
+            var t = "";
+            if (lang === "uk") t = place.type_uk || place.type_ru || place.type_en || "";
+            else if (lang === "ru") t = place.type_ru || place.type_uk || place.type_en || "";
+            else t = place.type_en || place.type_uk || place.type_ru || "";
+
+            if (t) return t;
+            if (lang === "uk") return "населений пункт";
+            if (lang === "en") return "settlement";
+            return "населённый пункт";
         }
 
         function highlightMatch(el, text, query) {
