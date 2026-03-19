@@ -23,9 +23,11 @@ const minIntervalBetweenAPI = 1 * time.Second
 // cacheTTL — время жизни успешного ответа в кэше.
 const cacheTTLDefault = 10 * time.Minute
 
-// cacheTTLOn429 — короткое время между попытками после ошибки API (429/иных ошибок).
-// fallback мы НЕ сохраняем как валидный кэш: он используется только для ответа клиенту.
-const cacheTTLOn429 = 2 * time.Minute
+const (
+	retryBaseDelay          = 1 * time.Minute
+	retryMaxDelay           = 10 * time.Minute
+	forcedAttemptMinInterval = 90 * time.Second
+)
 
 type Client struct {
 	httpClient *http.Client
@@ -116,35 +118,13 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
 
-	// кэш считается валидным, если он моложе TTL
-	retryAfterDur := 5 * time.Minute
-
-	// read cached entry (may be zero-values)
+	// read cached entry
 	c.mu.RLock()
 	cached := c.cache[cacheKey]
 	c.mu.RUnlock()
 
 	hasValid := cached.Data != nil && cached.IsValid
 	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
-
-	// retry window blocks ANY api attempt first
-	if cached.RetryAfter.After(now) {
-		if c.logger != nil {
-			c.logger.Printf("weather api blocked by retry-after")
-			c.logger.Printf("skipping API call (retry window active)")
-		}
-		if hasValid {
-			if c.logger != nil {
-				c.logger.Printf("weather cache hit stale")
-				c.logger.Printf("using stale cache")
-			}
-			return cached.Data, nil
-		}
-		if c.logger != nil {
-			c.logger.Printf("fallback no cache")
-		}
-		return c.buildFallbackWeatherData(city), nil
-	}
 
 	// cache hit valid
 	if fresh {
@@ -164,26 +144,9 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	cached = c.cache[cacheKey]
 	c.mu.RUnlock()
 
+	now = time.Now()
 	hasValid = cached.Data != nil && cached.IsValid
 	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
-
-	if cached.RetryAfter.After(now) {
-		if c.logger != nil {
-			c.logger.Printf("weather api blocked by retry-after")
-			c.logger.Printf("skipping API call (retry window active)")
-		}
-		if hasValid {
-			if c.logger != nil {
-				c.logger.Printf("weather cache hit stale")
-				c.logger.Printf("using stale cache")
-			}
-			return cached.Data, nil
-		}
-		if c.logger != nil {
-			c.logger.Printf("fallback no cache")
-		}
-		return c.buildFallbackWeatherData(city), nil
-	}
 
 	if fresh {
 		if c.logger != nil {
@@ -191,6 +154,40 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("weather cache hit valid")
 		}
 		return cached.Data, nil
+	}
+
+	// retry-after gate with controlled forced attempts when no valid cache exists
+	if cached.RetryAfter.After(now) {
+		if hasValid {
+			if c.logger != nil {
+				c.logger.Printf("weather api blocked by retry-after")
+				c.logger.Printf("skipping API call (retry window active)")
+				c.logger.Printf("weather cache hit stale")
+				c.logger.Printf("using stale cache")
+			}
+			return cached.Data, nil
+		}
+
+		// No valid cache at all: allow one forced attempt per short interval.
+		canForce := cached.LastForcedAttempt.IsZero() || now.Sub(cached.LastForcedAttempt) >= forcedAttemptMinInterval
+		if !canForce {
+			if c.logger != nil {
+				c.logger.Printf("weather api blocked by retry-after")
+				c.logger.Printf("skipping API call (retry window active)")
+				c.logger.Printf("fallback no cache")
+			}
+			return c.buildFallbackWeatherData(city), nil
+		}
+
+		// mark forced attempt timestamp before request under the same key-lock
+		c.mu.Lock()
+		entry := c.cache[cacheKey]
+		entry.LastForcedAttempt = now
+		c.cache[cacheKey] = entry
+		c.mu.Unlock()
+		if c.logger != nil {
+			c.logger.Printf("forced API attempt")
+		}
 	}
 
 	if c.logger != nil {
@@ -202,14 +199,20 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	}
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		// handle 429 with retryAfter; do NOT cache fallback as valid data
+		// handle errors with exponential retry-after; do NOT cache fallback as valid data
 		now2 := time.Now()
-		retryUntil := now2.Add(retryAfterDur)
+		nextRetryCount := cached.RetryCount + 1
+		delay := retryBaseDelay << (nextRetryCount - 1)
+		if delay > retryMaxDelay {
+			delay = retryMaxDelay
+		}
+		retryUntil := now2.Add(delay)
 
 		c.mu.Lock()
 		entry := c.cache[cacheKey]
 		entry.LastError = err.Error()
 		entry.RetryAfter = retryUntil
+		entry.RetryCount = nextRetryCount
 		c.cache[cacheKey] = entry
 		c.mu.Unlock()
 
@@ -254,6 +257,8 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		IsValid:   true,
 		LastError: "",
 		RetryAfter: time.Time{},
+		RetryCount: 0,
+		LastForcedAttempt: time.Time{},
 	}
 	c.mu.Unlock()
 
@@ -275,6 +280,51 @@ func (c *Client) buildFallbackWeatherData(city City) *WeatherData {
 		},
 		Forecast: nil,
 		Hourly:   nil,
+	}
+}
+
+type WarmTarget struct {
+	Key  string
+	Name string
+	Lat  float64
+	Lon  float64
+}
+
+func defaultWarmTargets() []WarmTarget {
+	return []WarmTarget{
+		{Key: "kyiv", Name: "Kyiv", Lat: 50.4501, Lon: 30.5234},
+		{Key: "dnipro", Name: "Dnipro", Lat: 48.467, Lon: 35.040},
+		{Key: "warm:kharkiv", Name: "Kharkiv", Lat: 49.9935, Lon: 36.2304},
+		{Key: "warm:lviv", Name: "Lviv", Lat: 49.8397, Lon: 24.0297},
+		{Key: "warm:odesa", Name: "Odesa", Lat: 46.4825, Lon: 30.7233},
+	}
+}
+
+// WarmCache performs background warm-up for popular cities.
+func (c *Client) WarmCache(ctx context.Context) {
+	if c.logger != nil {
+		c.logger.Printf("cache warm started")
+	}
+	targets := defaultWarmTargets()
+	success := 0
+	for _, t := range targets {
+		callCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
+		data, err := c.GetWeatherForLocation(callCtx, t.Key, t.Name, t.Lat, t.Lon)
+		cancel()
+		if err != nil || data == nil || data.IsFallback {
+			if c.logger != nil {
+				c.logger.Printf("cache warm failed")
+			}
+			continue
+		}
+		success++
+	}
+	if c.logger != nil {
+		if success > 0 {
+			c.logger.Printf("cache warm success")
+		} else {
+			c.logger.Printf("cache warm failed")
+		}
 	}
 }
 

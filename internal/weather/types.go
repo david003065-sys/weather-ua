@@ -58,6 +58,8 @@ type CachedWeather struct {
 	IsValid   bool
 	LastError string
 	RetryAfter time.Time
+	RetryCount int
+	LastForcedAttempt time.Time
 }
 
 // WeatherCache — кэш погоды по ключу (город или place:id).
