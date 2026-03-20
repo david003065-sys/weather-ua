@@ -47,9 +47,11 @@ type WeatherData struct {
 	Sunset   time.Time
 	Timezone         string
 	UTCOffsetSeconds int
-	// IsStale: true если отданы устаревшие данные из кэша (API не обновил ответ).
+	// LastUpdated — момент получения этого снимка от провайдера (UTC). Для кэша без поля используется Timestamp записи кэша.
+	LastUpdated time.Time
+	// IsStale: true только для устаревших, но реальных данных из кэша.
 	IsStale bool
-	// IsFallback: true только если реальных данных нет (кэш пуст и API недоступен).
+	// IsFallback: true только если реальных данных нет (кэш пуст и провайдер недоступен).
 	IsFallback bool
 }
 

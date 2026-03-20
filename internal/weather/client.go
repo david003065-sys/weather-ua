@@ -38,8 +38,8 @@ var (
 )
 
 var (
-	errRateLimited   = errors.New("open-meteo rate limited")
-	errCooldownActive = errors.New("api cooldown active")
+	errProviderRateLimited = errors.New("provider rate limited")
+	errCooldownActive      = errors.New("api cooldown active")
 )
 
 type Client struct {
@@ -114,6 +114,8 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		return nil, err
 	}
 
+	logProviderSelection(c.logger)
+
 	now := time.Now()
 	c.mu.RLock()
 	entry := c.cache[cacheKey]
@@ -126,7 +128,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		if c.logger != nil {
 			c.logger.Printf("cache hit (fresh) key=%s", cacheKey)
 		}
-		return dupWeather(entry.Data, false, false), nil
+		return enrichFromCacheEntry(entry, false, false), nil
 	}
 
 	if isAPICooldownActive() {
@@ -134,15 +136,9 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("cooldown active")
 		}
 		if hasValid {
-			if c.logger != nil {
-				c.logger.Printf("cache hit (stale) key=%s", cacheKey)
-			}
-			return dupWeather(entry.Data, true, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, false), nil
 		}
-		if c.logger != nil {
-			c.logger.Printf("api error: no cache while cooldown key=%s", cacheKey)
-		}
-		return emptyNoData(city), nil
+		return c.returnNoData(city, cacheKey, "cooldown active, no valid cache"), nil
 	}
 
 	v, err, _ := c.sf.Do(cacheKey, func() (interface{}, error) {
@@ -171,7 +167,7 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 		if c.logger != nil {
 			c.logger.Printf("cache hit (fresh) key=%s (coalesced)", cacheKey)
 		}
-		return dupWeather(entry.Data, false, false), nil
+		return enrichFromCacheEntry(entry, false, false), nil
 	}
 
 	if isAPICooldownActive() {
@@ -179,34 +175,29 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("cooldown active")
 		}
 		if hasValid {
-			if c.logger != nil {
-				c.logger.Printf("cache hit (stale) key=%s", cacheKey)
-			}
-			return dupWeather(entry.Data, true, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, false), nil
 		}
-		return emptyNoData(city), nil
+		return c.returnNoData(city, cacheKey, "cooldown active, no valid cache"), nil
 	}
 
 	if c.logger != nil {
-		c.logger.Printf("api request key=%s city=%s lat=%.4f lon=%.4f", cacheKey, city.Name, city.Latitude, city.Longitude)
+		c.logger.Printf("provider request started provider=%s key=%s city=%s lat=%.4f lon=%.4f",
+			normalizedProvider(), cacheKey, city.Name, city.Latitude, city.Longitude)
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
 		if c.logger != nil {
-			c.logger.Printf("api error key=%s: %v", cacheKey, err)
+			c.logger.Printf("provider error key=%s: %v", cacheKey, err)
 		}
 		c.mu.RLock()
 		entry = c.cache[cacheKey]
 		c.mu.RUnlock()
 		hasValid = entry.Data != nil && entry.IsValid
 		if hasValid {
-			if c.logger != nil {
-				c.logger.Printf("cache hit (stale) key=%s after api error", cacheKey)
-			}
-			return dupWeather(entry.Data, true, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, true), nil
 		}
-		return emptyNoData(city), nil
+		return c.returnNoData(city, cacheKey, "provider error, no valid cache"), nil
 	}
 
 	stored := dupStoreWeather(data)
@@ -249,7 +240,36 @@ func dupStoreWeather(src *WeatherData) *WeatherData {
 	out := *src
 	out.IsStale = false
 	out.IsFallback = false
+	out.LastUpdated = time.Now().UTC()
 	return &out
+}
+
+func enrichFromCacheEntry(entry CachedWeather, stale, fallback bool) *WeatherData {
+	out := dupWeather(entry.Data, stale, fallback)
+	if out.LastUpdated.IsZero() {
+		out.LastUpdated = entry.Timestamp.UTC()
+	}
+	return out
+}
+
+func (c *Client) returnStaleFromCache(entry CachedWeather, cacheKey string, afterProviderError bool) *WeatherData {
+	out := enrichFromCacheEntry(entry, true, false)
+	if c.logger != nil {
+		if afterProviderError {
+			c.logger.Printf("cache hit (stale) key=%s after provider error", cacheKey)
+		} else {
+			c.logger.Printf("cache hit (stale) key=%s", cacheKey)
+		}
+		c.logger.Printf("stale cache returned key=%s", cacheKey)
+	}
+	return out
+}
+
+func (c *Client) returnNoData(city City, cacheKey, reason string) *WeatherData {
+	if c.logger != nil {
+		c.logger.Printf("no cache available key=%s (%s)", cacheKey, reason)
+	}
+	return emptyNoData(city)
 }
 
 func isAPICooldownActive() bool {
@@ -320,30 +340,56 @@ func (c *Client) WarmCache(ctx context.Context) {
 	}
 }
 
+func shouldTriggerProviderCooldown(status int) bool {
+	switch status {
+	case http.StatusTooManyRequests, http.StatusForbidden:
+		return true
+	default:
+		return false
+	}
+}
+
+func shouldTriggerCooldownFromAPIErrorCode(code int) bool {
+	// 2007 quota exceeded, 2008 disabled key — backoff to protect the app
+	switch code {
+	case 2007, 2008:
+		return true
+	default:
+		return false
+	}
+}
+
 func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, error) {
 	if isAPICooldownActive() {
 		return nil, errCooldownActive
 	}
 
-	if c.logger != nil {
-		c.logger.Printf("open-meteo request started")
+	if normalizedProvider() != providerWeatherAPI {
+		if c.logger != nil {
+			c.logger.Printf("provider error: unsupported provider %q (only %q supported)", normalizedProvider(), providerWeatherAPI)
+		}
+		return nil, fmt.Errorf("unsupported weather provider %q", normalizedProvider())
 	}
+
+	apiKey := weatherAPIKey()
+	if apiKey == "" {
+		if c.logger != nil {
+			c.logger.Printf("provider error: %s is not set", EnvWeatherAPIKey)
+		}
+		return nil, fmt.Errorf("%s is not set", EnvWeatherAPIKey)
+	}
+
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	baseURL := "https://api.open-meteo.com/v1/forecast"
 	q := url.Values{}
-	q.Set("latitude", strconv.FormatFloat(city.Latitude, 'f', 4, 64))
-	q.Set("longitude", strconv.FormatFloat(city.Longitude, 'f', 4, 64))
-	q.Set("current_weather", "true")
-	q.Set("hourly", "temperature_2m,weathercode,relativehumidity_2m,surface_pressure")
-	q.Set("daily", "temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset")
-	q.Set("timezone", "auto")
-	q.Set("forecast_days", "3")
-	fullURL := baseURL + "?" + q.Encode()
+	q.Set("key", apiKey)
+	q.Set("q", fmt.Sprintf("%.4f,%.4f", city.Latitude, city.Longitude))
+	q.Set("days", "3")
+	fullURL := weatherAPIBaseURL() + "/forecast.json?" + q.Encode()
 
 	if c.logger != nil {
-		c.logger.Printf("open-meteo request url: %s", fullURL)
+		c.logger.Printf("provider http request url=%s/forecast.json q=%.4f,%.4f days=3", weatherAPIBaseURL(), city.Latitude, city.Longitude)
 	}
 
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fullURL, nil)
@@ -354,114 +400,92 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		if c.logger != nil {
-			c.logger.Printf("open-meteo network error: %v", err)
+			c.logger.Printf("provider error: network: %v", err)
 		}
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	if c.logger != nil {
-		c.logger.Printf("open-meteo response status code: %d", resp.StatusCode)
+		c.logger.Printf("provider response status=%d", resp.StatusCode)
 	}
 
 	bodyBytes, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		if c.logger != nil {
-			c.logger.Printf("open-meteo read body failed: %v", readErr)
+			c.logger.Printf("provider error: read body: %v", readErr)
 		}
 		return nil, readErr
 	}
 	if c.logger != nil && os.Getenv("WEATHER_DEBUG") == "1" {
-		c.logger.Printf("open-meteo response body: %s", snippet(bodyBytes, 1000))
+		c.logger.Printf("provider response body (debug): %s", snippet(bodyBytes, 1000))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusTooManyRequests {
+		if shouldTriggerProviderCooldown(resp.StatusCode) {
 			if c.logger != nil {
-				c.logger.Printf("429 detected: global cooldown %v", apiCooldownAfter429)
+				if resp.StatusCode == http.StatusTooManyRequests {
+					c.logger.Printf("provider rate limit detected: http_status=%d cooldown=%v", resp.StatusCode, apiCooldownAfter429)
+				} else {
+					c.logger.Printf("provider quota or access denied: http_status=%d cooldown=%v", resp.StatusCode, apiCooldownAfter429)
+				}
 			}
 			blockAPIAfter429()
-			return nil, errRateLimited
+			return nil, errProviderRateLimited
 		}
 		if c.logger != nil {
-			c.logger.Printf("open-meteo non-200 status: %s body=%s", resp.Status, snippet(bodyBytes, 500))
+			c.logger.Printf("provider error: http %s body=%s", resp.Status, snippet(bodyBytes, 500))
 		}
-		return nil, fmt.Errorf("open-meteo status: %s", resp.Status)
+		return nil, fmt.Errorf("provider http status: %s", resp.Status)
 	}
 
-	var apiRes openMeteoResponse
+	var apiRes weatherAPIForecastResponse
 	if err := json.Unmarshal(bodyBytes, &apiRes); err != nil {
 		if c.logger != nil {
-			c.logger.Printf("open-meteo decode failed: %v body=%s", err, snippet(bodyBytes, 500))
+			c.logger.Printf("provider error: json decode: %v body=%s", err, snippet(bodyBytes, 500))
 		}
 		return nil, err
 	}
-	if c.logger != nil {
-		c.logger.Printf("open-meteo decode success")
-	}
 
-	if apiRes.CurrentWeather == nil || apiRes.Daily == nil {
+	if apiRes.Error != nil && apiRes.Error.Message != "" {
 		if c.logger != nil {
-			c.logger.Printf("open-meteo parsed empty payload")
+			c.logger.Printf("provider error: api code=%d message=%s", apiRes.Error.Code, apiRes.Error.Message)
 		}
-		return nil, errors.New("missing current_weather in response")
+		if shouldTriggerCooldownFromAPIErrorCode(apiRes.Error.Code) {
+			if c.logger != nil {
+				c.logger.Printf("provider rate limit detected: api_error_code=%d cooldown=%v", apiRes.Error.Code, apiCooldownAfter429)
+			}
+			blockAPIAfter429()
+			return nil, errProviderRateLimited
+		}
+		return nil, fmt.Errorf("provider api error %d: %s", apiRes.Error.Code, apiRes.Error.Message)
 	}
+
+	if apiRes.Location == nil || apiRes.Current == nil || apiRes.Forecast == nil || len(apiRes.Forecast.Forecastday) == 0 {
+		if c.logger != nil {
+			c.logger.Printf("provider error: empty payload")
+		}
+		return nil, errors.New("provider: missing location, current or forecast")
+	}
+
+	loc, err := time.LoadLocation(apiRes.Location.TzID)
+	if err != nil {
+		loc = time.UTC
+	}
+
+	data, convErr := buildWeatherDataFromWeatherAPI(city, apiRes, loc)
+	if convErr != nil {
+		if c.logger != nil {
+			c.logger.Printf("provider error: map response: %v", convErr)
+		}
+		return nil, convErr
+	}
+
 	if c.logger != nil {
-		hCount := 0
-		dCount := 0
-		if apiRes.Hourly != nil {
-			hCount = len(apiRes.Hourly.Temperature2M)
-		}
-		if apiRes.Daily != nil {
-			dCount = len(apiRes.Daily.TempMax)
-		}
-		c.logger.Printf("open-meteo parsed current weather: temp=%.1f wind=%.1f", apiRes.CurrentWeather.Temperature, apiRes.CurrentWeather.Windspeed)
-		c.logger.Printf("open-meteo parsed hourly count: %d", hCount)
-		c.logger.Printf("open-meteo parsed daily count: %d", dCount)
-	}
-
-	humidity := c.extractHumidity(apiRes)
-	pressure := c.extractPressure(apiRes)
-	cond := describeCode(apiRes.CurrentWeather.WeatherCode)
-
-	now := parseLocalTime(apiRes.CurrentWeather.Time)
-	sunrise, sunset := extractSunTimes(apiRes)
-
-	isNight := false
-	if !sunrise.IsZero() && !sunset.IsZero() && !now.IsZero() {
-		isNight = now.Before(sunrise) || now.After(sunset)
-	} else if apiRes.CurrentWeather.IsDay == 0 {
-		isNight = true
-	}
-
-	current := Current{
-		Temperature: apiRes.CurrentWeather.Temperature,
-		WeatherCode: apiRes.CurrentWeather.WeatherCode,
-		Description: "",
-		Icon:        cond.Icon,
-		WindSpeed:   apiRes.CurrentWeather.Windspeed,
-		Humidity:    humidity,
-		Pressure:    pressure,
-		IsNight:     isNight,
-	}
-
-	forecast := c.buildForecast(apiRes)
-	hourly := c.buildHourly(apiRes)
-
-	data := &WeatherData{
-		CityID:           city.ID,
-		CityName:         city.Name,
-		Current:          current,
-		Forecast:         forecast,
-		Hourly:           hourly,
-		Sunrise:          sunrise,
-		Sunset:           sunset,
-		Timezone:         apiRes.Timezone,
-		UTCOffsetSeconds: apiRes.UTCOffsetSeconds,
-		IsStale:          false,
-		IsFallback:       false,
-	}
-	if c.logger != nil {
-		c.logger.Printf("open-meteo success")
+		nh := len(data.Hourly)
+		nd := len(data.Forecast)
+		c.logger.Printf("provider success: temp_c=%.1f wind_kph=%.1f hourly=%d daily=%d",
+			data.Current.Temperature, data.Current.WindSpeed, nh, nd)
 	}
 
 	return data, nil
@@ -474,193 +498,261 @@ func snippet(b []byte, max int) string {
 	return strings.ReplaceAll(string(b[:max]), "\n", " ") + "...(truncated)"
 }
 
-type openMeteoResponse struct {
-	Timezone         string `json:"timezone"`
-	UTCOffsetSeconds int    `json:"utc_offset_seconds"`
-	CurrentWeather   *struct {
-		Temperature float64 `json:"temperature"`
-		Windspeed   float64 `json:"windspeed"`
-		WeatherCode int     `json:"weathercode"`
-		Time        string  `json:"time"`
-		IsDay       int     `json:"is_day"`
-	} `json:"current_weather"`
-	Hourly *struct {
-		Time             []string  `json:"time"`
-		Temperature2M    []float64 `json:"temperature_2m"`
-		WeatherCode      []int     `json:"weathercode"`
-		RelativeHumidity []float64 `json:"relativehumidity_2m"`
-		SurfacePressure  []float64 `json:"surface_pressure"`
-	} `json:"hourly"`
-	Daily *struct {
-		Time    []string  `json:"time"`
-		TempMax []float64 `json:"temperature_2m_max"`
-		TempMin []float64 `json:"temperature_2m_min"`
-		Weather []int     `json:"weathercode"`
-		Sunrise []string  `json:"sunrise"`
-		Sunset  []string  `json:"sunset"`
-	} `json:"daily"`
+// weatherAPIForecastResponse — подмножество ответа /forecast.json (WeatherAPI.com).
+type weatherAPIForecastResponse struct {
+	Location *struct {
+		TzID           string `json:"tz_id"`
+		LocaltimeEpoch int64  `json:"localtime_epoch"`
+		Localtime      string `json:"localtime"`
+	} `json:"location"`
+	Current *struct {
+		TempC     float64 `json:"temp_c"`
+		IsDay     int     `json:"is_day"`
+		WindKph   float64 `json:"wind_kph"`
+		PressureMb float64 `json:"pressure_mb"`
+		Humidity  int     `json:"humidity"`
+		Condition struct {
+			Code int    `json:"code"`
+			Text string `json:"text"`
+			Icon string `json:"icon"`
+		} `json:"condition"`
+	} `json:"current"`
+	Forecast *struct {
+		Forecastday []weatherAPIForecastDay `json:"forecastday"`
+	} `json:"forecast"`
+	Error *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
-func (c *Client) extractHumidity(res openMeteoResponse) float64 {
-	if res.Hourly == nil || len(res.Hourly.Time) == 0 || len(res.Hourly.RelativeHumidity) == 0 {
+type weatherAPIForecastDay struct {
+	Date  string `json:"date"`
+	Day   struct {
+		MaxtempC  float64 `json:"maxtemp_c"`
+		MintempC  float64 `json:"mintemp_c"`
+		Condition struct {
+			Code int `json:"code"`
+		} `json:"condition"`
+	} `json:"day"`
+	Astro struct {
+		Sunrise string `json:"sunrise"`
+		Sunset  string `json:"sunset"`
+	} `json:"astro"`
+	Hour []weatherAPIHour `json:"hour"`
+}
+
+type weatherAPIHour struct {
+	TimeEpoch int64   `json:"time_epoch"`
+	Time      string  `json:"time"`
+	TempC     float64 `json:"temp_c"`
+	Condition struct {
+		Code int `json:"code"`
+	} `json:"condition"`
+}
+
+// mapWeatherAPICodeToWMO переводит код условий WeatherAPI в WMO-подобный код для describeCode / UI.
+func mapWeatherAPICodeToWMO(code int) int {
+	switch code {
+	case 1000:
 		return 0
-	}
-
-	target := ""
-	if res.CurrentWeather != nil {
-		target = res.CurrentWeather.Time
-	}
-
-	if target != "" {
-		for i, t := range res.Hourly.Time {
-			if t == target && i < len(res.Hourly.RelativeHumidity) {
-				return res.Hourly.RelativeHumidity[i]
-			}
+	case 1003:
+		return 2
+	case 1006, 1009:
+		return 3
+	case 1030, 1135, 1147:
+		return 45
+	case 1063, 1150, 1153, 1180, 1183, 1240:
+		return 61
+	case 1186, 1189, 1192, 1195, 1198, 1201, 1243, 1246, 1252, 1255, 1258, 1261, 1264:
+		return 65
+	case 1066, 1114, 1117, 1204, 1207, 1210, 1213, 1216, 1219, 1222, 1225, 1237:
+		return 71
+	case 1087, 1273, 1276, 1279, 1282:
+		return 95
+	default:
+		if code >= 1063 && code <= 1201 {
+			return 65
 		}
+		if code >= 1210 && code <= 1237 {
+			return 71
+		}
+		if code >= 1273 && code <= 1282 {
+			return 95
+		}
+		return 3
 	}
-
-	return res.Hourly.RelativeHumidity[0]
 }
 
-func (c *Client) extractPressure(res openMeteoResponse) float64 {
-	if res.Hourly == nil || len(res.Hourly.Time) == 0 || len(res.Hourly.SurfacePressure) == 0 {
-		return 0
-	}
-
-	target := ""
-	if res.CurrentWeather != nil {
-		target = res.CurrentWeather.Time
-	}
-
-	if target != "" {
-		for i, t := range res.Hourly.Time {
-			if t == target && i < len(res.Hourly.SurfacePressure) {
-				return res.Hourly.SurfacePressure[i] / 1.333
-			}
-		}
-	}
-
-	return res.Hourly.SurfacePressure[0] / 1.333
-}
-
-func (c *Client) buildForecast(res openMeteoResponse) []Daily {
-	if res.Daily == nil || len(res.Daily.Time) == 0 {
-		return nil
-	}
-
-	n := len(res.Daily.Time)
-	if n > 3 {
-		n = 3
-	}
-
-	out := make([]Daily, 0, n)
-	for i := 0; i < n; i++ {
-		dateStr := res.Daily.Time[i]
-		date, err := time.Parse("2006-01-02", dateStr)
-		if err != nil {
-			continue
-		}
-
-		code := 0
-		if i < len(res.Daily.Weather) {
-			code = res.Daily.Weather[i]
-		}
-		cond := describeCode(code)
-
-		minTemp := 0.0
-		maxTemp := 0.0
-		if i < len(res.Daily.TempMin) {
-			minTemp = res.Daily.TempMin[i]
-		}
-		if i < len(res.Daily.TempMax) {
-			maxTemp = res.Daily.TempMax[i]
-		}
-
-		out = append(out, Daily{
-			Date:        date,
-			MinTemp:     minTemp,
-			MaxTemp:     maxTemp,
-			WeatherCode: code,
-			Description: "",
-			Icon:        cond.Icon,
-		})
-	}
-
-	return out
-}
-
-func (c *Client) buildHourly(res openMeteoResponse) []Hourly {
-	if res.Hourly == nil || len(res.Hourly.Time) == 0 || len(res.Hourly.Temperature2M) == 0 {
-		return nil
-	}
-
-	startIdx := 0
-	currentTime := ""
-	if res.CurrentWeather != nil {
-		currentTime = res.CurrentWeather.Time
-	}
-	if currentTime != "" {
-		for i, t := range res.Hourly.Time {
-			if t == currentTime {
-				startIdx = i
-				break
-			}
-		}
-	}
-
-	n := 12
-	if startIdx+n > len(res.Hourly.Time) {
-		n = len(res.Hourly.Time) - startIdx
-	}
-	if n <= 0 {
-		return nil
-	}
-
-	out := make([]Hourly, 0, n)
-	for i := 0; i < n; i++ {
-		idx := startIdx + i
-		if idx >= len(res.Hourly.Time) {
-			break
-		}
-		t := parseLocalTime(res.Hourly.Time[idx])
-		temp := res.Hourly.Temperature2M[idx]
-
-		code := 0
-		if idx < len(res.Hourly.WeatherCode) {
-			code = res.Hourly.WeatherCode[idx]
-		}
-		cond := describeCode(code)
-
-		out = append(out, Hourly{
-			Time:        t,
-			Temperature: temp,
-			WeatherCode: code,
-			Description: "",
-			Icon:        cond.Icon,
-		})
-	}
-
-	return out
-}
-
-func parseLocalTime(value string) time.Time {
-	if value == "" {
+func parseWeatherAPILocaltime(s string, loc *time.Location) time.Time {
+	s = strings.TrimSpace(s)
+	if s == "" || loc == nil {
 		return time.Time{}
 	}
-	t, err := time.Parse("2006-01-02T15:04", value)
+	t, err := time.ParseInLocation("2006-01-02 15:04", s, loc)
 	if err != nil {
 		return time.Time{}
 	}
 	return t
 }
 
-func extractSunTimes(res openMeteoResponse) (time.Time, time.Time) {
-	if res.Daily == nil || len(res.Daily.Sunrise) == 0 || len(res.Daily.Sunset) == 0 {
-		return time.Time{}, time.Time{}
+// parseAstroTime парсит время восхода/заката вида "07:47 AM" для даты "2006-01-02".
+func parseAstroTime(dateISO, clock string, loc *time.Location) time.Time {
+	dateISO = strings.TrimSpace(dateISO)
+	clock = strings.TrimSpace(clock)
+	if dateISO == "" || clock == "" || loc == nil {
+		return time.Time{}
 	}
-	sunrise := parseLocalTime(res.Daily.Sunrise[0])
-	sunset := parseLocalTime(res.Daily.Sunset[0])
-	return sunrise, sunset
+	layouts := []string{
+		"2006-01-02 3:04 PM",
+		"2006-01-02 03:04 PM",
+		"2006-01-02 15:04",
+	}
+	for _, ly := range layouts {
+		if t, err := time.ParseInLocation(ly, dateISO+" "+clock, loc); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
+func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLocal time.Time) []Hourly {
+	type slot struct {
+		t   time.Time
+		tmp float64
+		wa  int
+	}
+	var slots []slot
+	for _, fd := range days {
+		for _, h := range fd.Hour {
+			t := time.Unix(h.TimeEpoch, 0).In(loc)
+			slots = append(slots, slot{t: t, tmp: h.TempC, wa: h.Condition.Code})
+		}
+	}
+	if len(slots) == 0 {
+		return nil
+	}
+	startIdx := 0
+	if !nowLocal.IsZero() {
+		for i := range slots {
+			if !slots[i].t.Before(nowLocal) {
+				startIdx = i
+				break
+			}
+			startIdx = i
+		}
+	}
+	n := 12
+	if startIdx+n > len(slots) {
+		n = len(slots) - startIdx
+	}
+	if n <= 0 {
+		return nil
+	}
+	out := make([]Hourly, 0, n)
+	for i := 0; i < n; i++ {
+		s := slots[startIdx+i]
+		wmo := mapWeatherAPICodeToWMO(s.wa)
+		cond := describeCode(wmo)
+		out = append(out, Hourly{
+			Time:        s.t,
+			Temperature: s.tmp,
+			WeatherCode: wmo,
+			Description: "",
+			Icon:        cond.Icon,
+		})
+	}
+	return out
+}
+
+func buildDailySeries(days []weatherAPIForecastDay, loc *time.Location) []Daily {
+	n := len(days)
+	if n > 3 {
+		n = 3
+	}
+	out := make([]Daily, 0, n)
+	for i := 0; i < n; i++ {
+		fd := days[i]
+		date, err := time.ParseInLocation("2006-01-02", fd.Date, loc)
+		if err != nil {
+			continue
+		}
+		wmo := mapWeatherAPICodeToWMO(fd.Day.Condition.Code)
+		cond := describeCode(wmo)
+		out = append(out, Daily{
+			Date:        date,
+			MinTemp:     fd.Day.MintempC,
+			MaxTemp:     fd.Day.MaxtempC,
+			WeatherCode: wmo,
+			Description: "",
+			Icon:        cond.Icon,
+		})
+	}
+	return out
+}
+
+func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, loc *time.Location) (*WeatherData, error) {
+	cur := res.Current
+	locInfo := res.Location
+	days := res.Forecast.Forecastday
+
+	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
+	cond := describeCode(wmoNow)
+
+	nowLocal := parseWeatherAPILocaltime(locInfo.Localtime, loc)
+	if nowLocal.IsZero() && locInfo.LocaltimeEpoch > 0 {
+		nowLocal = time.Unix(locInfo.LocaltimeEpoch, 0).In(loc)
+	}
+
+	var sunrise, sunset time.Time
+	if len(days) > 0 {
+		sunrise = parseAstroTime(days[0].Date, days[0].Astro.Sunrise, loc)
+		sunset = parseAstroTime(days[0].Date, days[0].Astro.Sunset, loc)
+	}
+
+	isNight := cur.IsDay == 0
+	if !sunrise.IsZero() && !sunset.IsZero() && !nowLocal.IsZero() {
+		isNight = nowLocal.Before(sunrise) || nowLocal.After(sunset)
+	}
+
+	// Давление: мм рт. ст., как раньше с Open-Meteo (hPa / 1.333).
+	pressureMM := cur.PressureMb / 1.333
+
+	current := Current{
+		Temperature: cur.TempC,
+		WeatherCode: wmoNow,
+		Description: "",
+		Icon:        cond.Icon,
+		WindSpeed:   cur.WindKph,
+		Humidity:    float64(cur.Humidity),
+		Pressure:    pressureMM,
+		IsNight:     isNight,
+	}
+
+	forecast := buildDailySeries(days, loc)
+	hourly := buildHourlySeries(days, loc, nowLocal)
+
+	off := 0
+	if !nowLocal.IsZero() {
+		_, off = nowLocal.Zone()
+	} else if locInfo.LocaltimeEpoch > 0 {
+		t := time.Unix(locInfo.LocaltimeEpoch, 0).In(loc)
+		_, off = t.Zone()
+	}
+
+	return &WeatherData{
+		CityID:           city.ID,
+		CityName:         city.Name,
+		Current:          current,
+		Forecast:         forecast,
+		Hourly:           hourly,
+		Sunrise:          sunrise,
+		Sunset:           sunset,
+		Timezone:         locInfo.TzID,
+		UTCOffsetSeconds: off,
+		IsStale:          false,
+		IsFallback:       false,
+	}, nil
 }
 
 type condition struct {

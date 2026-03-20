@@ -1,12 +1,12 @@
 # ЖИВАЯ ПОГОДА — премиальный погодный сайт для городов Украины
 
-Серверный рендеринг на Go, живая анимированная погода (CSS + JS), данные из Open‑Meteo
-и кеширование в памяти. Города: Днепр, Киев, Павлоград, Вольногорск.
+Серверный рендеринг на Go, живая анимированная погода (CSS + JS), данные из **WeatherAPI.com**
+(переменные `WEATHER_API_PROVIDER=weatherapi`, `WEATHERAPI_KEY`) и кеширование в памяти. Города: Днепр, Киев, Павлоград, Вольногорск.
 
 ## Стек
 
 - Go (`net/http`, `html/template`)
-- Open‑Meteo API (без ключа, бесплатный)
+- WeatherAPI.com: `WEATHER_API_PROVIDER=weatherapi` (по умолчанию), `WEATHERAPI_KEY`, опционально `WEATHERAPI_BASE_URL`
 - Чистый CSS (glassmorphism, анимированный фон)
 - Немного JS для смены фонового состояния и инициализации Chart.js
 
@@ -15,7 +15,7 @@
 - `cmd/server` — точка входа (пакет `main`): настройка маршрутов, статики и запуск (`Run()`).
 - `cmd/tools/places_importer` — утилита генерации `data/places.db` из CSV.
 - `internal/bootstrap` — автоматическая подготовка данных (скачивает GeoNames и создаёт `data/places.db`, если его нет).
-- `internal/weather` — клиент Open‑Meteo, кеш, список городов, доменные типы.
+- `internal/weather` — клиент WeatherAPI.com, кеш, список городов, доменные типы.
 - `internal/handlers` — HTTP‑обработчики, подготовка данных для шаблонов.
 - `internal/places` — офлайн‑поиск по населенным пунктам Украины (SQLite).
 - `templates/` — SSR‑шаблоны (`layout.html`, `index.html`, `city.html`).
@@ -37,7 +37,25 @@
    go mod tidy
    ```
 
-4. Запустите сервер:
+4. Задайте провайдера и ключ API (обязательно для живых данных):
+
+   **PowerShell (Windows):**
+
+   ```powershell
+   $env:WEATHER_API_PROVIDER = "weatherapi"
+   $env:WEATHERAPI_KEY = "ваш_ключ_с_weatherapi.com"
+   ```
+
+   **bash:**
+
+   ```bash
+   export WEATHER_API_PROVIDER=weatherapi
+   export WEATHERAPI_KEY="your_key"
+   ```
+
+   Опционально: `WEATHERAPI_BASE_URL` (по умолчанию `https://api.weatherapi.com/v1`). Другие значения `WEATHER_API_PROVIDER` пока не поддерживаются.
+
+5. Запустите сервер:
 
    ```bash
    go run ./cmd/server
@@ -51,7 +69,7 @@
 
    В зависимости от скорости сети шаг с загрузкой GeoNames может занять несколько минут, это нормальное поведение.
 
-5. Откройте в браузере:
+6. Откройте в браузере:
 
    ```text
    http://localhost:8080
@@ -111,7 +129,10 @@
 
    - **Instance Type**: Free (бесплатный план).
 
-5. Сохраните и запустите деплой.
+5. В **Environment** добавьте `WEATHER_API_PROVIDER=weatherapi` и `WEATHERAPI_KEY` (ключ с [weatherapi.com](https://www.weatherapi.com/)).
+   При необходимости — `WEATHERAPI_BASE_URL`.
+
+6. Сохраните и запустите деплой.
 
 Render автоматически передаст переменную окружения `PORT`, сервер читает её в
 `cmd/server/server.go`, так что дополнительная настройка порта не нужна.
@@ -149,18 +170,17 @@ https://live-weather-ua.onrender.com
 
 ## Кеш и ограничения
 
-- Данные по каждому городу кешируются в памяти на **10 минут**.
-- При ошибке запроса к Open‑Meteo, если есть ещё актуальные данные в кеше,
-  будут использованы они.
-- Коды погодных условий Open‑Meteo конвертируются в понятные описания и
-  иконки (☀️, ☁️, 🌧, ❄️ и т.д.).
+- Данные по каждому городу кешируются в памяти на **15 минут** (см. `weather.NewClient` в `cmd/server/server.go`).
+- При ошибке или лимите WeatherAPI, если в кеше есть валидный ответ, отдаётся **устаревший** кэш.
+- Коды условий WeatherAPI маппятся на WMO‑подобные коды для тех же описаний и иконок в UI
+  (☀️, ☁️, 🌧, ❄️ и т.д.).
 
 ## Автоматическая тема (light/dark)
 
 Тема оформления (светлая/тёмная) выбирается автоматически по времени суток
 для выбранного города. При рендеринге страницы сервер передаёт в скрипт
 `static/theme.js` данные о восходе/закате (`sunrise`, `sunset`) и смещение
-таймзоны (`utc_offset_seconds`) из Open‑Meteo. На клиенте:
+таймзоны (`utc_offset_seconds`) из ответа WeatherAPI. На клиенте:
 
 - режим **Auto** (по умолчанию) использует локальное время города и границу
   `восход–закат` для выбора темы;
