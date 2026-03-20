@@ -373,9 +373,7 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 
 	apiKey := weatherAPIKey()
 	if apiKey == "" {
-		if c.logger != nil {
-			c.logger.Printf("provider error: %s is not set", EnvWeatherAPIKey)
-		}
+		logMissingAPIKeyOnce(c.logger)
 		return nil, fmt.Errorf("%s is not set", EnvWeatherAPIKey)
 	}
 

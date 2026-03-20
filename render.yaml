@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: weather-ua
+    env: go
+    buildCommand: go build -o app ./cmd/server
+    startCommand: ./app
+    envVars:
+      - key: WEATHER_API_PROVIDER
+        value: weatherapi
+      - key: WEATHERAPI_KEY
+        sync: false
