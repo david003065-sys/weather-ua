@@ -57,6 +57,13 @@
         if (!window.Chart || !canvas) return;
 
         try {
+            var css = getComputedStyle(document.documentElement);
+            var textMuted = (css.getPropertyValue("--text-muted") || "#9ca3af").trim();
+            var textStrong = (css.getPropertyValue("--text") || "#e5e7eb").trim();
+            var gridColor = "rgba(148, 163, 184, 0.28)";
+            var lineMax = (css.getPropertyValue("--link") || "#38bdf8").trim();
+            var lineMin = (css.getPropertyValue("--accent-warm") || "#f97316").trim();
+
             const labels = JSON.parse(canvas.dataset.labels || "[]");
             const min = JSON.parse(canvas.dataset.min || "[]");
             const max = JSON.parse(canvas.dataset.max || "[]");
@@ -70,26 +77,26 @@
                         {
                             label: "Макс",
                             data: max,
-                            borderColor: "#38bdf8",
-                            backgroundColor: "rgba(56, 189, 248, 0.18)",
+                            borderColor: lineMax,
+                            backgroundColor: "rgba(56, 189, 248, 0.16)",
                             borderWidth: 2,
                             tension: 0.35,
                             fill: true,
                             pointRadius: 3,
-                            pointBackgroundColor: "#38bdf8",
-                            pointBorderColor: "#0f172a"
+                            pointBackgroundColor: lineMax,
+                            pointBorderColor: textStrong
                         },
                         {
                             label: "Мин",
                             data: min,
-                            borderColor: "#f97316",
-                            backgroundColor: "rgba(249, 115, 22, 0.18)",
+                            borderColor: lineMin,
+                            backgroundColor: "rgba(249, 115, 22, 0.16)",
                             borderWidth: 2,
                             tension: 0.35,
                             fill: true,
                             pointRadius: 3,
-                            pointBackgroundColor: "#f97316",
-                            pointBorderColor: "#0f172a"
+                            pointBackgroundColor: lineMin,
+                            pointBorderColor: textStrong
                         }
                     ]
                 },
@@ -100,24 +107,24 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: "#e5e7eb",
+                                color: textStrong,
                                 font: { size: 11 }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: "#9ca3af" },
-                            grid: { color: "rgba(55, 65, 81, 0.4)" }
+                            ticks: { color: textMuted },
+                            grid: { color: gridColor }
                         },
                         y: {
                             ticks: {
-                                color: "#9ca3af",
+                                color: textMuted,
                                 callback: function (value) {
                                     return value + "°";
                                 }
                             },
-                            grid: { color: "rgba(55, 65, 81, 0.4)" }
+                            grid: { color: gridColor }
                         }
                     }
                 }
