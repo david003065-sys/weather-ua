@@ -23,6 +23,7 @@ const (
 var logProviderOnce sync.Once
 var logMissingKeyOnce sync.Once
 var loadDotEnvOnce sync.Once
+var logProviderDisabledOnce sync.Once
 
 func ensureDotEnvLoaded() {
 	loadDotEnvOnce.Do(func() {
@@ -78,4 +79,18 @@ func logMissingAPIKeyOnce(logger Logger) {
 	logMissingKeyOnce.Do(func() {
 		logger.Printf("weather provider key missing: set %s (or put it in .env for local dev)", EnvWeatherAPIKey)
 	})
+}
+
+// providerReady returns false when configured provider cannot serve requests.
+// For now, weatherapi requires WEATHERAPI_KEY.
+func providerReady(logger Logger) bool {
+	if normalizedProvider() == providerWeatherAPI && weatherAPIKey() == "" {
+		if logger != nil {
+			logProviderDisabledOnce.Do(func() {
+				logger.Printf("weather provider disabled: %s is missing", EnvWeatherAPIKey)
+			})
+		}
+		return false
+	}
+	return true
 }

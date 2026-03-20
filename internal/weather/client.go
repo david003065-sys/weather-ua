@@ -131,6 +131,14 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 		return enrichFromCacheEntry(entry, false, false), nil
 	}
 
+	// Provider precheck: no key -> no provider flow, use cache/no-data only.
+	if !providerReady(c.logger) {
+		if hasValid {
+			return c.returnStaleFromCache(entry, cacheKey, false), nil
+		}
+		return emptyNoData(city), nil
+	}
+
 	if isAPICooldownActive() {
 		if c.logger != nil && shouldLogCooldown() {
 			c.logger.Printf("cooldown active")
@@ -168,6 +176,14 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("cache hit (fresh) key=%s (coalesced)", cacheKey)
 		}
 		return enrichFromCacheEntry(entry, false, false), nil
+	}
+
+	// Provider precheck: no key -> no provider flow, use cache/no-data only.
+	if !providerReady(c.logger) {
+		if hasValid {
+			return c.returnStaleFromCache(entry, cacheKey, false), nil
+		}
+		return emptyNoData(city), nil
 	}
 
 	if isAPICooldownActive() {
@@ -373,7 +389,6 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 
 	apiKey := weatherAPIKey()
 	if apiKey == "" {
-		logMissingAPIKeyOnce(c.logger)
 		return nil, fmt.Errorf("%s is not set", EnvWeatherAPIKey)
 	}
 
