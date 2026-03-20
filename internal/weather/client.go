@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 // Logger для сообщений кэша (если nil — логирование отключено).
@@ -21,20 +22,25 @@ type Logger interface {
 	Printf(format string, args ...interface{})
 }
 
-// minIntervalBetweenAPI — минимум между запросами к Open-Meteo.
-const minIntervalBetweenAPI = 1 * time.Second
+const (
+	// cacheTTLDefault — TTL «свежего» кэша (успешный ответ API).
+	cacheTTLDefault = 15 * time.Minute
+	// apiCooldownAfter429 — глобальная пауза запросов к API после 429 (5–10 мин).
+	apiCooldownAfter429 = 7 * time.Minute
+	cooldownLogEvery    = 1 * time.Minute
+)
 
-// cacheTTL — время жизни успешного ответа в кэше.
-const cacheTTLDefault = 10 * time.Minute
-
-// Global API cooldown after 429 responses.
 var (
 	apiBlockedUntil time.Time
 	apiBlockMu      sync.RWMutex
-	lastBlockedLog  time.Time
+	lastCooldownLog time.Time
+	cooldownLogMu   sync.Mutex
 )
 
-const blockedLogEvery = 1 * time.Minute
+var (
+	errRateLimited   = errors.New("open-meteo rate limited")
+	errCooldownActive = errors.New("api cooldown active")
+)
 
 type Client struct {
 	httpClient *http.Client
@@ -44,25 +50,8 @@ type Client struct {
 	mu    sync.RWMutex
 	cache map[string]CachedWeather
 
-	apiMu          sync.Mutex
-	lastAPIRequest time.Time
-
-	// keyMu защищает ключи в keyLocks; по одному ин-флайт запросу на ключ (защита от stampede).
-	keyMu    sync.Mutex
-	keyLocks map[string]*sync.Mutex
-
-	// in-memory fallback cache to avoid recompute/log spam loops
-	lastFallback     *WeatherData
-	lastFallbackTime time.Time
-	lastFallbackLog  time.Time
+	sf singleflight.Group
 }
-
-const fallbackReuseWindow = 30 * time.Second
-
-var (
-	errRateLimited       = errors.New("open-meteo rate limited")
-	errAPIGloballyBlocked = errors.New("api globally blocked")
-)
 
 func NewClient(cacheTTL, timeout time.Duration) *Client {
 	if cacheTTL <= 0 {
@@ -74,7 +63,6 @@ func NewClient(cacheTTL, timeout time.Duration) *Client {
 		},
 		cacheTTL: cacheTTL,
 		cache:    make(map[string]CachedWeather),
-		keyLocks: make(map[string]*sync.Mutex),
 	}
 }
 
@@ -83,7 +71,6 @@ func (c *Client) SetLogger(l Logger) {
 	c.logger = l
 }
 
-// normalizeCacheKey возвращает стабильный ключ: strings.ToLower(city) или для локации — lat_lon до 3 знаков.
 func normalizeCacheKey(key string) string {
 	return strings.ToLower(strings.TrimSpace(key))
 }
@@ -121,121 +108,112 @@ func (c *Client) GetWeatherForLocation(ctx context.Context, cacheKey, name strin
 	return c.getWeatherForCity(ctx, key, city)
 }
 
-// getKeyLock возвращает мьютекс для ключа (один запрос к API на ключ в момент времени).
-func (c *Client) getKeyLock(key string) *sync.Mutex {
-	c.keyMu.Lock()
-	defer c.keyMu.Unlock()
-	if c.keyLocks[key] == nil {
-		c.keyLocks[key] = &sync.Mutex{}
-	}
-	return c.keyLocks[key]
-}
-
 func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city City) (*WeatherData, error) {
-	now := time.Now()
 	cacheKey = normalizeCacheKey(cacheKey)
-	apiBlocked := isAPIGloballyBlocked()
-	if apiBlocked && c.logger != nil && shouldLogBlockedNow() {
-		c.logger.Printf("API globally blocked, skipping request")
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
+	now := time.Now()
 	c.mu.RLock()
-	cached := c.cache[cacheKey]
+	entry := c.cache[cacheKey]
 	c.mu.RUnlock()
 
-	hasValid := cached.Data != nil && cached.IsValid
-	fresh := hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
+	hasValid := entry.Data != nil && entry.IsValid
+	fresh := hasValid && now.Sub(entry.Timestamp) < c.cacheTTL
+
 	if fresh {
 		if c.logger != nil {
-			c.logger.Printf("cache hit")
-			c.logger.Printf("weather cache hit valid")
+			c.logger.Printf("cache hit (fresh) key=%s", cacheKey)
 		}
-		return cached.Data, nil
+		return dupWeather(entry.Data, false, false), nil
 	}
 
-	// API globally blocked: do not attempt API at all.
-	// If there is no valid cache, return safe fallback immediately.
-	if apiBlocked {
+	if isAPICooldownActive() {
+		if c.logger != nil && shouldLogCooldown() {
+			c.logger.Printf("cooldown active")
+		}
 		if hasValid {
 			if c.logger != nil {
-				c.logger.Printf("using cache (stale)")
-				c.logger.Printf("API call skipped (rate limited)")
+				c.logger.Printf("cache hit (stale) key=%s", cacheKey)
 			}
-			return cached.Data, nil
+			return dupWeather(entry.Data, true, false), nil
 		}
-		return c.getOrCreateFallback(city), nil
+		if c.logger != nil {
+			c.logger.Printf("api error: no cache while cooldown key=%s", cacheKey)
+		}
+		return emptyNoData(city), nil
 	}
 
-	keyLock := c.getKeyLock(cacheKey)
-	keyLock.Lock()
-	defer keyLock.Unlock()
+	v, err, _ := c.sf.Do(cacheKey, func() (interface{}, error) {
+		d, e := c.singleflightFetch(ctx, cacheKey, city)
+		return d, e
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*WeatherData), nil
+}
 
+func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city City) (*WeatherData, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
 	c.mu.RLock()
-	cached = c.cache[cacheKey]
+	entry := c.cache[cacheKey]
 	c.mu.RUnlock()
 
-	now = time.Now()
-	hasValid = cached.Data != nil && cached.IsValid
-	fresh = hasValid && now.Sub(cached.Timestamp) < c.cacheTTL
+	hasValid := entry.Data != nil && entry.IsValid
+	fresh := hasValid && now.Sub(entry.Timestamp) < c.cacheTTL
 	if fresh {
 		if c.logger != nil {
-			c.logger.Printf("cache hit")
-			c.logger.Printf("weather request deduplicated")
-			c.logger.Printf("weather cache hit valid")
+			c.logger.Printf("cache hit (fresh) key=%s (coalesced)", cacheKey)
 		}
-		return cached.Data, nil
+		return dupWeather(entry.Data, false, false), nil
 	}
 
-	// strict cache-first: stale valid cache is preferable to extra API calls
-	// under heavy load (prevents mass Open-Meteo requests on every page render).
-	if hasValid {
-		if c.logger != nil {
-			c.logger.Printf("cache hit")
-			c.logger.Printf("using cache (stale)")
-			c.logger.Printf("API call skipped (rate limited)")
+	if isAPICooldownActive() {
+		if c.logger != nil && shouldLogCooldown() {
+			c.logger.Printf("cooldown active")
 		}
-		return cached.Data, nil
+		if hasValid {
+			if c.logger != nil {
+				c.logger.Printf("cache hit (stale) key=%s", cacheKey)
+			}
+			return dupWeather(entry.Data, true, false), nil
+		}
+		return emptyNoData(city), nil
 	}
 
 	if c.logger != nil {
-		c.logger.Printf("cache miss")
-		c.logger.Printf("weather cache miss")
-		c.logger.Printf("open-meteo request started")
-		c.logger.Printf("API request started")
+		c.logger.Printf("api request key=%s city=%s lat=%.4f lon=%.4f", cacheKey, city.Name, city.Latitude, city.Longitude)
 	}
 
 	data, err := c.fetchFromAPI(ctx, city)
 	if err != nil {
-		if errors.Is(err, errAPIGloballyBlocked) {
-			if c.logger != nil {
-				c.logger.Printf("API blocked")
-			}
-			return c.getOrCreateFallback(city), nil
+		if c.logger != nil {
+			c.logger.Printf("api error key=%s: %v", cacheKey, err)
 		}
-		if errors.Is(err, errRateLimited) {
-			if c.logger != nil {
-				c.logger.Printf("429 detected")
-			}
-			return c.getOrCreateFallback(city), nil
-		}
+		c.mu.RLock()
+		entry = c.cache[cacheKey]
+		c.mu.RUnlock()
+		hasValid = entry.Data != nil && entry.IsValid
 		if hasValid {
 			if c.logger != nil {
-				c.logger.Printf("weather cache hit stale")
-				c.logger.Printf("using stale cache")
+				c.logger.Printf("cache hit (stale) key=%s after api error", cacheKey)
 			}
-			return cached.Data, nil
+			return dupWeather(entry.Data, true, false), nil
 		}
-		c.mu.Lock()
-		entry := c.cache[cacheKey]
-		entry.LastError = err.Error()
-		c.cache[cacheKey] = entry
-		c.mu.Unlock()
-		return c.getOrCreateFallback(city), nil
+		return emptyNoData(city), nil
 	}
 
+	stored := dupStoreWeather(data)
+	now = time.Now()
 	c.mu.Lock()
 	c.cache[cacheKey] = CachedWeather{
-		Data:      data,
+		Data:      stored,
 		Timestamp: now,
 		IsValid:   true,
 		LastError: "",
@@ -243,79 +221,58 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	c.mu.Unlock()
 
 	if c.logger != nil {
-		c.logger.Printf("weather cache store valid")
-		c.logger.Printf("cache store success")
+		c.logger.Printf("cache store success key=%s", cacheKey)
 	}
-	return data, nil
+	return dupWeather(stored, false, false), nil
 }
 
-// buildFallbackWeatherData возвращает данные-заглушку, если Open-Meteo временно недоступен.
-func (c *Client) buildFallbackWeatherData(city City) *WeatherData {
-	now := time.Now()
-	// Stable pseudo-random source so fallback looks realistic but not chaotic.
-	seed := now.Unix() / 1800 // refresh pattern each 30 minutes
-	rnd := rand.New(rand.NewSource(seed))
-
-	baseTemp := 18 + rnd.Float64()*4 // 18..22
-	isCloudy := rnd.Intn(2) == 0
-	desc := "Ясно"
-	icon := "☀️"
-	code := 0
-	if isCloudy {
-		desc = "Облачно"
-		icon = "☁️"
-		code = 3
-	}
-
-	hourly := make([]Hourly, 0, 24)
-	for i := 0; i < 24; i++ {
-		wave := float64((i%8)-4) * 0.35
-		jitter := (rnd.Float64() - 0.5) * 0.6
-		hourly = append(hourly, Hourly{
-			Time:        now.Add(time.Duration(i) * time.Hour),
-			Temperature: baseTemp + wave + jitter, // about +/-2C
-			WeatherCode: code,
-			Description: desc,
-			Icon:        icon,
-		})
-	}
-
-	forecast := make([]Daily, 0, 3)
-	for i := 0; i < 3; i++ {
-		day := now.AddDate(0, 0, i)
-		minTemp := baseTemp - 2 + (rnd.Float64()-0.5)*1.2
-		maxTemp := baseTemp + 2 + (rnd.Float64()-0.5)*1.4
-		forecast = append(forecast, Daily{
-			Date:        day,
-			MinTemp:     minTemp,
-			MaxTemp:     maxTemp,
-			WeatherCode: code,
-			Description: desc,
-			Icon:        icon,
-		})
-	}
-
+func emptyNoData(city City) *WeatherData {
 	return &WeatherData{
 		CityID:     city.ID,
 		CityName:   city.Name,
-		IsFallback: false,
-		Current: Current{
-			Temperature: baseTemp,
-			WeatherCode: code,
-			Description: desc,
-			Icon:        icon,
-			WindSpeed:   3 + rnd.Float64()*2, // 3..5
-			Humidity:    58 + rnd.Float64()*6, // ~60
-			Pressure:    1012 + rnd.Float64()*6, // ~1015
-			IsNight:     false,
-		},
-		Forecast:         forecast,
-		Hourly:           hourly,
-		Sunrise:          now.Add(7 * time.Hour),
-		Sunset:           now.Add(19 * time.Hour),
-		Timezone:         "local",
-		UTCOffsetSeconds: 0,
+		IsStale:    false,
+		IsFallback: true,
 	}
+}
+
+func dupWeather(src *WeatherData, stale, fallback bool) *WeatherData {
+	out := *src
+	out.IsStale = stale
+	out.IsFallback = fallback
+	return &out
+}
+
+func dupStoreWeather(src *WeatherData) *WeatherData {
+	if src == nil {
+		return nil
+	}
+	out := *src
+	out.IsStale = false
+	out.IsFallback = false
+	return &out
+}
+
+func isAPICooldownActive() bool {
+	apiBlockMu.RLock()
+	defer apiBlockMu.RUnlock()
+	return time.Now().Before(apiBlockedUntil)
+}
+
+func blockAPIAfter429() {
+	apiBlockMu.Lock()
+	apiBlockedUntil = time.Now().Add(apiCooldownAfter429)
+	apiBlockMu.Unlock()
+}
+
+func shouldLogCooldown() bool {
+	cooldownLogMu.Lock()
+	defer cooldownLogMu.Unlock()
+	now := time.Now()
+	if lastCooldownLog.IsZero() || now.Sub(lastCooldownLog) >= cooldownLogEvery {
+		lastCooldownLog = now
+		return true
+	}
+	return false
 }
 
 type WarmTarget struct {
@@ -364,11 +321,8 @@ func (c *Client) WarmCache(ctx context.Context) {
 }
 
 func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, error) {
-	if isAPIGloballyBlocked() {
-		if c.logger != nil {
-			c.logger.Printf("API globally blocked, skipping request")
-		}
-		return nil, errAPIGloballyBlocked
+	if isAPICooldownActive() {
+		return nil, errCooldownActive
 	}
 
 	if c.logger != nil {
@@ -376,22 +330,6 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	}
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-
-	c.apiMu.Lock()
-	elapsed := time.Since(c.lastAPIRequest)
-	if elapsed < minIntervalBetweenAPI {
-		wait := minIntervalBetweenAPI - elapsed
-		c.apiMu.Unlock()
-		select {
-		case <-reqCtx.Done():
-			return nil, reqCtx.Err()
-		case <-time.After(wait):
-			// продолжаем
-		}
-		c.apiMu.Lock()
-	}
-	c.lastAPIRequest = time.Now()
-	c.apiMu.Unlock()
 
 	baseURL := "https://api.open-meteo.com/v1/forecast"
 	q := url.Values{}
@@ -439,10 +377,9 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusTooManyRequests {
 			if c.logger != nil {
-				c.logger.Printf("429 detected")
-				c.logger.Printf("API LIMIT HIT → blocking for 1 hour")
+				c.logger.Printf("429 detected: global cooldown %v", apiCooldownAfter429)
 			}
-			blockAPIForOneHour()
+			blockAPIAfter429()
 			return nil, errRateLimited
 		}
 		if c.logger != nil {
@@ -520,6 +457,8 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 		Sunset:           sunset,
 		Timezone:         apiRes.Timezone,
 		UTCOffsetSeconds: apiRes.UTCOffsetSeconds,
+		IsStale:          false,
+		IsFallback:       false,
 	}
 	if c.logger != nil {
 		c.logger.Printf("open-meteo success")
@@ -533,49 +472,6 @@ func snippet(b []byte, max int) string {
 		return strings.ReplaceAll(string(b), "\n", " ")
 	}
 	return strings.ReplaceAll(string(b[:max]), "\n", " ") + "...(truncated)"
-}
-
-func (c *Client) getOrCreateFallback(city City) *WeatherData {
-	now := time.Now()
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.lastFallback != nil && now.Sub(c.lastFallbackTime) < fallbackReuseWindow {
-		// Reuse recent fallback and avoid repeated logging/recompute.
-		return c.lastFallback
-	}
-
-	fb := c.buildFallbackWeatherData(city)
-	c.lastFallback = fb
-	c.lastFallbackTime = now
-	if c.logger != nil && (c.lastFallbackLog.IsZero() || now.Sub(c.lastFallbackLog) >= fallbackReuseWindow) {
-		c.logger.Printf("fallback no cache")
-		c.lastFallbackLog = now
-	}
-	return fb
-}
-
-func isAPIGloballyBlocked() bool {
-	apiBlockMu.RLock()
-	defer apiBlockMu.RUnlock()
-	return time.Now().Before(apiBlockedUntil)
-}
-
-func blockAPIForOneHour() {
-	apiBlockMu.Lock()
-	apiBlockedUntil = time.Now().Add(1 * time.Hour)
-	apiBlockMu.Unlock()
-}
-
-func shouldLogBlockedNow() bool {
-	apiBlockMu.Lock()
-	defer apiBlockMu.Unlock()
-	now := time.Now()
-	if lastBlockedLog.IsZero() || now.Sub(lastBlockedLog) >= blockedLogEvery {
-		lastBlockedLog = now
-		return true
-	}
-	return false
 }
 
 type openMeteoResponse struct {
@@ -596,12 +492,12 @@ type openMeteoResponse struct {
 		SurfacePressure  []float64 `json:"surface_pressure"`
 	} `json:"hourly"`
 	Daily *struct {
-		Time     []string  `json:"time"`
-		TempMax  []float64 `json:"temperature_2m_max"`
-		TempMin  []float64 `json:"temperature_2m_min"`
-		Weather  []int     `json:"weathercode"`
-		Sunrise  []string  `json:"sunrise"`
-		Sunset   []string  `json:"sunset"`
+		Time    []string  `json:"time"`
+		TempMax []float64 `json:"temperature_2m_max"`
+		TempMin []float64 `json:"temperature_2m_min"`
+		Weather []int     `json:"weathercode"`
+		Sunrise []string  `json:"sunrise"`
+		Sunset  []string  `json:"sunset"`
 	} `json:"daily"`
 }
 
@@ -639,7 +535,6 @@ func (c *Client) extractPressure(res openMeteoResponse) float64 {
 	if target != "" {
 		for i, t := range res.Hourly.Time {
 			if t == target && i < len(res.Hourly.SurfacePressure) {
-				// гПа ~ миллибар ~= мм рт. ст. * 1.333
 				return res.Hourly.SurfacePressure[i] / 1.333
 			}
 		}
@@ -699,7 +594,6 @@ func (c *Client) buildHourly(res openMeteoResponse) []Hourly {
 		return nil
 	}
 
-	// try to align with current time
 	startIdx := 0
 	currentTime := ""
 	if res.CurrentWeather != nil {
@@ -753,7 +647,6 @@ func parseLocalTime(value string) time.Time {
 	if value == "" {
 		return time.Time{}
 	}
-	// Open‑Meteo uses "2006-01-02T15:04" without offset
 	t, err := time.Parse("2006-01-02T15:04", value)
 	if err != nil {
 		return time.Time{}
@@ -817,4 +710,3 @@ func LocalizedDescription(code int, lang string) string {
 		return c.RU
 	}
 }
-

@@ -21,11 +21,11 @@ func Run() error {
 	}
 
 	// Один клиент погоды на всё приложение; кэш в памяти, не пересоздаётся при запросах.
-	weatherClient := weather.NewClient(10*time.Minute, 5*time.Second)
+	weatherClient := weather.NewClient(15*time.Minute, 5*time.Second)
 
 	logger := log.New(os.Stdout, "[weather-ua] ", log.LstdFlags|log.Lshortfile)
 	weatherClient.SetLogger(logger)
-	logger.Printf("weather client created once, cache TTL 10m")
+	logger.Printf("weather client created once, cache TTL 15m")
 
 	// гарантируем наличие data/places.db (автоматическая загрузка GeoNames на первом запуске)
 	if err := bootstrap.EnsureData(logger); err != nil {

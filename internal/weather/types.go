@@ -47,7 +47,9 @@ type WeatherData struct {
 	Sunset   time.Time
 	Timezone         string
 	UTCOffsetSeconds int
-	// IsFallback: true если данные временно недоступны — показать "Данные временно недоступны".
+	// IsStale: true если отданы устаревшие данные из кэша (API не обновил ответ).
+	IsStale bool
+	// IsFallback: true только если реальных данных нет (кэш пуст и API недоступен).
 	IsFallback bool
 }
 
