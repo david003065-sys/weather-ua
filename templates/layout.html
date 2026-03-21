@@ -7,10 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{{ block "description" . }}{{ .Text.CitiesTitle }}{{ end }}">
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="manifest" href="/manifest.webmanifest">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,6 +23,7 @@
 
     <link rel="stylesheet" href="/static/style.css">
 
+    <script src="/static/pwa.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="/static/script.js" defer></script>
 </head>
@@ -63,6 +67,16 @@
                 <a href="/?lang={{ .Lang }}#cities" class="nav-link">{{ .Text.NavCities }}</a>
             </nav>
             <div class="header-controls">
+                <button
+                    type="button"
+                    id="pwa-install-btn"
+                    class="pwa-install-btn"
+                    hidden
+                    aria-hidden="true"
+                    data-label-uk="Встановити"
+                    data-label-en="Install"
+                    data-label-ru="Установить"
+                ></button>
                 <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
                     <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
                     <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>

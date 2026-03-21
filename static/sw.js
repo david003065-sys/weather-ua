@@ -1,8 +1,9 @@
 /* Weather UA — service worker (scope must be site root; registered as /sw.js) */
-const CACHE_NAME = "weather-ua-pwa-v3";
+const CACHE_NAME = "weather-ua-pwa-v4";
 const OFFLINE_URL = "/static/offline.html";
 
 const PRECACHE_URLS = [
+  "/manifest.webmanifest",
   "/static/style.css",
   "/static/script.js",
   "/static/theme.js",

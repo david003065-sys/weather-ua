@@ -64,8 +64,18 @@ func Run() error {
 
 	fileServer := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
+
+	// PWA: canonical manifest URL with correct MIME (Chrome installability).
+	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/manifest+json; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		http.ServeFile(w, r, "static/manifest.json")
+	})
+
 	// PWA: service worker at root scope so navigations (/, /city/*, /place/*) are controlled.
 	mux.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		http.ServeFile(w, r, "static/sw.js")
 	})
 

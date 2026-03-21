@@ -262,16 +262,7 @@
         }, 5 * 60 * 1000);
     }
 
-    // PWA: SW must be served from site root so scope "/" controls HTML routes (not only /static/).
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-            navigator.serviceWorker
-                .register("/sw.js", { scope: "/", updateViaCache: "none" })
-                .catch(function (e) {
-                    console.error("SW registration failed", e);
-                });
-        });
-    }
+    // PWA: service worker + install UI live in /static/pwa.js (loads first, independent of this bundle).
 
     // Place search autocomplete on index page
     (function initPlaceSearch() {

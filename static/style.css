@@ -670,6 +670,38 @@ html[data-theme="light"] .weather-app::after {
     gap: 0.6rem;
 }
 
+.pwa-install-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #0b1120;
+    background: linear-gradient(90deg, #38bdf8, #f97316);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    cursor: pointer;
+    transition:
+        transform 200ms var(--ease-soft),
+        box-shadow 220ms var(--ease-soft),
+        opacity 200ms var(--ease-soft);
+}
+
+.pwa-install-btn:hover {
+    box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45);
+}
+
+.pwa-install-btn:active {
+    transform: scale(0.97);
+}
+
+.pwa-install-btn[hidden] {
+    display: none !important;
+}
+
 .lang-switch,
 .theme-switch {
     display: inline-flex;
