@@ -3,122 +3,87 @@
 {{ define "description" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }}: {{ .CityName }} · {{ .Text.ForecastTitle }}.{{ end }}
 
 {{ define "city-content" }}
-<section class="city-hero" aria-labelledby="city-title">
-    <div class="city-hero__top">
-        <div class="city-hero__info">
-            <span class="city-hero__badge">{{ .Text.CityBadge }}</span>
-            <h1 id="city-title" class="city-hero__title">{{ .CityName }}</h1>
-            <p class="city-hero__subtitle">{{ .CurrentDescription }}</p>
-            {{ if .CityLocation }}
-            <p class="city-hero__location">{{ .CityLocation }}</p>
-            {{ end }}
-            {{ if gt .DuplicatesCount 0 }}
-            <div class="city-hero__duplicates">
-                <span class="city-hero__duplicates-label">{{ .DuplicatesLabel }}</span>
-                <a href="{{ .DuplicatesURL }}" class="city-hero__duplicates-link">{{ .Text.ChooseAnotherDuplicate }}</a>
-            </div>
-            {{ end }}
+<section class="atmo-hero atmo-hero--city" aria-labelledby="city-title">
+    <div class="atmo-hero__veil" aria-hidden="true"></div>
+    <div class="atmo-hero__inner">
+        <span class="atmo-hero__kicker">{{ .Text.CityBadge }}</span>
+        <h1 id="city-title" class="atmo-hero__city">{{ .CityName }}</h1>
+        {{ if .CityLocation }}
+        <p class="atmo-hero__subloc">{{ .CityLocation }}</p>
+        {{ end }}
+        <div class="atmo-hero__temp-row">
+            <span id="js-current-temp" class="atmo-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
+            <span class="atmo-hero__unit">°C</span>
         </div>
-        <div class="city-hero__icon-wrap" aria-hidden="true">
-            <svg class="weather-icon weather-icon--hero" viewBox="0 0 80 80" role="img">
-                <title>{{ .CurrentDescription }}</title>
-                <defs>
-                    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#e5f0ff"/>
-                        <stop offset="100%" stop-color="#cbd5f5"/>
-                    </linearGradient>
-                </defs>
-                <g class="weather-icon__cloud">
-                    <ellipse cx="30" cy="40" rx="16" ry="12" fill="url(#cloudGradient)"/>
-                    <ellipse cx="48" cy="40" rx="16" ry="12" fill="url(#cloudGradient)"/>
-                    <ellipse cx="39" cy="35" rx="18" ry="13" fill="url(#cloudGradient)"/>
-                </g>
-                <g class="weather-icon__drops">
-                    <line x1="30" y1="50" x2="27" y2="58"/>
-                    <line x1="40" y1="50" x2="37" y2="58"/>
-                    <line x1="50" y1="50" x2="47" y2="58"/>
-                </g>
-            </svg>
+        <p class="city-hero__subtitle atmo-hero__condition">{{ .CurrentDescription }}</p>
+        {{ if gt .DuplicatesCount 0 }}
+        <div class="atmo-hero__dupes">
+            <span>{{ .DuplicatesLabel }}</span>
+            <a href="{{ .DuplicatesURL }}" class="atmo-hero__dupes-link">{{ .Text.ChooseAnotherDuplicate }}</a>
         </div>
-    </div>
+        {{ end }}
 
-    <div class="city-hero__main">
-        <div class="city-hero__temp-block" aria-label="{{ .Text.CurrentWeatherAria }}">
-            <div class="city-hero__temp">
-                <span id="js-current-temp" class="city-hero__temp-value">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
-                <span class="city-hero__temp-unit">°C</span>
+        <div class="atmo-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
+            <div class="atmo-metric">
+                <span class="atmo-metric__label">{{ .Text.MetricHumidity }}</span>
+                <span id="js-current-humidity" class="atmo-metric__value">
+                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
+                </span>
             </div>
-            <div class="city-hero__meta-grid">
-                <div class="metric">
-                    <span class="metric__label">{{ .Text.MetricHumidity }}</span>
-                    <span id="js-current-humidity" class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
-                    </span>
-                </div>
-                <div class="metric">
-                    <span class="metric__label">{{ .Text.MetricWind }}</span>
-                    <span id="js-current-wind" class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
-                    </span>
-                </div>
-                <div class="metric">
-                    <span class="metric__label">{{ .Text.MetricPressure }}</span>
-                    <span class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
-                    </span>
-                </div>
+            <div class="atmo-metric">
+                <span class="atmo-metric__label">{{ .Text.MetricWind }}</span>
+                <span id="js-current-wind" class="atmo-metric__value">
+                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
+                </span>
             </div>
-            {{ if .TodayLabel }}
-            <div class="city-hero__summary">
-                <p class="city-hero__summary-text">
-                    {{ .Text.Today }} ({{ .TodayLabel }}):
-                    {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°.
-                    {{ if .TomorrowLabel }}
-                    {{ .Text.Tomorrow }} ({{ .TomorrowLabel }}):
-                    {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°.
-                    {{ end }}
-                    {{ if .TrendText }}
-                    <br>{{ .TrendText }}
-                    {{ end }}
-                </p>
+            <div class="atmo-metric">
+                <span class="atmo-metric__label">{{ .Text.MetricPressure }}</span>
+                <span class="atmo-metric__value">
+                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
+                </span>
             </div>
-            {{ end }}
         </div>
 
-        <div class="city-hero__forecast" aria-label="{{ .Text.ForecastAria }}">
-            <header class="section-header section-header--compact">
-                <div class="section-header__labels">
-                    <span class="section-label">{{ .Text.ForecastLabel }}</span>
-                    <h2 class="section-title">{{ .Text.ForecastTitle }}</h2>
-                </div>
-            </header>
-            <div class="forecast-row">
-                {{ range .Forecast }}
-                <div class="forecast-card">
-                    <span class="forecast-card__day">{{ .Label }}</span>
-                    <span class="forecast-card__icon" aria-hidden="true">{{ .Icon }}</span>
-                    <span class="forecast-card__status">{{ .Description }}</span>
-                    <div class="forecast-card__temps">
-                        <span class="forecast-card__temp-max">{{ printf "%.0f" .MaxTemp }}°</span>
-                        <span class="forecast-card__temp-min">{{ printf "%.0f" .MinTemp }}°</span>
-                    </div>
-                </div>
-                {{ end }}
-            </div>
-        </div>
+        {{ if .TodayLabel }}
+        <p class="atmo-hero__summary">
+            {{ .Text.Today }} ({{ .TodayLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°.
+            {{ if .TomorrowLabel }}
+            {{ .Text.Tomorrow }} ({{ .TomorrowLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°.
+            {{ end }}
+            {{ if .TrendText }}<span class="atmo-hero__trend">{{ .TrendText }}</span>{{ end }}
+        </p>
+        {{ end }}
     </div>
 </section>
 
-<section class="hourly-section" aria-label="{{ .Text.ForecastAria }}">
-    <header class="section-header section-header--compact">
-        <div class="section-header__labels">
-            <span class="section-label">{{ .Text.ForecastLabel }}</span>
-            <h2 class="section-title">{{ .Text.HourlySectionTitle }}</h2>
-        </div>
+<section class="atmo-stack atmo-stack--forecast" aria-label="{{ .Text.ForecastAria }}">
+    <header class="atmo-section__head atmo-section__head--tight">
+        <span class="atmo-section__label">{{ .Text.ForecastLabel }}</span>
+        <h2 class="atmo-section__title">{{ .Text.ForecastTitle }}</h2>
     </header>
-    <div class="hourly-row">
+    <div class="atmo-forecast-rail">
+        {{ range .Forecast }}
+        <div class="atmo-forecast-chip">
+            <span class="atmo-forecast-chip__day">{{ .Label }}</span>
+            <span class="atmo-forecast-chip__icon" aria-hidden="true">{{ .Icon }}</span>
+            <span class="atmo-forecast-chip__desc">{{ .Description }}</span>
+            <div class="atmo-forecast-chip__temps">
+                <span class="atmo-forecast-chip__hi">{{ printf "%.0f" .MaxTemp }}°</span>
+                <span class="atmo-forecast-chip__lo">{{ printf "%.0f" .MinTemp }}°</span>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+</section>
+
+<section class="hourly-section atmo-stack" aria-label="{{ .Text.HourlySectionTitle }}">
+    <header class="atmo-section__head atmo-section__head--tight">
+        <span class="atmo-section__label">{{ .Text.ForecastLabel }}</span>
+        <h2 class="atmo-section__title">{{ .Text.HourlySectionTitle }}</h2>
+    </header>
+    <div class="hourly-row atmo-hourly-rail">
         {{ range .Hourly }}
-        <div class="hourly-card">
+        <div class="hourly-card atmo-hourly-chip">
             <span class="hourly-time">{{ .TimeLabel }}</span>
             <span class="hourly-icon" aria-hidden="true">{{ .Icon }}</span>
             <span class="hourly-temp">{{ printf "%.0f" .Temperature }}°</span>
@@ -127,14 +92,12 @@
     </div>
 </section>
 
-<section class="chart-section" aria-labelledby="chart-title">
-    <header class="section-header section-header--compact">
-        <div class="section-header__labels">
-            <span class="section-label">{{ .Text.TrendLabel }}</span>
-            <h2 id="chart-title" class="section-title">{{ .Text.ChartTitle }}</h2>
-        </div>
+<section class="chart-section atmo-stack" aria-labelledby="chart-title">
+    <header class="atmo-section__head atmo-section__head--tight">
+        <span class="atmo-section__label">{{ .Text.TrendLabel }}</span>
+        <h2 id="chart-title" class="atmo-section__title">{{ .Text.ChartTitle }}</h2>
     </header>
-    <div class="chart-card">
+    <div class="chart-card atmo-chart">
         <canvas
             id="cityTempChart"
             class="chart-card__canvas js-temp-chart"
@@ -162,26 +125,27 @@
     </div>
 </section>
 
-<section class="city-switch" aria-label="{{ .Text.OtherCitiesAria }}">
-    <header class="section-header section-header--compact">
-        <div class="section-header__labels">
-            <span class="section-label">{{ .Text.CitiesLabel }}</span>
-            <h2 class="section-title">{{ .Text.QuickSwitchTitle }}</h2>
-        </div>
+<section class="city-switch atmo-section" aria-label="{{ .Text.OtherCitiesAria }}">
+    <header class="atmo-section__head">
+        <span class="atmo-section__label">{{ .Text.CitiesLabel }}</span>
+        <h2 class="atmo-section__title">{{ .Text.QuickSwitchTitle }}</h2>
     </header>
-    <div class="city-switch__grid">
-        {{ range .Cities }}
-        <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-switch__card {{ if eq .ID $.CityID }}city-switch__card--active{{ end }}">
-            <div class="city-switch__row">
-                <span class="city-switch__name">{{ .Name }}</span>
-                <span class="city-switch__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Temperature }}°{{ end }}</span>
-            </div>
-            <div class="city-switch__meta">
-                <span class="city-switch__icon" aria-hidden="true">{{ .Icon }}</span>
-                <span class="city-switch__desc">{{ .Description }}</span>
-            </div>
-        </a>
-        {{ end }}
+    <div class="cities-rail-mask">
+        <div class="cities-rail city-switch-rail">
+            {{ range .Cities }}
+            <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="rail-card rail-card--switch {{ if eq .ID $.CityID }}rail-card--active{{ end }}">
+                <div class="rail-card__top">
+                    <span class="rail-card__name">{{ .Name }}</span>
+                    <span class="rail-card__icon" aria-hidden="true">{{ .Icon }}</span>
+                </div>
+                <div class="rail-card__temp">
+                    <span class="rail-card__temp-val">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Temperature }}{{ end }}</span>
+                    <span class="rail-card__temp-unit">°</span>
+                </div>
+                <p class="rail-card__desc">{{ .Description }}</p>
+            </a>
+            {{ end }}
+        </div>
     </div>
 </section>
 {{ end }}
@@ -189,4 +153,3 @@
 {{ define "city-page" }}
 {{ template "layout" . }}
 {{ end }}
-

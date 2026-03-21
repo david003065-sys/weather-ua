@@ -679,7 +679,7 @@
 
                 var card = document.createElement("a");
                 card.href = "/place/" + encodeURIComponent(String(p.id)) + "?lang=" + encodeURIComponent(lang);
-                card.className = "city-card city-card--favorite";
+                card.className = "city-card city-card--favorite rail-card";
 
                 var header = document.createElement("div");
                 header.className = "city-card__header";
@@ -749,7 +749,7 @@
 
                 var card = document.createElement("a");
                 card.href = "/place/" + encodeURIComponent(String(p.id)) + "?lang=" + encodeURIComponent(lang);
-                card.className = "city-card city-card--favorite";
+                card.className = "city-card city-card--favorite rail-card";
 
                 var header = document.createElement("div");
                 header.className = "city-card__header";

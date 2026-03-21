@@ -19,7 +19,7 @@
 - `internal/handlers` — HTTP‑обработчики, подготовка данных для шаблонов.
 - `internal/places` — офлайн‑поиск по населенным пунктам Украины (SQLite); нормализация типа НП из GeoNames — `NormalizeSettlementType` в `settlement_type.go`.
 - `templates/` — SSR‑шаблоны (`layout.html`, `index.html`, `city.html`).
-- `static/` — стили, JS и favicon (`style.css`, `script.js`, `pwa.js`, `favicon.svg`), PWA: `manifest.json` отдаётся также как **`/manifest.webmanifest`** (`application/manifest+json`), SW — **`/sw.js`** со scope **`/`**. Иконки и скриншоты для манифеста генерируются командой **`go run ./cmd/tools/gen_pwa_icons`** (реальные PNG; не оставляйте в репозитории только Git LFS‑указатели 21 байт — Chrome не сможет их загрузить).
+- `static/` — `style.css` (база), **`atmosphere.css`** (иммерсивный UI поверх), `script.js`, `pwa.js`, `favicon.svg`; PWA: `manifest.json` как **`/manifest.webmanifest`**, SW — **`/sw.js`**. Иконки: **`go run ./cmd/tools/gen_pwa_icons`**.
 - `data/` — база `places.db` с населенными пунктами (создаётся отдельно).
 
 ## Как запустить локально
