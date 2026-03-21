@@ -19,6 +19,8 @@
     }
     var clientI18n = readClientI18n();
 
+    var MOOD_CLASSES = ["weather-clear", "weather-cloudy", "weather-rain", "weather-snow", "weather-night"];
+
     function mapCodeToClass(code, night) {
         if (night) return "night";
         if (code === 0) return "sunny";
@@ -27,6 +29,33 @@
         if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
         if (code >= 95) return "rain";
         return "cloudy";
+    }
+
+    /* Ambient mood (CSS variables / gradients); night wins over condition */
+    function mapCodeToMoodClass(code, night) {
+        if (night) return "weather-night";
+        if (code === 0) return "weather-clear";
+        if ([1, 2, 3].includes(code)) return "weather-cloudy";
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return "weather-rain";
+        if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "weather-snow";
+        return "weather-cloudy";
+    }
+
+    function syncWeatherAtmosphere(el, code, night) {
+        if (!el) return;
+        var c = typeof code === "number" ? code : parseInt(code, 10);
+        if (Number.isNaN(c)) c = 0;
+        var n = night === true || night === "true";
+        el.dataset.weatherCode = String(c);
+        el.dataset.isNight = n ? "true" : "false";
+        var vis = mapCodeToClass(c, n);
+        el.classList.remove("sunny", "cloudy", "rain", "snow", "night");
+        el.classList.add(vis);
+        var mood = mapCodeToMoodClass(c, n);
+        MOOD_CLASSES.forEach(function (m) {
+            el.classList.remove(m);
+        });
+        el.classList.add(mood);
     }
 
     function updateBackgroundByTemp(temp) {
@@ -52,9 +81,7 @@
 
     window.updateBackgroundByTemp = updateBackgroundByTemp;
 
-    const weatherClass = mapCodeToClass(weatherCode, isNight);
-    app.classList.remove("sunny", "cloudy", "rain", "snow", "night");
-    app.classList.add(weatherClass);
+    syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
     if (initialTempEl) {
@@ -216,6 +243,13 @@
                     : Math.round(data.current.humidity) + (clientI18n.humiditySuffix || "%");
             }
             if (!isFallback) updateBackgroundByTemp(data.current.temperature);
+            if (
+                data.current &&
+                typeof data.current.weatherCode === "number" &&
+                typeof data.current.isNight === "boolean"
+            ) {
+                syncWeatherAtmosphere(app, data.current.weatherCode, data.current.isNight);
+            }
         }
 
         function cacheKey(id, l) {

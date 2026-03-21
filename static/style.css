@@ -200,11 +200,14 @@ html[data-theme="light"] body {
     padding-right: env(safe-area-inset-right, 0px);
     /* Weather-tuned ambient strength (multiplier for soft glows, not literal effects) */
     --ambient-intensity: 0.62;
+    /* Optional mood overrides (--mood-atmo-*) set by .weather-clear | .weather-cloudy | … */
     background:
-        radial-gradient(80rem 50rem at -10% -20%, var(--bg-atmo-a), transparent 62%),
-        radial-gradient(70rem 50rem at 110% -10%, var(--bg-atmo-b), transparent 58%),
-        radial-gradient(95rem 70rem at 50% 120%, var(--bg-atmo-c), transparent 64%);
-    transition: background var(--theme-duration) ease-out;
+        radial-gradient(80rem 50rem at -10% -20%, var(--mood-atmo-a, var(--bg-atmo-a)), transparent 62%),
+        radial-gradient(70rem 50rem at 110% -10%, var(--mood-atmo-b, var(--bg-atmo-b)), transparent 58%),
+        radial-gradient(95rem 70rem at 50% 120%, var(--mood-atmo-c, var(--bg-atmo-c)), transparent 64%);
+    transition:
+        background 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity var(--theme-duration) ease-out;
 }
 
 /* Slow drifting light — sits above page bg, below content */
@@ -227,6 +230,7 @@ html[data-theme="light"] body {
         );
     animation: ambientFloat var(--motion-ambient) ease-in-out infinite alternate;
     will-change: transform;
+    transition: opacity 1.05s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .weather-app::before {
@@ -238,7 +242,9 @@ html[data-theme="light"] body {
     background:
         radial-gradient(circle at 50% 0, transparent 0, transparent 42%, var(--overlay) 100%);
     opacity: 0.35;
-    transition: opacity var(--theme-duration) ease-out;
+    transition:
+        opacity 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+        background var(--theme-duration) ease-out;
 }
 
 html[data-theme="light"] .weather-app::before {
@@ -251,6 +257,160 @@ html[data-theme="light"] .weather-app::before {
 
 html[data-theme="light"] .weather-app::after {
     opacity: 0.34;
+}
+
+/* -----------------------------------------------------------------------------
+   Weather mood — ambient only (works with html[data-theme] dark/light)
+   Mapping: night > code (clear 0, cloudy 1–3, rain 51–67,80–82,≥95, snow 71–77,85–86)
+   ----------------------------------------------------------------------------- */
+
+/* Dark UI (default): softer atmospheric bias per mood */
+html[data-theme="dark"] .weather-app.weather-clear {
+    --ambient-intensity: 0.74;
+    --mood-atmo-a: rgba(56, 189, 248, 0.26);
+    --mood-atmo-b: rgba(125, 211, 252, 0.15);
+    --mood-atmo-c: rgba(2, 6, 23, 0.78);
+}
+
+html[data-theme="dark"] .weather-app.weather-cloudy {
+    --ambient-intensity: 0.5;
+    --mood-atmo-a: rgba(100, 116, 139, 0.22);
+    --mood-atmo-b: rgba(148, 163, 184, 0.14);
+    --mood-atmo-c: rgba(15, 23, 42, 0.9);
+}
+
+html[data-theme="dark"] .weather-app.weather-rain {
+    --ambient-intensity: 0.36;
+    --mood-atmo-a: rgba(30, 58, 138, 0.38);
+    --mood-atmo-b: rgba(51, 65, 85, 0.24);
+    --mood-atmo-c: rgba(2, 6, 23, 0.94);
+}
+
+html[data-theme="dark"] .weather-app.weather-snow {
+    --ambient-intensity: 0.56;
+    --mood-atmo-a: rgba(186, 230, 253, 0.2);
+    --mood-atmo-b: rgba(203, 213, 225, 0.12);
+    --mood-atmo-c: rgba(15, 23, 42, 0.86);
+}
+
+html[data-theme="dark"] .weather-app.weather-night {
+    --ambient-intensity: 0.32;
+    --mood-atmo-a: rgba(49, 46, 129, 0.32);
+    --mood-atmo-b: rgba(30, 27, 75, 0.22);
+    --mood-atmo-c: rgba(2, 6, 23, 0.97);
+}
+
+html[data-theme="dark"] .weather-app.weather-clear::before {
+    opacity: 0.3;
+}
+
+html[data-theme="dark"] .weather-app.weather-cloudy::before {
+    opacity: 0.36;
+}
+
+html[data-theme="dark"] .weather-app.weather-rain::before {
+    opacity: 0.44;
+}
+
+html[data-theme="dark"] .weather-app.weather-snow::before {
+    opacity: 0.34;
+}
+
+html[data-theme="dark"] .weather-app.weather-night::before {
+    opacity: 0.48;
+}
+
+html[data-theme="dark"] .weather-app.weather-clear::after {
+    opacity: 0.38;
+}
+
+html[data-theme="dark"] .weather-app.weather-cloudy::after {
+    opacity: 0.28;
+}
+
+html[data-theme="dark"] .weather-app.weather-rain::after {
+    opacity: 0.22;
+}
+
+html[data-theme="dark"] .weather-app.weather-snow::after {
+    opacity: 0.3;
+}
+
+html[data-theme="dark"] .weather-app.weather-night::after {
+    opacity: 0.2;
+}
+
+/* Light UI: pastel, lower saturation — calm vs harsh white */
+html[data-theme="light"] .weather-app.weather-clear {
+    --ambient-intensity: 0.52;
+    --mood-atmo-a: rgba(56, 189, 248, 0.11);
+    --mood-atmo-b: rgba(125, 211, 252, 0.09);
+    --mood-atmo-c: rgba(216, 225, 236, 0.82);
+}
+
+html[data-theme="light"] .weather-app.weather-cloudy {
+    --ambient-intensity: 0.42;
+    --mood-atmo-a: rgba(100, 116, 139, 0.1);
+    --mood-atmo-b: rgba(148, 163, 184, 0.08);
+    --mood-atmo-c: rgba(203, 213, 225, 0.78);
+}
+
+html[data-theme="light"] .weather-app.weather-rain {
+    --ambient-intensity: 0.34;
+    --mood-atmo-a: rgba(71, 85, 105, 0.14);
+    --mood-atmo-b: rgba(100, 116, 139, 0.1);
+    --mood-atmo-c: rgba(186, 198, 210, 0.85);
+}
+
+html[data-theme="light"] .weather-app.weather-snow {
+    --ambient-intensity: 0.46;
+    --mood-atmo-a: rgba(186, 230, 253, 0.12);
+    --mood-atmo-b: rgba(203, 213, 225, 0.1);
+    --mood-atmo-c: rgba(226, 232, 240, 0.88);
+}
+
+html[data-theme="light"] .weather-app.weather-night {
+    --ambient-intensity: 0.36;
+    --mood-atmo-a: rgba(79, 70, 229, 0.1);
+    --mood-atmo-b: rgba(51, 65, 85, 0.09);
+    --mood-atmo-c: rgba(148, 163, 184, 0.35);
+}
+
+html[data-theme="light"] .weather-app.weather-rain::before,
+html[data-theme="light"] .weather-app.weather-night::before {
+    opacity: 0.44;
+}
+
+html[data-theme="light"] .weather-app.weather-snow::before {
+    opacity: 0.36;
+}
+
+html[data-theme="light"] .weather-app.weather-cloudy::before {
+    opacity: 0.4;
+}
+
+html[data-theme="light"] .weather-app.weather-clear::before {
+    opacity: 0.34;
+}
+
+html[data-theme="light"] .weather-app.weather-rain::after {
+    opacity: 0.26;
+}
+
+html[data-theme="light"] .weather-app.weather-night::after {
+    opacity: 0.24;
+}
+
+html[data-theme="light"] .weather-app.weather-snow::after {
+    opacity: 0.32;
+}
+
+html[data-theme="light"] .weather-app.weather-cloudy::after {
+    opacity: 0.3;
+}
+
+html[data-theme="light"] .weather-app.weather-clear::after {
+    opacity: 0.36;
 }
 
 .search-section {

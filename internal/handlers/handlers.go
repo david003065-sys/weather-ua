@@ -52,6 +52,7 @@ type IndexPageData struct {
 	IsIndex            bool
 	WeatherCode        int
 	IsNight            bool
+	WeatherMood        string
 	Lang               string
 	Path               string
 	Text               TextSet
@@ -95,6 +96,7 @@ type CityPageData struct {
 	IsIndex            bool
 	WeatherCode        int
 	IsNight            bool
+	WeatherMood        string
 	Lang               string
 	Path               string
 	Text               TextSet
@@ -227,6 +229,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		IsIndex:            true,
 		WeatherCode:        heroData.Current.WeatherCode,
 		IsNight:            heroData.Current.IsNight,
+		WeatherMood:        weatherMoodClass(heroData.Current.WeatherCode, heroData.Current.IsNight),
 		Lang:               lang,
 		Path:               r.URL.Path,
 		Text:               text,
@@ -372,6 +375,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		IsIndex:            false,
 		WeatherCode:        data.Current.WeatherCode,
 		IsNight:            data.Current.IsNight,
+		WeatherMood:        weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
 		Lang:               lang,
 		Path:               r.URL.Path,
 		Text:               text,
@@ -419,6 +423,8 @@ type apiCurrent struct {
 	IsFallback  bool    `json:"isFallback"`
 	Wind        float64 `json:"wind"`
 	Humidity    float64 `json:"humidity"`
+	WeatherCode int     `json:"weatherCode"`
+	IsNight     bool    `json:"isNight"`
 }
 
 type apiHourly struct {
@@ -483,6 +489,8 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
+			WeatherCode: data.Current.WeatherCode,
+			IsNight:     data.Current.IsNight,
 		},
 	}
 
@@ -579,6 +587,8 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
+			WeatherCode: data.Current.WeatherCode,
+			IsNight:     data.Current.IsNight,
 		},
 	}
 
@@ -885,6 +895,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		IsIndex:            false,
 		WeatherCode:        data.Current.WeatherCode,
 		IsNight:            data.Current.IsNight,
+		WeatherMood:        weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
 		Lang:               lang,
 		Path:               r.URL.Path,
 		Text:               text,
