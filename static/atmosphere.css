@@ -1,6 +1,15 @@
 /* =============================================================================
-   Atmosphere UI — immersive weather shell (loads after style.css)
+   Atmosphere UI — bold contrast, depth, temperature-first (loads after style.css)
    ============================================================================= */
+
+/* Richer drifting light vs default 0.62 — pairs with deeper --bg in style.css */
+html[data-theme="dark"] .weather-app {
+    --ambient-intensity: 0.84;
+}
+
+html[data-theme="light"] .weather-app {
+    --ambient-intensity: 0.52;
+}
 
 .site-main {
     padding-top: 0.5rem;
@@ -32,21 +41,25 @@
     transition: opacity 0.6s ease-out;
 }
 
+/* Layered atmosphere: deep navy base + energetic accents */
 .atmo-hero__veil {
     position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 0;
     background:
-        radial-gradient(ellipse 90% 70% at 50% 20%, rgba(56, 189, 248, 0.08), transparent 55%),
-        radial-gradient(ellipse 70% 50% at 80% 90%, rgba(249, 115, 22, 0.05), transparent 50%);
-    opacity: 0.9;
+        radial-gradient(ellipse 85% 55% at 50% 42%, rgba(56, 189, 248, 0.22) 0%, rgba(29, 78, 216, 0.12) 28%, transparent 62%),
+        radial-gradient(ellipse 70% 45% at 15% 85%, rgba(249, 115, 22, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 40% at 92% 18%, rgba(96, 165, 250, 0.14) 0%, transparent 50%),
+        linear-gradient(165deg, rgba(2, 6, 23, 0.5) 0%, transparent 45%, rgba(15, 23, 42, 0.35) 100%);
+    opacity: 1;
 }
 
 html[data-theme="light"] .atmo-hero__veil {
     background:
-        radial-gradient(ellipse 90% 70% at 50% 18%, rgba(56, 189, 248, 0.06), transparent 58%),
-        radial-gradient(ellipse 65% 45% at 85% 88%, rgba(148, 163, 184, 0.08), transparent 52%);
+        radial-gradient(ellipse 80% 50% at 50% 40%, rgba(14, 165, 233, 0.18) 0%, rgba(59, 130, 246, 0.1) 35%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 88% 15%, rgba(251, 146, 60, 0.1) 0%, transparent 52%),
+        linear-gradient(170deg, rgba(226, 232, 240, 0.55) 0%, rgba(241, 245, 249, 0.2) 50%, rgba(203, 213, 225, 0.35) 100%);
 }
 
 .atmo-hero__inner {
@@ -59,7 +72,7 @@ html[data-theme="light"] .atmo-hero__veil {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.25rem;
 }
 
 .atmo-hero--city .atmo-hero__inner {
@@ -67,127 +80,219 @@ html[data-theme="light"] .atmo-hero__veil {
 }
 
 .atmo-hero__kicker {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.2em;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--canvas-text-muted);
-    opacity: 0.85;
+    opacity: 0.95;
 }
 
+/* City = clearly secondary to temperature */
 .atmo-hero__city {
-    margin: 0.35rem 0 0;
-    font-size: clamp(1.75rem, 5.5vw, 2.35rem);
-    font-weight: 650;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    color: var(--canvas-text);
+    margin: 0.25rem 0 0;
+    font-size: clamp(1.05rem, 3.2vw, 1.35rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    color: var(--canvas-text-muted);
+    opacity: 0.92;
+}
+
+html[data-theme="light"] .atmo-hero__city {
+    color: #475569;
+    opacity: 1;
 }
 
 .atmo-hero__subloc {
     margin: 0;
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     color: var(--canvas-text-muted);
     font-weight: 400;
+    opacity: 0.88;
 }
 
+/* Radial glow “stage” behind the temperature */
 .atmo-hero__temp-row {
+    position: relative;
+    z-index: 0;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: 0.15rem;
-    margin-top: 1.25rem;
+    gap: 0.12rem;
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem 1.5rem;
 }
 
+.atmo-hero__temp-row::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    width: min(115vw, 26rem);
+    height: clamp(11rem, 28vw, 15rem);
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse 50% 48% at 50% 50%,
+        rgba(56, 189, 248, 0.45) 0%,
+        rgba(37, 99, 235, 0.22) 38%,
+        rgba(15, 23, 42, 0.08) 65%,
+        transparent 78%
+    );
+    filter: blur(0.5px);
+}
+
+html[data-theme="light"] .atmo-hero__temp-row::before {
+    background: radial-gradient(
+        ellipse 48% 46% at 50% 50%,
+        rgba(14, 165, 233, 0.35) 0%,
+        rgba(59, 130, 246, 0.15) 42%,
+        transparent 72%
+    );
+}
+
+/* Temperature dominates: scale + luminous contrast */
 .atmo-hero__temp {
-    font-size: clamp(5.5rem, 18vw, 8.5rem);
-    font-weight: 700;
-    line-height: 0.82;
-    letter-spacing: -0.045em;
-    color: var(--canvas-text);
-    text-shadow: 0 4px 48px rgba(0, 0, 0, 0.22);
+    font-size: clamp(6.25rem, 22vw, 10.5rem);
+    font-weight: 800;
+    line-height: 0.8;
+    letter-spacing: -0.055em;
+    color: #f8fafc;
+    text-shadow:
+        0 0 80px rgba(56, 189, 248, 0.45),
+        0 0 120px rgba(29, 78, 216, 0.25),
+        0 4px 0 rgba(15, 23, 42, 0.35),
+        0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 html[data-theme="light"] .atmo-hero__temp {
-    text-shadow: 0 2px 24px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+    text-shadow:
+        0 0 60px rgba(14, 165, 233, 0.35),
+        0 2px 0 rgba(255, 255, 255, 0.9),
+        0 10px 32px rgba(15, 23, 42, 0.12);
 }
 
 .atmo-hero__unit {
-    margin-top: 1.1rem;
-    font-size: 1.35rem;
-    font-weight: 500;
-    color: var(--canvas-text-muted);
-    opacity: 0.9;
+    margin-top: 1.35rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
+html[data-theme="light"] .atmo-hero__unit {
+    color: #64748b;
+    text-shadow: none;
+}
+
+/* Condition: subtle, tertiary */
 .atmo-hero__condition,
 .city-hero__subtitle.atmo-hero__condition {
-    margin: 0.75rem 0 0;
-    max-width: 22rem;
-    font-size: clamp(0.95rem, 2.8vw, 1.05rem);
-    line-height: 1.45;
+    margin: 0.65rem 0 0;
+    max-width: 20rem;
+    font-size: clamp(0.82rem, 2.4vw, 0.92rem);
+    line-height: 1.5;
     color: var(--canvas-text-muted);
     font-weight: 400;
+    opacity: 0.78;
 }
 
+html[data-theme="light"] .atmo-hero__condition,
+html[data-theme="light"] .city-hero__subtitle.atmo-hero__condition {
+    color: #64748b;
+    opacity: 0.95;
+}
+
+/* Metrics: elevated panels, strong read */
 .atmo-hero__metrics {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.5rem 0.65rem;
-    margin-top: 1.75rem;
+    gap: 0.55rem 0.7rem;
+    margin-top: 2rem;
 }
 
 .atmo-metric {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
-    padding: 0.55rem 0.9rem;
+    gap: 0.22rem;
+    padding: 0.62rem 1rem 0.58rem;
     border-radius: 999px;
-    background: rgba(15, 23, 42, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(165deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.92) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+        0 10px 36px rgba(0, 0, 0, 0.42),
+        0 0 0 1px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
     transition:
-        background 0.35s ease,
-        border-color 0.35s ease;
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.atmo-metric:hover {
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.48),
+        0 0 24px rgba(56, 189, 248, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 html[data-theme="light"] .atmo-metric {
-    background: rgba(255, 255, 255, 0.45);
-    border-color: rgba(148, 163, 184, 0.22);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
+    border-color: rgba(100, 116, 139, 0.28);
+    box-shadow:
+        0 8px 28px rgba(15, 23, 42, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .atmo-metric__label {
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--canvas-text-muted);
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+html[data-theme="light"] .atmo-metric__label {
+    color: #64748b;
 }
 
 .atmo-metric__value {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--canvas-text);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.02em;
+}
+
+html[data-theme="light"] .atmo-metric__value {
+    color: #0f172a;
 }
 
 .atmo-hero__ridge {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
-    padding: 0.85rem 1rem;
+    gap: 0.55rem;
+    margin-top: 1.65rem;
+    padding: 1rem 1.15rem;
     width: 100%;
     max-width: 22rem;
     border-radius: var(--radius-md);
-    background: rgba(2, 6, 23, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(2, 6, 23, 0.65) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 html[data-theme="light"] .atmo-hero__ridge {
-    background: rgba(255, 255, 255, 0.4);
-    border-color: rgba(148, 163, 184, 0.2);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.88) 100%);
+    border-color: rgba(100, 116, 139, 0.22);
+    box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08);
 }
 
 .atmo-ridge__item {
@@ -198,26 +303,32 @@ html[data-theme="light"] .atmo-hero__ridge {
 }
 
 .atmo-ridge__label {
-    font-size: 0.68rem;
-    letter-spacing: 0.12em;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--canvas-text-muted);
+    font-weight: 600;
+    color: #94a3b8;
 }
 
 .atmo-ridge__val {
-    font-size: 0.88rem;
-    color: var(--canvas-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+html[data-theme="light"] .atmo-ridge__val {
+    color: #1e293b;
 }
 
 .atmo-hero__geo {
     margin-top: 1.5rem;
     border-radius: 999px;
-    opacity: 0.92;
+    opacity: 1;
 }
 
 .atmo-hero__dupes {
-    margin-top: 0.5rem;
-    font-size: 0.82rem;
+    margin-top: 0.45rem;
+    font-size: 0.8rem;
     color: var(--canvas-text-muted);
     display: flex;
     flex-wrap: wrap;
@@ -227,6 +338,7 @@ html[data-theme="light"] .atmo-hero__ridge {
 
 .atmo-hero__dupes-link {
     color: var(--link);
+    font-weight: 500;
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: border-color 0.2s ease;
@@ -237,17 +349,27 @@ html[data-theme="light"] .atmo-hero__ridge {
 }
 
 .atmo-hero__summary {
-    margin: 1.25rem 0 0;
+    margin: 1.15rem 0 0;
     max-width: 26rem;
-    font-size: 0.86rem;
+    font-size: 0.84rem;
     line-height: 1.55;
-    color: var(--canvas-text-muted);
+    color: #94a3b8;
     text-align: center;
+}
+
+html[data-theme="light"] .atmo-hero__summary {
+    color: #64748b;
 }
 
 .atmo-hero__trend {
     display: block;
     margin-top: 0.35rem;
+    font-weight: 500;
+    color: var(--canvas-text);
+}
+
+html[data-theme="light"] .atmo-hero__trend {
+    color: #334155;
 }
 
 /* --- Search --- */
@@ -276,20 +398,26 @@ html[data-theme="light"] .atmo-hero__ridge {
 
 .atmo-section__label {
     display: block;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--canvas-text-muted);
-    opacity: 0.88;
+    opacity: 0.95;
 }
 
 .atmo-section__title {
-    margin: 0.35rem 0 0;
-    font-size: clamp(1.2rem, 3.2vw, 1.45rem);
-    font-weight: 620;
-    letter-spacing: -0.02em;
+    margin: 0.4rem 0 0;
+    font-size: clamp(1.28rem, 3.4vw, 1.55rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
     color: var(--canvas-text);
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="light"] .atmo-section__title {
+    text-shadow: none;
+    color: #0f172a;
 }
 
 /* --- Horizontal city rails --- */
@@ -317,19 +445,19 @@ html[data-theme="light"] .atmo-hero__ridge {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    scrollbar-color: rgba(56, 189, 248, 0.35) transparent;
 }
 
 .cities-rail::-webkit-scrollbar {
-    height: 5px;
+    height: 6px;
 }
 
 .cities-rail::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.35);
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.5), rgba(249, 115, 22, 0.35));
     border-radius: 999px;
 }
 
-/* Rail cards (SSR + shared) */
+/* Rail cards: richer depth */
 .rail-card,
 .cities-rail > a.city-card {
     position: relative;
@@ -343,11 +471,14 @@ html[data-theme="light"] .atmo-hero__ridge {
     border-radius: 1.35rem;
     text-decoration: none;
     color: inherit;
-    background: rgba(15, 23, 42, 0.42);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(16px) saturate(1.08);
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    background: linear-gradient(155deg, rgba(30, 41, 59, 0.82) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
     transition:
         transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
         border-color 0.25s ease,
@@ -355,23 +486,46 @@ html[data-theme="light"] .atmo-hero__ridge {
         background 0.25s ease;
 }
 
+.rail-card::after,
+.cities-rail > a.city-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 10% 0%, rgba(56, 189, 248, 0.08), transparent 50%);
+    opacity: 0.9;
+}
+
 html[data-theme="light"] .rail-card,
 html[data-theme="light"] .cities-rail > a.city-card {
-    background: rgba(255, 255, 255, 0.55);
-    border-color: rgba(148, 163, 184, 0.22);
-    box-shadow: 0 10px 36px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 245, 249, 0.94) 100%);
+    border-color: rgba(100, 116, 139, 0.28);
+    box-shadow:
+        0 12px 40px rgba(15, 23, 42, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+html[data-theme="light"] .rail-card::after,
+html[data-theme="light"] .cities-rail > a.city-card::after {
+    background: radial-gradient(120% 80% at 15% 0%, rgba(14, 165, 233, 0.12), transparent 55%);
 }
 
 .rail-card:hover,
 .cities-rail > a.city-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(56, 189, 248, 0.28);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    transform: translateY(-4px);
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow:
+        0 22px 56px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(56, 189, 248, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 html[data-theme="light"] .rail-card:hover,
 html[data-theme="light"] .cities-rail > a.city-card:hover {
-    box-shadow: 0 16px 44px rgba(15, 23, 42, 0.1);
+    box-shadow:
+        0 18px 48px rgba(15, 23, 42, 0.14),
+        0 0 32px rgba(14, 165, 233, 0.12);
 }
 
 .rail-card__top {
@@ -379,19 +533,21 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
     justify-content: space-between;
     align-items: flex-start;
     gap: 0.5rem;
+    position: relative;
+    z-index: 1;
 }
 
 .rail-card__name {
-    font-size: 1.05rem;
-    font-weight: 600;
+    font-size: 1.06rem;
+    font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--canvas-text);
 }
 
 .rail-card__icon {
-    font-size: 1.45rem;
+    font-size: 1.5rem;
     line-height: 1;
-    opacity: 0.95;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 
 .rail-card__temp {
@@ -399,48 +555,66 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
     align-items: baseline;
     gap: 0.1rem;
     margin-top: 0.85rem;
+    position: relative;
+    z-index: 1;
 }
 
 .rail-card__temp-val {
-    font-size: 2.35rem;
-    font-weight: 650;
-    letter-spacing: -0.03em;
+    font-size: 2.45rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
     line-height: 1;
-    color: var(--canvas-text);
+    color: #f8fafc;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="light"] .rail-card__temp-val {
+    color: #0f172a;
+    text-shadow: 0 2px 12px rgba(14, 165, 233, 0.15);
 }
 
 .rail-card__temp-unit {
-    font-size: 1rem;
-    color: var(--canvas-text-muted);
-    font-weight: 500;
+    font-size: 1.05rem;
+    color: #94a3b8;
+    font-weight: 600;
 }
 
 .rail-card__desc {
     margin: 0.45rem 0 0;
     font-size: 0.82rem;
     line-height: 1.35;
-    color: var(--canvas-text-muted);
+    color: #94a3b8;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+html[data-theme="light"] .rail-card__desc {
+    color: #64748b;
 }
 
 .rail-card__meta {
     margin-top: auto;
     padding-top: 0.65rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     align-items: center;
+    position: relative;
+    z-index: 1;
 }
 
 html[data-theme="light"] .rail-card__meta {
-    border-top-color: rgba(148, 163, 184, 0.18);
+    border-top-color: rgba(148, 163, 184, 0.25);
 }
 
 .rail-card__chev {
-    font-size: 1rem;
-    color: var(--link);
-    opacity: 0.85;
+    font-size: 1.05rem;
+    color: #38bdf8;
+    font-weight: 600;
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4));
 }
 
 .rail-card--switch {
@@ -448,12 +622,18 @@ html[data-theme="light"] .rail-card__meta {
 }
 
 .rail-card--active {
-    border-color: rgba(56, 189, 248, 0.45);
-    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.65);
+    background: linear-gradient(155deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.88) 100%);
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.45),
+        0 0 32px rgba(56, 189, 248, 0.2),
+        inset 0 0 0 1px rgba(56, 189, 248, 0.15);
 }
 
 html[data-theme="light"] .rail-card--active {
-    background: rgba(56, 189, 248, 0.12);
+    background: linear-gradient(155deg, rgba(224, 242, 254, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border-color: rgba(14, 165, 233, 0.45);
+    box-shadow: 0 12px 36px rgba(14, 165, 233, 0.18);
 }
 
 /* Legacy city-card inside rail (favorites / recent) */
@@ -462,7 +642,7 @@ html[data-theme="light"] .rail-card--active {
 }
 
 .cities-rail > a.city-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
 }
 
 .cities-rail .city-card__temperature {
@@ -470,7 +650,8 @@ html[data-theme="light"] .rail-card--active {
 }
 
 .cities-rail .city-card__temp-value {
-    font-size: 2.1rem;
+    font-size: 2.15rem;
+    font-weight: 700;
 }
 
 .cities-toggle-wrap {
@@ -507,35 +688,38 @@ html[data-theme="light"] .rail-card--active {
     flex-direction: column;
     align-items: center;
     gap: 0.35rem;
-    padding: 1rem 0.75rem;
+    padding: 1.05rem 0.8rem;
     border-radius: 1.1rem;
-    background: rgba(15, 23, 42, 0.38);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(165deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px) saturate(1.1);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
 }
 
 html[data-theme="light"] .atmo-forecast-chip {
-    background: rgba(255, 255, 255, 0.5);
-    border-color: rgba(148, 163, 184, 0.2);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.92) 100%);
+    border-color: rgba(100, 116, 139, 0.24);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
 }
 
 .atmo-forecast-chip__day {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--canvas-text-muted);
+    color: #94a3b8;
 }
 
 .atmo-forecast-chip__icon {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
 .atmo-forecast-chip__desc {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     text-align: center;
-    color: var(--canvas-text-muted);
+    color: #94a3b8;
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -546,18 +730,22 @@ html[data-theme="light"] .atmo-forecast-chip {
 .atmo-forecast-chip__temps {
     display: flex;
     gap: 0.45rem;
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 0.92rem;
+    font-weight: 700;
     margin-top: 0.15rem;
 }
 
 .atmo-forecast-chip__hi {
-    color: var(--canvas-text);
+    color: #f8fafc;
+}
+
+html[data-theme="light"] .atmo-forecast-chip__hi {
+    color: #0f172a;
 }
 
 .atmo-forecast-chip__lo {
-    color: var(--canvas-text-muted);
-    font-weight: 500;
+    color: #94a3b8;
+    font-weight: 600;
 }
 
 .atmo-hourly-rail.hourly-row {
@@ -568,30 +756,33 @@ html[data-theme="light"] .atmo-forecast-chip {
 .atmo-hourly-chip.hourly-card {
     flex: 0 0 auto;
     min-width: 4.1rem;
-    padding: 0.65rem 0.45rem;
+    padding: 0.68rem 0.48rem;
     border-radius: 1rem;
     scroll-snap-align: start;
-    background: rgba(15, 23, 42, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.88) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 html[data-theme="light"] .atmo-hourly-chip.hourly-card {
-    background: rgba(255, 255, 255, 0.48);
-    border-color: rgba(148, 163, 184, 0.18);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.07);
 }
 
 .atmo-chart.chart-card {
-    background: rgba(15, 23, 42, 0.32);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: linear-gradient(165deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.25rem;
-    box-shadow: none;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     min-height: 220px;
-    padding: 0.75rem;
+    padding: 0.85rem;
 }
 
 html[data-theme="light"] .atmo-chart.chart-card {
-    background: rgba(255, 255, 255, 0.5);
-    border-color: rgba(148, 163, 184, 0.2);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.94) 100%);
+    border-color: rgba(100, 116, 139, 0.22);
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.1);
 }
 
 /* --- Reduced motion --- */
@@ -603,9 +794,9 @@ html[data-theme="light"] .atmo-chart.chart-card {
     }
 }
 
-/* --- Standalone polish: match new hero --- */
+/* --- Standalone --- */
 @media (max-width: 720px) {
     html[data-standalone="true"] .atmo-hero__temp {
-        font-size: clamp(4.8rem, 16vw, 7rem);
+        font-size: clamp(5.5rem, 19vw, 9rem);
     }
 }

@@ -2,7 +2,7 @@
     --font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 
     /* Base background */
-    --bg: #020617;
+    --bg: #000814;
 
     /* Semantic theme tokens */
     --text-strong: #f9fafb;
@@ -84,7 +84,7 @@ body {
 
 /* Fallback if data-theme missing (should not happen): match dark */
 html:not([data-theme]) body {
-    background: #020617;
+    background: #000814;
     color: #e5e7eb;
 }
 
@@ -101,7 +101,7 @@ html[data-theme="dark"] {
     --muted: #9ca3af;
     --text-soft: #9ca3af;
 
-    --bg: #020617;
+    --bg: #000814;
     --border: rgba(148, 163, 184, 0.28);
     --input-placeholder: #64748b;
     --focus-ring: rgba(56, 189, 248, 0.28);
