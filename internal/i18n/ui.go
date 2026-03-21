@@ -52,6 +52,7 @@ type UI struct {
 	SunnyIconTitle          string
 	CitiesToggleMore        string
 	CitiesToggleLess        string
+	CitiesToggleShowMoreN   string // "Show %d more" — %d replaced in JS
 	RecentSectionLabel      string
 	RecentSectionTitle      string
 	FavoritesSectionLabel   string
@@ -112,6 +113,7 @@ func For(lang string) UI {
 			SunnyIconTitle:        "Clear sky",
 			CitiesToggleMore:      "More",
 			CitiesToggleLess:      "Show less",
+			CitiesToggleShowMoreN: "Show %d more",
 			RecentSectionLabel:    "History",
 			RecentSectionTitle:    "Recent places",
 			FavoritesSectionLabel: "Places",
@@ -168,6 +170,7 @@ func For(lang string) UI {
 			SunnyIconTitle:        "Ясно",
 			CitiesToggleMore:      "Ще",
 			CitiesToggleLess:      "Згорнути",
+			CitiesToggleShowMoreN: "Показати ще %d",
 			RecentSectionLabel:    "Історія",
 			RecentSectionTitle:    "Недавні місця",
 			FavoritesSectionLabel: "Місця",
@@ -223,7 +226,8 @@ func For(lang string) UI {
 			SuggestionsAria:       "Подсказки населённых пунктов",
 			SunnyIconTitle:        "Ясно",
 			CitiesToggleMore:      "Ещё",
-			CitiesToggleLess:      "Свернуть",
+			CitiesToggleLess:      "Скрыть",
+			CitiesToggleShowMoreN: "Показать ещё %d",
 			RecentSectionLabel:    "История",
 			RecentSectionTitle:    "Недавние места",
 			FavoritesSectionLabel: "Места",

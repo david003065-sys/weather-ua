@@ -1182,8 +1182,30 @@ html[data-theme="light"] .weather-app.weather-clear::after {
     margin-top: 0.75rem;
 }
 
-.cities-grid--collapsed .city-card:nth-child(n + 9) {
-    display: none;
+/* Homepage cities: hidden rows controlled by JS (.city-card--list-hidden) */
+.city-card.city-card--list-hidden {
+    display: none !important;
+}
+
+@keyframes city-card-list-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.city-card.city-card--list-reveal {
+    animation: city-card-list-reveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .city-card.city-card--list-reveal {
+        animation: none;
+    }
 }
 
 .cities-toggle-wrap {

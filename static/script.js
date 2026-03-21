@@ -843,4 +843,88 @@
             await renderRecent();
         })();
     })();
+
+    // Homepage: load more / collapse city cards (4 initial, +8 per click)
+    (function initCitiesListExpand() {
+        var grid = document.getElementById("js-cities-grid");
+        var btn = document.getElementById("js-cities-toggle");
+        var wrap = document.querySelector(".cities-toggle-wrap");
+        if (!grid || !btn || !wrap) return;
+
+        var cards = grid.querySelectorAll("a.city-card");
+        var total = cards.length;
+        var INITIAL = 4;
+        var STEP = 8;
+
+        if (total <= INITIAL) {
+            wrap.style.display = "none";
+            return;
+        }
+
+        var visible = INITIAL;
+        var pattern = (btn.getAttribute("data-pattern-show-more") || "").trim();
+        var labelLess = btn.getAttribute("data-label-less") || "Show less";
+        var fallbackMore = btn.getAttribute("data-fallback-more") || "More";
+        var reduceMotion =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function syncVisibility() {
+            for (var i = 0; i < total; i++) {
+                if (i < visible) {
+                    cards[i].classList.remove("city-card--list-hidden");
+                } else {
+                    cards[i].classList.add("city-card--list-hidden");
+                    cards[i].classList.remove("city-card--list-reveal");
+                }
+            }
+        }
+
+        function updateLabel() {
+            if (visible >= total) {
+                btn.textContent = labelLess;
+                btn.setAttribute("aria-expanded", "true");
+            } else {
+                var nextBatch = Math.min(STEP, total - visible);
+                if (pattern.indexOf("%d") !== -1) {
+                    btn.textContent = pattern.replace("%d", String(nextBatch));
+                } else {
+                    btn.textContent = fallbackMore;
+                }
+                btn.setAttribute("aria-expanded", "false");
+            }
+        }
+
+        for (var k = INITIAL; k < total; k++) {
+            cards[k].classList.add("city-card--list-hidden");
+        }
+        updateLabel();
+
+        btn.addEventListener("click", function () {
+            if (visible >= total) {
+                visible = INITIAL;
+                syncVisibility();
+                updateLabel();
+                try {
+                    var sec = document.getElementById("cities");
+                    if (sec) sec.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                } catch (_) {}
+                return;
+            }
+            var target = Math.min(total, visible + STEP);
+            for (var j = visible; j < target; j++) {
+                cards[j].classList.remove("city-card--list-hidden");
+                if (!reduceMotion) {
+                    cards[j].classList.add("city-card--list-reveal");
+                    (function (idx) {
+                        window.setTimeout(function () {
+                            cards[idx].classList.remove("city-card--list-reveal");
+                        }, 480);
+                    })(j);
+                }
+            }
+            visible = target;
+            updateLabel();
+        });
+    })();
 })();

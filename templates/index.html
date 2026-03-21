@@ -110,7 +110,7 @@
         </div>
     </header>
 
-    <div class="cities-grid cities-grid--collapsed" id="js-cities-grid" data-lang="{{ .Lang }}">
+    <div class="cities-grid" id="js-cities-grid" data-lang="{{ .Lang }}">
         {{ range .Cities }}
         <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-card" data-city-id="{{ .ID }}">
             <div class="city-card__header">
@@ -150,8 +150,11 @@
             type="button"
             id="js-cities-toggle"
             class="btn btn-outline cities-toggle"
-            data-label-more="{{ .Text.CitiesToggleMore }}"
+            data-pattern-show-more="{{ .Text.CitiesToggleShowMoreN }}"
             data-label-less="{{ .Text.CitiesToggleLess }}"
+            data-fallback-more="{{ .Text.CitiesToggleMore }}"
+            aria-controls="js-cities-grid"
+            aria-expanded="false"
         >
             {{ .Text.CitiesToggleMore }}
         </button>
