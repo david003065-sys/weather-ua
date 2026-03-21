@@ -262,12 +262,14 @@
         }, 5 * 60 * 1000);
     }
 
-    // PWA: register service worker
+    // PWA: SW must be served from site root so scope "/" controls HTML routes (not only /static/).
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
-            navigator.serviceWorker.register("/static/sw.js").catch(function (e) {
-                console.error("SW registration failed", e);
-            });
+            navigator.serviceWorker
+                .register("/sw.js", { scope: "/", updateViaCache: "none" })
+                .catch(function (e) {
+                    console.error("SW registration failed", e);
+                });
         });
     }
 

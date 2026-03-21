@@ -64,6 +64,10 @@ func Run() error {
 
 	fileServer := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
+	// PWA: service worker at root scope so navigations (/, /city/*, /place/*) are controlled.
+	mux.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/sw.js")
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
