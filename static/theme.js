@@ -5,6 +5,22 @@
     var payload = null;
     var autoTimerId = null;
 
+    /* Apply stored light/dark before the rest of the document paints (avoids dark→light flash). */
+    try {
+        var bodyEarly = document.body;
+        if (bodyEarly) {
+            var stored = localStorage.getItem(THEME_KEY);
+            if (stored === "light") {
+                bodyEarly.classList.remove("theme-dark");
+                bodyEarly.classList.add("theme-light");
+            } else if (stored === "dark") {
+                bodyEarly.classList.remove("theme-light");
+                bodyEarly.classList.add("theme-dark");
+            }
+            /* "auto", missing, or invalid: keep <body> default from HTML (theme-dark). */
+        }
+    } catch (_) {}
+
     function readPayload() {
         if (payload !== null) return payload;
         var el = document.getElementById("__WEATHER__");
@@ -26,7 +42,8 @@
             var v = localStorage.getItem(THEME_KEY);
             if (v === "light" || v === "dark" || v === "auto") return v;
         } catch (_) {}
-        return "auto";
+        /* First visit: polished dark theme; Auto/Light only after explicit choice */
+        return "dark";
     }
 
     function saveThemeMode(mode) {
@@ -145,14 +162,15 @@
 
     function initThemeControls() {
         var items = document.querySelectorAll(".theme-switch__item");
-        if (!items || !items.length) return;
-        items.forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var mode = btn.getAttribute("data-theme-mode") || "auto";
-                saveThemeMode(mode);
-                applyThemeMode(mode);
+        if (items && items.length) {
+            items.forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var mode = btn.getAttribute("data-theme-mode") || "auto";
+                    saveThemeMode(mode);
+                    applyThemeMode(mode);
+                });
             });
-        });
+        }
         var mode = getThemeMode();
         applyThemeMode(mode);
     }
@@ -168,8 +186,6 @@
     };
 
     document.addEventListener("DOMContentLoaded", function () {
-        var mode = getThemeMode();
-        applyThemeMode(mode);
         initThemeControls();
     });
 })();
