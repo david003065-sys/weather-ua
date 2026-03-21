@@ -57,12 +57,15 @@
         if (!window.Chart || !canvas) return;
 
         try {
-            var css = getComputedStyle(document.documentElement);
+            /* Theme tokens live on body (theme-light / theme-dark), not :root */
+            var css = getComputedStyle(document.body);
             var textMuted = (css.getPropertyValue("--text-muted") || "#9ca3af").trim();
-            var textStrong = (css.getPropertyValue("--text") || "#e5e7eb").trim();
-            var gridColor = "rgba(148, 163, 184, 0.28)";
+            var textStrong = (css.getPropertyValue("--text-strong") || "#e5e7eb").trim();
+            var gridColor = (css.getPropertyValue("--chart-grid") || "rgba(148, 163, 184, 0.28)").trim();
             var lineMax = (css.getPropertyValue("--link") || "#38bdf8").trim();
             var lineMin = (css.getPropertyValue("--accent-warm") || "#f97316").trim();
+            var fillMax = (css.getPropertyValue("--chart-fill-max") || "rgba(56, 189, 248, 0.16)").trim();
+            var fillMin = (css.getPropertyValue("--chart-fill-min") || "rgba(249, 115, 22, 0.16)").trim();
 
             const labels = JSON.parse(canvas.dataset.labels || "[]");
             const min = JSON.parse(canvas.dataset.min || "[]");
@@ -78,7 +81,7 @@
                             label: "Макс",
                             data: max,
                             borderColor: lineMax,
-                            backgroundColor: "rgba(56, 189, 248, 0.16)",
+                            backgroundColor: fillMax,
                             borderWidth: 2,
                             tension: 0.35,
                             fill: true,
@@ -90,7 +93,7 @@
                             label: "Мин",
                             data: min,
                             borderColor: lineMin,
-                            backgroundColor: "rgba(249, 115, 22, 0.16)",
+                            backgroundColor: fillMin,
                             borderWidth: 2,
                             tension: 0.35,
                             fill: true,

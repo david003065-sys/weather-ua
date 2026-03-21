@@ -48,6 +48,11 @@
     --temp-color-to: #f97316;
 
     --blur-strong: 26px;
+
+    /* Chart.js (read from body in script; defaults match dark UI) */
+    --chart-grid: rgba(148, 163, 184, 0.28);
+    --chart-fill-max: rgba(56, 189, 248, 0.16);
+    --chart-fill-min: rgba(249, 115, 22, 0.16);
 }
 
 *,
@@ -85,22 +90,55 @@ body.theme-dark {
     --bg-atmo-a: rgba(56, 189, 248, 0.22);
     --bg-atmo-b: rgba(249, 115, 22, 0.2);
     --bg-atmo-c: rgba(15, 23, 42, 0.95);
+    --chart-grid: rgba(148, 163, 184, 0.28);
+    --chart-fill-max: rgba(56, 189, 248, 0.16);
+    --chart-fill-min: rgba(249, 115, 22, 0.16);
 }
 
 body.theme-light {
-    --bg: #dbeafe;
-    --text-strong: #020617;
-    --text: #020617;
-    --text-muted: #475569;
-    --panel-bg: rgba(255, 255, 255, 0.98);
-    --panel-border: rgba(15, 23, 42, 0.26);
-    --shadow: 0 32px 90px rgba(15, 23, 42, 0.45);
-    --overlay: rgba(15, 23, 42, 0.16);
-    --link: #0369a1;
-    --link-hover: #0ea5e9;
-    --bg-atmo-a: rgba(14, 165, 233, 0.2);
-    --bg-atmo-b: rgba(59, 130, 246, 0.16);
-    --bg-atmo-c: rgba(226, 232, 240, 0.78);
+    /* --- Page & typography (daylight, deep slate hierarchy) --- */
+    --bg: #e4edf6;
+    --text-strong: #0b1628;
+    --text: #1e293b;
+    --text-muted: #4a5f71;
+    --muted: var(--text-muted);
+
+    /* --- Surfaces (cool white / blue-white, not flat gray) --- */
+    --panel-bg: rgba(255, 255, 255, 0.94);
+    --panel-border: rgba(15, 23, 42, 0.11);
+    --glass-border: rgba(15, 35, 60, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.98);
+    --surface-tint: rgba(248, 252, 255, 0.97);
+    --surface-tint-deep: rgba(238, 246, 252, 0.94);
+
+    /* --- Elevation --- */
+    --shadow: 0 26px 64px rgba(15, 40, 75, 0.09), 0 10px 28px rgba(15, 23, 42, 0.045);
+    --shadow-soft: 0 14px 38px rgba(15, 35, 65, 0.065);
+    --shadow-hero: 0 32px 80px rgba(15, 45, 90, 0.1), 0 14px 36px rgba(15, 23, 42, 0.05);
+    --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.98), inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+
+    /* --- Atmosphere (pale sky, soft ambient) --- */
+    --overlay: rgba(186, 210, 232, 0.2);
+    --bg-atmo-a: rgba(147, 210, 255, 0.38);
+    --bg-atmo-b: rgba(191, 231, 255, 0.42);
+    --bg-atmo-c: rgba(214, 228, 242, 0.72);
+
+    /* --- Interactive --- */
+    --link: #0a6f9a;
+    --link-hover: #064e6f;
+    --border: rgba(15, 23, 42, 0.11);
+    --input-placeholder: #5a6d80;
+    --focus-ring: rgba(14, 165, 233, 0.34);
+    --accent: var(--link);
+    --accent-strong: var(--link-hover);
+
+    /* --- Glass readability --- */
+    --blur-strong: 20px;
+
+    /* --- Chart (legible grid / fills on light canvas) --- */
+    --chart-grid: rgba(51, 65, 85, 0.12);
+    --chart-fill-max: rgba(14, 165, 233, 0.14);
+    --chart-fill-min: rgba(234, 88, 12, 0.12);
 }
 
 .weather-app {
@@ -129,7 +167,7 @@ body.theme-light {
 }
 
 body.theme-light .weather-app::before {
-    opacity: 1;
+    opacity: 0.38;
 }
 
 .search-section {
@@ -222,13 +260,6 @@ body.theme-light .weather-app::before {
     color: var(--text-soft);
     font-size: 0.78rem;
     margin-top: 0.1rem;
-}
-
-.search-suggestions__highlight {
-    background: rgba(56, 189, 248, 0.2);
-    color: inherit;
-    padding: 0 1px;
-    border-radius: 3px;
 }
 
 .search-suggestions__highlight {
@@ -801,7 +832,8 @@ body.theme-light .weather-app::before {
 body.theme-light .hero-main__city,
 body.theme-light .city-hero__title,
 body.theme-light .section-title {
-    text-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+    color: var(--text-strong);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .cities-grid {
@@ -1345,6 +1377,58 @@ body.theme-light .section-title {
     color: var(--text-soft);
 }
 
+/* Buttons — token-driven so light/dark both stay readable */
+.btn {
+    font: inherit;
+    cursor: pointer;
+    padding: 0.55rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.btn-ghost {
+    background: color-mix(in srgb, var(--panel-bg) 52%, transparent);
+    border-color: color-mix(in srgb, var(--glass-border) 70%, var(--panel-border) 30%);
+    color: var(--text);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(12px);
+}
+
+.btn-ghost:hover {
+    background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
+    border-color: var(--panel-border);
+    color: var(--text-strong);
+}
+
+.btn-outline {
+    background: color-mix(in srgb, var(--panel-bg) 35%, transparent);
+    border-color: var(--panel-border);
+    color: var(--text-strong);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--panel-border));
+    color: var(--text-strong);
+}
+
+body.theme-light .btn-ghost,
+body.theme-light .btn-outline {
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+body.theme-light .btn-ghost:hover,
+body.theme-light .btn-outline:hover {
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
 .btn--loading {
     opacity: 0.6;
     pointer-events: none;
@@ -1458,6 +1542,348 @@ body.theme-light .section-title {
     100% {
         opacity: 1;
     }
+}
+
+/* -------------------------------------------------------------------------
+   Light theme — premium daylight surfaces (dark mode unchanged)
+   ------------------------------------------------------------------------- */
+
+/* Header & navigation */
+body.theme-light .site-header {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.94),
+        rgba(252, 253, 255, 0.88),
+        rgba(236, 244, 252, 0.45)
+    );
+    border-bottom-color: rgba(15, 23, 42, 0.09);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+}
+
+body.theme-light .brand-text__label {
+    color: var(--text-muted);
+}
+
+body.theme-light .nav-link {
+    color: var(--text-muted);
+}
+
+body.theme-light .nav-link:hover,
+body.theme-light .nav-link--active {
+    color: var(--text-strong);
+}
+
+body.theme-light .section-label {
+    color: var(--text-muted);
+}
+
+body.theme-light .site-footer {
+    border-top-color: rgba(15, 23, 42, 0.09);
+    background: radial-gradient(circle at 50% 0, rgba(14, 165, 233, 0.09), transparent 58%);
+}
+
+body.theme-light .footer-badge {
+    color: var(--text-muted);
+}
+
+/* Search */
+body.theme-light .search-input {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 252, 255, 0.96));
+    border-color: rgba(15, 23, 42, 0.13);
+    color: var(--text-strong);
+    box-shadow: var(--shadow-soft), var(--shadow-inset-highlight);
+}
+
+body.theme-light .search-input::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+}
+
+body.theme-light .search-input:focus {
+    border-color: #0284c7;
+    box-shadow:
+        0 0 0 3px var(--focus-ring),
+        0 18px 44px rgba(15, 45, 85, 0.08),
+        var(--shadow-inset-highlight);
+}
+
+body.theme-light .search-suggestions {
+    background: rgba(255, 255, 255, 0.99);
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: var(--shadow), var(--shadow-inset-highlight);
+}
+
+body.theme-light .search-suggestions__title {
+    color: var(--text-strong);
+}
+
+body.theme-light .search-suggestions__meta {
+    color: var(--text-muted);
+}
+
+body.theme-light .search-suggestions__highlight {
+    background: rgba(14, 165, 233, 0.14);
+}
+
+body.theme-light .search-suggestions__empty {
+    color: var(--text-muted);
+}
+
+body.theme-light .search-input-spinner {
+    border-color: rgba(71, 85, 105, 0.4);
+    border-top-color: transparent;
+}
+
+/* Language / theme toggles */
+body.theme-light .lang-switch,
+body.theme-light .theme-switch {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 250, 255, 0.9));
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 4px 16px rgba(15, 35, 65, 0.06), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+body.theme-light .lang-switch__item,
+body.theme-light .theme-switch__item {
+    color: var(--text-muted);
+}
+
+body.theme-light .lang-switch__item:hover,
+body.theme-light .theme-switch__item:hover {
+    color: var(--text-strong);
+}
+
+body.theme-light .lang-switch__item--active,
+body.theme-light .theme-switch__item--active {
+    color: #071018;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+/* Hero — primary panel */
+body.theme-light .hero-main {
+    background:
+        linear-gradient(168deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 253, 255, 0.96) 42%, var(--surface-tint-deep) 100%),
+        radial-gradient(120% 90% at 8% -8%, rgba(56, 189, 248, 0.2), transparent 52%),
+        radial-gradient(95% 75% at 100% 0%, rgba(251, 191, 36, 0.07), transparent 55%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: var(--shadow-hero), var(--shadow-inset-highlight);
+}
+
+body.theme-light .hero-main__badge {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(15, 23, 42, 0.1);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .hero-main__temp-value {
+    color: var(--text-strong);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    text-shadow: 0 2px 24px rgba(15, 45, 80, 0.07);
+}
+
+body.theme-light .hero-main__temp-unit {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .hero-main__status {
+    color: var(--text);
+    font-weight: 500;
+}
+
+body.theme-light .hero-main__detail {
+    border: 1px solid rgba(15, 23, 42, 0.11);
+    background: linear-gradient(180deg, #ffffff, rgba(244, 250, 255, 0.94));
+    box-shadow: 0 2px 0 rgba(255, 255, 255, 0.95) inset, 0 6px 18px rgba(15, 35, 65, 0.055);
+}
+
+body.theme-light .detail-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .detail-value {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+body.theme-light .weather-icon__sun-rays {
+    stroke: rgba(15, 35, 60, 0.32);
+}
+
+/* City grid cards */
+body.theme-light .city-card {
+    background: linear-gradient(148deg, rgba(255, 255, 255, 0.97), var(--surface-tint-deep));
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: var(--shadow-soft), var(--shadow-inset-highlight);
+}
+
+body.theme-light .city-card:hover {
+    border-color: rgba(2, 132, 199, 0.38);
+    box-shadow: var(--shadow), var(--shadow-inset-highlight);
+    background: linear-gradient(148deg, #ffffff, rgba(248, 252, 255, 0.98));
+}
+
+body.theme-light .city-card__name {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+body.theme-light .city-card__temp-value {
+    color: var(--text-strong);
+}
+
+body.theme-light .city-card__status {
+    color: var(--text-muted);
+}
+
+body.theme-light .city-card__meta .meta-pair__label {
+    color: var(--text-muted);
+}
+
+body.theme-light .city-card__meta .meta-pair__value {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+/* City detail hero */
+body.theme-light .city-hero {
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, var(--surface-tint) 50%, var(--surface-tint-deep) 100%),
+        radial-gradient(100% 70% at 0 0, rgba(56, 189, 248, 0.18), transparent 58%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: var(--shadow-hero), var(--shadow-inset-highlight);
+}
+
+body.theme-light .city-hero__badge {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(15, 23, 42, 0.1);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .city-hero__title {
+    color: var(--text-strong);
+}
+
+body.theme-light .city-hero__subtitle,
+body.theme-light .city-hero__location,
+body.theme-light .city-hero__duplicates {
+    color: var(--text-muted);
+}
+
+body.theme-light .city-hero__summary-text {
+    color: var(--text);
+}
+
+body.theme-light .city-hero__temp-value {
+    color: var(--text-strong);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+body.theme-light .city-hero__temp-unit {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .city-hero__temp-block,
+body.theme-light .city-hero__forecast {
+    background: linear-gradient(180deg, #ffffff, rgba(241, 249, 255, 0.93));
+    border: 1px solid rgba(15, 23, 42, 0.11);
+    box-shadow: 0 8px 28px rgba(15, 40, 75, 0.07), 0 1px 0 rgba(255, 255, 255, 0.98) inset;
+}
+
+/* Metric tiles — elevated vs hero */
+body.theme-light .metric {
+    background: linear-gradient(180deg, #ffffff, rgba(236, 246, 252, 0.96));
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.98) inset, 0 5px 16px rgba(15, 35, 65, 0.06);
+}
+
+body.theme-light .metric__label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .metric__value {
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+/* Forecast & hourly */
+body.theme-light .forecast-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(242, 249, 255, 0.94));
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 2px 0 rgba(255, 255, 255, 0.95) inset, 0 5px 16px rgba(15, 35, 65, 0.05);
+}
+
+body.theme-light .forecast-card__day {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .forecast-card__status {
+    color: var(--text-muted);
+}
+
+body.theme-light .forecast-card__temps {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+body.theme-light .hourly-card {
+    background: linear-gradient(180deg, #ffffff, rgba(240, 248, 255, 0.95));
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.98) inset, 0 6px 18px rgba(15, 35, 65, 0.055);
+}
+
+body.theme-light .hourly-time {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-light .hourly-temp {
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+body.theme-light .chart-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 250, 255, 0.96));
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: var(--shadow-soft), var(--shadow-inset-highlight);
+}
+
+/* City switcher strip */
+body.theme-light .city-switch__card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 247, 255, 0.94));
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 4px 16px rgba(15, 35, 65, 0.055), 0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+
+body.theme-light .city-switch__card--active {
+    background: linear-gradient(135deg, rgba(224, 242, 254, 0.98), rgba(255, 255, 255, 0.99));
+    border-color: rgba(2, 132, 199, 0.42);
+    box-shadow: 0 6px 20px rgba(14, 116, 165, 0.12), 0 1px 0 rgba(255, 255, 255, 0.98) inset;
+}
+
+body.theme-light .city-switch__card:hover {
+    box-shadow: 0 12px 32px rgba(15, 40, 75, 0.09), 0 1px 0 rgba(255, 255, 255, 0.98) inset;
+}
+
+body.theme-light .city-switch__name {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+body.theme-light .city-switch__temp {
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+body.theme-light .city-switch__meta {
+    color: var(--text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1586,6 +2012,22 @@ body.theme-light .section-title {
 
     .hourly-temp {
         font-size: 0.84rem;
+    }
+
+    /* Light theme: keep small cards legible on phones */
+    body.theme-light .hourly-time {
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    body.theme-light .hourly-temp {
+        color: var(--text-strong);
+        font-weight: 700;
+    }
+
+    body.theme-light .forecast-card__day,
+    body.theme-light .forecast-card__status {
+        font-size: 0.8rem;
     }
 }
 
