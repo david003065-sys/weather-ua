@@ -3,58 +3,68 @@
 {{ define "description" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }}: {{ .CityName }} · {{ .Text.ForecastTitle }}.{{ end }}
 
 {{ define "city-content" }}
-<section class="atmo-hero atmo-hero--city" aria-labelledby="city-title">
-    <div class="atmo-hero__veil" aria-hidden="true"></div>
-    <div class="atmo-hero__inner">
-        <span class="atmo-hero__kicker">{{ .Text.CityBadge }}</span>
-        <h1 id="city-title" class="atmo-hero__city">{{ .CityName }}</h1>
-        {{ if .CityLocation }}
-        <p class="atmo-hero__subloc">{{ .CityLocation }}</p>
-        {{ end }}
-        <div class="atmo-hero__temp-row">
-            <span id="js-current-temp" class="atmo-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
-            <span class="atmo-hero__unit">°C</span>
+<section class="weather-hero weather-hero--page" aria-labelledby="city-title">
+    <div class="weather-hero__atmo" aria-hidden="true"></div>
+    <div class="weather-hero__content">
+        <div class="weather-hero__place">
+            <h1 id="city-title" class="weather-hero__city">{{ .CityName }}</h1>
+            {{ if .CityLocation }}
+            <p class="weather-hero__subloc">{{ .CityLocation }}</p>
+            {{ end }}
         </div>
-        <p class="city-hero__subtitle atmo-hero__condition">{{ .CurrentDescription }}</p>
-        {{ if gt .DuplicatesCount 0 }}
-        <div class="atmo-hero__dupes">
-            <span>{{ .DuplicatesLabel }}</span>
-            <a href="{{ .DuplicatesURL }}" class="atmo-hero__dupes-link">{{ .Text.ChooseAnotherDuplicate }}</a>
-        </div>
-        {{ end }}
 
-        <div class="atmo-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricHumidity }}</span>
-                <span id="js-current-humidity" class="atmo-metric__value">
+        <div class="weather-hero__temp-wrap">
+            <div class="weather-hero__temp-glow" aria-hidden="true"></div>
+            <div class="weather-hero__temp-line">
+                <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
+                <span class="weather-hero__unit">°C</span>
+            </div>
+        </div>
+
+        <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
+
+        <div class="weather-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricHumidity }}</span>
+                <span id="js-current-humidity" class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
                 </span>
             </div>
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricWind }}</span>
-                <span id="js-current-wind" class="atmo-metric__value">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricWind }}</span>
+                <span id="js-current-wind" class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
                 </span>
             </div>
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricPressure }}</span>
-                <span class="atmo-metric__value">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricPressure }}</span>
+                <span class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
                 </span>
             </div>
         </div>
-
-        {{ if .TodayLabel }}
-        <p class="atmo-hero__summary">
-            {{ .Text.Today }} ({{ .TodayLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°.
-            {{ if .TomorrowLabel }}
-            {{ .Text.Tomorrow }} ({{ .TomorrowLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°.
-            {{ end }}
-            {{ if .TrendText }}<span class="atmo-hero__trend">{{ .TrendText }}</span>{{ end }}
-        </p>
-        {{ end }}
     </div>
 </section>
+
+{{ if or (gt .DuplicatesCount 0) .TodayLabel }}
+<div class="weather-hero-follow weather-hero-follow--city">
+    {{ if gt .DuplicatesCount 0 }}
+    <p class="weather-hero-dupes">
+        <span>{{ .DuplicatesLabel }}</span>
+        <a href="{{ .DuplicatesURL }}" class="weather-hero-dupes__link">{{ .Text.ChooseAnotherDuplicate }}</a>
+    </p>
+    {{ end }}
+    {{ if .TodayLabel }}
+    <p class="weather-hero-summary">
+        {{ .Text.Today }} ({{ .TodayLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TodayMax }}°.
+        {{ if .TomorrowLabel }}
+        {{ .Text.Tomorrow }} ({{ .TomorrowLabel }}): {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° {{ .Text.RangeTo }} {{ printf "%.0f" .TomorrowMax }}°.
+        {{ end }}
+        {{ if .TrendText }}<span class="weather-hero-summary__trend">{{ .TrendText }}</span>{{ end }}
+    </p>
+    {{ end }}
+</div>
+{{ end }}
 
 <section class="atmo-stack atmo-stack--forecast" aria-label="{{ .Text.ForecastAria }}">
     <header class="atmo-section__head atmo-section__head--tight">

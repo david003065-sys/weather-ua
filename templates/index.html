@@ -3,56 +3,61 @@
 {{ define "description" }}{{ .MetaDescription }}{{ end }}
 
 {{ define "index-content" }}
-<section class="hero atmo-hero" aria-labelledby="hero-title">
-    <div class="atmo-hero__veil" aria-hidden="true"></div>
-    <div class="atmo-hero__inner">
-        <span class="atmo-hero__kicker">{{ .Text.BadgeNow }}</span>
-        <h1 id="hero-title" class="atmo-hero__city">{{ .CurrentCityName }}</h1>
-        <div class="atmo-hero__temp-row">
-            <span id="js-current-temp" class="atmo-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
-            <span class="atmo-hero__unit">°C</span>
-        </div>
-        <p class="atmo-hero__condition">{{ .CurrentDescription }}</p>
+<section class="weather-hero" aria-labelledby="hero-title">
+    <div class="weather-hero__atmo" aria-hidden="true"></div>
+    <div class="weather-hero__content">
+        <h1 id="hero-title" class="weather-hero__city">{{ .CurrentCityName }}</h1>
 
-        <div class="atmo-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricWind }}</span>
-                <span class="atmo-metric__value">
+        <div class="weather-hero__temp-wrap">
+            <div class="weather-hero__temp-glow" aria-hidden="true"></div>
+            <div class="weather-hero__temp-line">
+                <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
+                <span class="weather-hero__unit">°C</span>
+            </div>
+        </div>
+
+        <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
+
+        <div class="weather-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricWind }}</span>
+                <span class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
                 </span>
             </div>
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricHumidity }}</span>
-                <span class="atmo-metric__value">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricHumidity }}</span>
+                <span class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
                 </span>
             </div>
-            <div class="atmo-metric">
-                <span class="atmo-metric__label">{{ .Text.MetricPressure }}</span>
-                <span class="atmo-metric__value">
+            <div class="weather-hero__metric">
+                <span class="weather-hero__metric-label">{{ .Text.MetricPressure }}</span>
+                <span class="weather-hero__metric-value">
                     {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
                 </span>
             </div>
         </div>
-
-        {{ if .TodayLabel }}
-        <div class="atmo-hero__ridge" aria-label="{{ .Text.ShortForecastAria }}">
-            <div class="atmo-ridge__item">
-                <span class="atmo-ridge__label">{{ .Text.Today }} · {{ .TodayLabel }}</span>
-                <span class="atmo-ridge__val">{{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° — {{ printf "%.0f" .TodayMax }}°</span>
-            </div>
-            {{ if .TomorrowLabel }}
-            <div class="atmo-ridge__item">
-                <span class="atmo-ridge__label">{{ .Text.Tomorrow }} · {{ .TomorrowLabel }}</span>
-                <span class="atmo-ridge__val">{{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° — {{ printf "%.0f" .TomorrowMax }}°</span>
-            </div>
-            {{ end }}
-        </div>
-        {{ end }}
-
-        <button type="button" id="js-geo-btn" class="btn btn-ghost atmo-hero__geo">{{ .Text.GeoDetectButton }}</button>
     </div>
 </section>
+
+<div class="weather-hero-follow">
+    {{ if .TodayLabel }}
+    <div class="weather-hero-snippet" aria-label="{{ .Text.ShortForecastAria }}">
+        <p class="weather-hero-snippet__line">
+            <span class="weather-hero-snippet__k">{{ .Text.Today }}</span>
+            {{ .TodayLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° — {{ printf "%.0f" .TodayMax }}°
+        </p>
+        {{ if .TomorrowLabel }}
+        <p class="weather-hero-snippet__line">
+            <span class="weather-hero-snippet__k">{{ .Text.Tomorrow }}</span>
+            {{ .TomorrowLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° — {{ printf "%.0f" .TomorrowMax }}°
+        </p>
+        {{ end }}
+    </div>
+    {{ end }}
+    <button type="button" id="js-geo-btn" class="btn btn-ghost weather-hero-follow__geo">{{ .Text.GeoDetectButton }}</button>
+</div>
 
 <section class="search-section atmo-search" aria-label="{{ .Text.SearchSectionAria }}">
     <div class="search-shell">
@@ -123,22 +128,6 @@
             {{ .Text.CitiesToggleMore }}
         </button>
     </div>
-</section>
-
-<section class="recent-section atmo-section" aria-label="{{ .Text.RecentSectionTitle }}">
-    <header class="atmo-section__head">
-        <span class="atmo-section__label">{{ .Text.RecentSectionLabel }}</span>
-        <h2 class="atmo-section__title">{{ .Text.RecentSectionTitle }}</h2>
-    </header>
-    <div id="js-recent-list" class="cities-rail favorites-grid"></div>
-</section>
-
-<section class="favorites-section atmo-section" aria-label="{{ .Text.FavoritesSectionTitle }}">
-    <header class="atmo-section__head">
-        <span class="atmo-section__label">{{ .Text.FavoritesSectionLabel }}</span>
-        <h2 class="atmo-section__title">{{ .Text.FavoritesSectionTitle }}</h2>
-    </header>
-    <div id="js-favorites-list" class="cities-rail favorites-grid"></div>
 </section>
 {{ end }}
 
