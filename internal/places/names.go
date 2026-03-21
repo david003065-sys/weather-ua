@@ -1,18 +1,14 @@
 // Package places provides SQLite-backed settlement search.
 //
-// Place display names (for /place, /api/places, etc.) come from DB columns first:
+// LocalizedDisplayName (UI + API pick by lang) uses strict per-language fallbacks — English is never
+// used when UI is uk or ru:
 //
-//	Ukrainian (UI uk): name_uk → name (mirror) → name_ru → (then cross-lang in LocalizedDisplayName)
-//	Russian (UI ru):   name_ru → name_uk if Cyrillic → name → name_uk
-//	English (UI en):   Latin name_uk if any → TranslitLatin(name_ru) → TranslitLatin(name_uk) → name_ru → name_uk
+//	lang uk: name_uk slot → name_ru slot → original (Name, then raw columns)
+//	lang ru: name_ru slot → name_uk slot → original
+//	lang en: name_en slot (derived) → name_uk → name_ru → original
 //
-// There is no name_en column yet; English is derived. LocalizedDisplayName then applies per-language preference:
-//
-//	uk: uk, ru, en, Name
-//	en: en, uk, ru, Name
-//	ru: ru, uk, en, Name
-//
-// Static /city/* labels remain in package weather (LocalizedCityName), not mixed into DB resolution.
+// Slots are built from SQLite name_uk / name_ru / name (see LocalizedNameUK/RU/EN).
+// Static /city/* labels remain in package weather (LocalizedCityName).
 package places
 
 import (
@@ -62,16 +58,39 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-// LocalizedNameUK prefers SQLite name_uk, then legacy Name mirror, then name_ru.
+// LocalizedNameUK builds the Ukrainian-label slot (for JSON name_uk and lang=uk).
+// Latin-only name_uk is skipped when Cyrillic exists in name/name_ru so UI is not shown as English.
 func LocalizedNameUK(p Place) string {
 	rawUK := strings.TrimSpace(p.NameUK)
 	rawName := strings.TrimSpace(p.Name)
 	rawRU := strings.TrimSpace(p.NameRU)
 
+	pickCyrillic := func() string {
+		if rawName != "" && hasCyrillic(rawName) {
+			return rawName
+		}
+		if rawRU != "" && hasCyrillic(rawRU) {
+			return rawRU
+		}
+		return ""
+	}
+
 	if rawUK != "" {
+		if !isLatinLettersOnly(rawUK) {
+			return rawUK
+		}
+		if cy := pickCyrillic(); cy != "" {
+			return cy
+		}
 		return rawUK
 	}
 	if rawName != "" {
+		if !isLatinLettersOnly(rawName) {
+			return rawName
+		}
+		if cy := pickCyrillic(); cy != "" {
+			return cy
+		}
 		return rawName
 	}
 	if rawRU != "" {
@@ -80,13 +99,30 @@ func LocalizedNameUK(p Place) string {
 	return ""
 }
 
-// LocalizedNameRU prefers SQLite name_ru, then Ukrainian Cyrillic, then other fields.
+// LocalizedNameRU builds the Russian-label slot (for JSON name_ru and lang=ru).
+// Latin-only name_ru is skipped when Cyrillic exists in name_uk/name.
 func LocalizedNameRU(p Place) string {
 	rawRU := strings.TrimSpace(p.NameRU)
 	rawUK := strings.TrimSpace(p.NameUK)
 	rawName := strings.TrimSpace(p.Name)
 
+	pickCyrillic := func() string {
+		if rawUK != "" && hasCyrillic(rawUK) {
+			return rawUK
+		}
+		if rawName != "" && hasCyrillic(rawName) {
+			return rawName
+		}
+		return ""
+	}
+
 	if rawRU != "" {
+		if !isLatinLettersOnly(rawRU) {
+			return rawRU
+		}
+		if cy := pickCyrillic(); cy != "" {
+			return cy
+		}
 		return rawRU
 	}
 	if rawUK != "" && hasCyrillic(rawUK) {
@@ -131,21 +167,28 @@ func LocalizedNameTriple(p Place) (uk, ru, en string) {
 	return LocalizedNameUK(p), LocalizedNameRU(p), LocalizedNameEN(p)
 }
 
-// LocalizedDisplayName returns the line to show for the active UI language.
-// Order per language is documented in package comments / project README.
-func LocalizedDisplayName(p Place, lang string) string {
-	uk, ru, en := LocalizedNameTriple(p)
-	fallback := strings.TrimSpace(p.Name)
-	if fallback == "" {
-		fallback = firstNonEmpty(uk, ru, en)
+// originalPlaceName is last-resort label: Name mirror, then raw name_uk, name_ru (never derived EN).
+func originalPlaceName(p Place) string {
+	if s := strings.TrimSpace(p.Name); s != "" {
+		return s
 	}
+	return firstNonEmpty(strings.TrimSpace(p.NameUK), strings.TrimSpace(p.NameRU))
+}
+
+// LocalizedDisplayName returns the line to show for the active UI language.
+// English is never chosen when lang is uk or ru.
+func LocalizedDisplayName(p Place, lang string) string {
+	uk := LocalizedNameUK(p)
+	ru := LocalizedNameRU(p)
+	en := LocalizedNameEN(p)
+	orig := originalPlaceName(p)
 
 	switch NormalizePlaceLang(lang) {
 	case "uk":
-		return firstNonEmpty(uk, ru, en, fallback)
+		return firstNonEmpty(uk, ru, orig)
 	case "en":
-		return firstNonEmpty(en, uk, ru, fallback)
+		return firstNonEmpty(en, uk, ru, orig)
 	default: // ru
-		return firstNonEmpty(ru, uk, en, fallback)
+		return firstNonEmpty(ru, uk, orig)
 	}
 }
