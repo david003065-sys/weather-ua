@@ -57,7 +57,11 @@
         if (!window.Chart || !canvas) return;
 
         try {
-            /* Chart sits on dark card — read tokens from chart surface, not canvas */
+            var existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+            if (existing) {
+                existing.destroy();
+            }
+            /* Chart reads tokens from chart surface (updates when theme changes) */
             var host = canvas.closest(".chart-card") || document.body;
             var css = getComputedStyle(host);
             var textMuted = (css.getPropertyValue("--text-muted") || "#9ca3af").trim();
@@ -140,13 +144,15 @@
 
     const tempCanvas = document.querySelector(".js-temp-chart");
     if (tempCanvas) {
-        if (document.readyState === "complete") {
+        function bootChart() {
             initTempChart(tempCanvas);
-        } else {
-            window.addEventListener("load", function () {
-                initTempChart(tempCanvas);
-            });
         }
+        if (document.readyState === "complete") {
+            bootChart();
+        } else {
+            window.addEventListener("load", bootChart);
+        }
+        window.addEventListener("weather-theme-change", bootChart);
     }
 
     // Geo button

@@ -5,19 +5,29 @@
     var payload = null;
     var autoTimerId = null;
 
-    /* Apply stored light/dark before the rest of the document paints (avoids dark→light flash). */
+    /* Apply stored light/dark before paint (html data-theme + body class). */
     try {
+        var storedEarly = localStorage.getItem(THEME_KEY);
+        var root = document.documentElement;
+        if (storedEarly === "light") {
+            root.setAttribute("data-theme", "light");
+        } else if (storedEarly === "dark") {
+            root.setAttribute("data-theme", "dark");
+        }
+        var metaEarly = document.querySelector('meta[name="theme-color"]');
+        if (metaEarly && (storedEarly === "light" || storedEarly === "dark")) {
+            metaEarly.setAttribute("content", storedEarly === "light" ? "#f8fafc" : "#0f172a");
+        }
+        /* auto / missing: keep <html data-theme="dark"> from template */
         var bodyEarly = document.body;
         if (bodyEarly) {
-            var stored = localStorage.getItem(THEME_KEY);
-            if (stored === "light") {
+            if (storedEarly === "light") {
                 bodyEarly.classList.remove("theme-dark");
                 bodyEarly.classList.add("theme-light");
-            } else if (stored === "dark") {
+            } else if (storedEarly === "dark") {
                 bodyEarly.classList.remove("theme-light");
                 bodyEarly.classList.add("theme-dark");
             }
-            /* "auto", missing, or invalid: keep <body> default from HTML (theme-dark). */
         }
     } catch (_) {}
 
@@ -54,9 +64,21 @@
 
     function setBodyThemeClass(theme) {
         var body = document.body;
+        var root = document.documentElement;
+        var isDark = theme === "dark";
+        if (root) {
+            root.setAttribute("data-theme", isDark ? "dark" : "light");
+        }
+        var themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) {
+            themeMeta.setAttribute("content", isDark ? "#0f172a" : "#f8fafc");
+        }
+        try {
+            window.dispatchEvent(new CustomEvent("weather-theme-change"));
+        } catch (_) {}
         if (!body) return;
         body.classList.remove("theme-light", "theme-dark");
-        body.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
+        body.classList.add(isDark ? "theme-dark" : "theme-light");
     }
 
     function computeCityNow(meta) {
