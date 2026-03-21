@@ -57,8 +57,9 @@
         if (!window.Chart || !canvas) return;
 
         try {
-            /* Theme tokens live on body (theme-light / theme-dark), not :root */
-            var css = getComputedStyle(document.body);
+            /* Chart sits on dark card — read tokens from chart surface, not canvas */
+            var host = canvas.closest(".chart-card") || document.body;
+            var css = getComputedStyle(host);
             var textMuted = (css.getPropertyValue("--text-muted") || "#9ca3af").trim();
             var textStrong = (css.getPropertyValue("--text-strong") || "#e5e7eb").trim();
             var gridColor = (css.getPropertyValue("--chart-grid") || "rgba(148, 163, 184, 0.28)").trim();
