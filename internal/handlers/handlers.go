@@ -564,7 +564,16 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := "place:" + strconv.FormatInt(place.ID, 10)
-	data, err := s.weather.GetWeatherForLocation(ctx, cacheKey, displayName, place.Lat, place.Lon)
+	var data *weather.WeatherData
+	if known, ok := weather.MatchKnownCityByCoords(place.Lat, place.Lon); ok {
+		cacheKey = known.ID
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else if known, ok := weather.MatchKnownCityByName(displayName); ok {
+		cacheKey = known.ID
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else {
+		data, err = s.weather.GetWeatherForLocation(ctx, cacheKey, displayName, place.Lat, place.Lon)
+	}
 	if err != nil {
 		s.logger.Printf("api place weather %d: %v", id, err)
 		http.Error(w, "failed to fetch weather", http.StatusBadGateway)
@@ -801,7 +810,16 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 	locationSubtitle := formatPlaceLocation(place, lang)
 	s.logger.Printf("place %d (%s) location subtitle: %s", place.ID, displayName, locationSubtitle)
-	data, err := s.weather.GetWeatherForLocation(ctx, cacheKey, displayName, place.Lat, place.Lon)
+	var data *weather.WeatherData
+	if known, ok := weather.MatchKnownCityByCoords(place.Lat, place.Lon); ok {
+		cacheKey = known.ID
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else if known, ok := weather.MatchKnownCityByName(displayName); ok {
+		cacheKey = known.ID
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else {
+		data, err = s.weather.GetWeatherForLocation(ctx, cacheKey, displayName, place.Lat, place.Lon)
+	}
 	if err != nil {
 		s.logger.Printf("get weather for place %d: %v", id, err)
 		http.Error(w, "не удалось получить данные погоды", http.StatusBadGateway)

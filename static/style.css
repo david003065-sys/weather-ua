@@ -1247,6 +1247,8 @@ body.theme-light .section-title {
 
 .hourly-time {
     color: var(--text-soft);
+    text-align: center;
+    white-space: nowrap;
 }
 
 .hourly-icon {
@@ -1538,6 +1540,52 @@ body.theme-light .section-title {
     .search-input {
         font-size: 0.96rem;
         padding: 0.86rem 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hourly-section {
+        margin-top: 1.2rem;
+    }
+
+    .hourly-row {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.56rem;
+        padding: 0.2rem 0.08rem 0.45rem;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .hourly-row::-webkit-scrollbar {
+        display: none;
+    }
+
+    .hourly-card {
+        flex: 0 0 auto;
+        min-width: 4.05rem; /* ~65px */
+        width: 4.3rem;      /* ~69px */
+        scroll-snap-align: start;
+        padding: 0.5rem 0.38rem;
+        gap: 0.2rem;
+        border-radius: 13px;
+    }
+
+    .hourly-time {
+        font-size: 0.72rem;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+    }
+
+    .hourly-icon {
+        font-size: 1.02rem;
+    }
+
+    .hourly-temp {
+        font-size: 0.84rem;
     }
 }
 

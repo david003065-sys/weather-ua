@@ -197,6 +197,7 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 	}
 
 	if c.logger != nil {
+		c.logger.Printf("weather request cityID=%s cacheKey=%s", city.ID, cacheKey)
 		c.logger.Printf("provider request started provider=%s key=%s city=%s lat=%.4f lon=%.4f",
 			normalizedProvider(), cacheKey, city.Name, city.Latitude, city.Longitude)
 	}
