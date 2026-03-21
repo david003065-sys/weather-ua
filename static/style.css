@@ -145,7 +145,7 @@ html[data-theme="light"] {
     --muted: #64748b;
     --text-soft: #64748b;
 
-    --bg: #f1f5f9;
+    --bg: #d8e1ec;
     --border: #e2e8f0;
     --input-placeholder: #64748b;
     --focus-ring: rgba(14, 165, 233, 0.35);
@@ -166,10 +166,11 @@ html[data-theme="light"] {
     --accent: #0284c7;
     --accent-strong: #0369a1;
 
-    --overlay: rgba(148, 163, 184, 0.12);
-    --bg-atmo-a: rgba(125, 211, 252, 0.25);
-    --bg-atmo-b: rgba(186, 230, 253, 0.2);
-    --bg-atmo-c: rgba(241, 245, 249, 0.95);
+    /* Softer page depth: cool slate veil + gentler sky glows (pairs with body gradient) */
+    --overlay: rgba(71, 85, 105, 0.07);
+    --bg-atmo-a: rgba(125, 211, 252, 0.14);
+    --bg-atmo-b: rgba(148, 163, 184, 0.12);
+    --bg-atmo-c: rgba(216, 225, 236, 0.88);
 
     --chart-grid: rgba(100, 116, 139, 0.2);
     --chart-fill-max: rgba(14, 165, 233, 0.15);
@@ -185,7 +186,7 @@ html[data-theme="dark"] body {
 
 html[data-theme="light"] body {
     color: var(--text-primary);
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(180deg, #e8eef5 0%, #d8e1ec 100%);
 }
 
 .weather-app {
@@ -241,11 +242,15 @@ html[data-theme="light"] body {
 }
 
 html[data-theme="light"] .weather-app::before {
-    opacity: 0.25;
+    /* Subtle blue-gray depth over the gradient (reduces flat glare) */
+    opacity: 0.38;
+    background:
+        radial-gradient(ellipse 120% 80% at 50% 0%, rgba(100, 116, 139, 0.09) 0%, transparent 52%),
+        radial-gradient(circle at 50% 0, transparent 0, transparent 42%, var(--overlay) 100%);
 }
 
 html[data-theme="light"] .weather-app::after {
-    opacity: 0.45;
+    opacity: 0.34;
 }
 
 .search-section {

@@ -16,7 +16,7 @@
         }
         var metaEarly = document.querySelector('meta[name="theme-color"]');
         if (metaEarly && (storedEarly === "light" || storedEarly === "dark")) {
-            metaEarly.setAttribute("content", storedEarly === "light" ? "#f8fafc" : "#020617");
+            metaEarly.setAttribute("content", storedEarly === "light" ? "#e8eef5" : "#020617");
         }
         /* auto / missing: keep <html data-theme="dark"> from template */
         var bodyEarly = document.body;
@@ -68,11 +68,11 @@
         var isDark = theme === "dark";
         if (root) {
             root.setAttribute("data-theme", isDark ? "dark" : "light");
-            root.style.backgroundColor = isDark ? "#020617" : "#f8fafc";
+            root.style.backgroundColor = isDark ? "#020617" : "#e8eef5";
         }
         var themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) {
-            themeMeta.setAttribute("content", isDark ? "#020617" : "#f8fafc");
+            themeMeta.setAttribute("content", isDark ? "#020617" : "#e8eef5");
         }
         try {
             window.dispatchEvent(new CustomEvent("weather-theme-change"));
