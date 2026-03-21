@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	"bss/internal/i18n"
 	"bss/internal/places"
 	"bss/internal/weather"
 )
@@ -43,38 +45,8 @@ type CitySummary struct {
 	WeatherUnavailable bool
 }
 
-type TextSet struct {
-	BrandTop            string
-	BrandBottom         string
-	NavNow              string
-	NavCities           string
-	BadgeNow            string
-	CitiesLabel         string
-	CitiesTitle         string
-	CityBadge           string
-	MetricWind          string
-	MetricHumidity      string
-	MetricPressure      string
-	Today               string
-	Tomorrow            string
-	RangeFrom           string
-	RangeTo             string
-	CurrentMetricsAria  string
-	CurrentWeatherAria  string
-	ShortForecastAria   string
-	ForecastLabel       string
-	ForecastTitle       string
-	ForecastAria        string
-	TrendLabel          string
-	ChartTitle          string
-	ChartAria           string
-	OtherCitiesAria     string
-	QuickSwitchTitle    string
-	SearchPlaceholder       string
-	Footer                  string
-	MoreLink                string
-	WeatherUnavailableMsg   string
-}
+// TextSet is the SSR string bundle (see package i18n).
+type TextSet = i18n.UI
 
 type IndexPageData struct {
 	IsIndex            bool
@@ -99,6 +71,8 @@ type IndexPageData struct {
 	TomorrowMax        float64
 	Cities             []CitySummary
 	WeatherJSON        template.JS
+	MetaDescription    string
+	ClientI18n         template.JS
 }
 
 type DailyView struct {
@@ -147,6 +121,7 @@ type CityPageData struct {
 	DuplicatesCount  int
 	DuplicatesLabel  string
 	DuplicatesURL    string
+	ClientI18n       template.JS
 }
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +131,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
-	text := texts(lang)
+	text := i18n.For(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -179,7 +154,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 
 		desc := strings.TrimSpace(data.Current.Description)
 		if desc == "" {
-			desc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+			desc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
 		}
 		if data.IsFallback {
 			desc = text.WeatherUnavailableMsg
@@ -239,10 +214,15 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		tomorrowMax = tomorrow.MaxTemp
 	}
 
-	currentDesc := weather.LocalizedDescription(heroData.Current.WeatherCode, lang)
+	currentDesc := i18n.WeatherDescription(heroData.Current.WeatherCode, lang)
 	if heroData.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
 	}
+	var metaNames []string
+	for _, c := range weather.AllCities() {
+		metaNames = append(metaNames, weather.LocalizedCityName(c.ID, lang))
+	}
+	metaDesc := fmt.Sprintf(text.MetaDescriptionTemplate, strings.Join(metaNames, ", "))
 	page := IndexPageData{
 		IsIndex:            true,
 		WeatherCode:        heroData.Current.WeatherCode,
@@ -266,6 +246,8 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		TomorrowMax:        tomorrowMax,
 		Cities:             summaries,
 		WeatherJSON:        buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
+		MetaDescription:    metaDesc,
+		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
@@ -291,7 +273,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
-	text := texts(lang)
+	text := i18n.For(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -311,7 +293,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 			Label:       label,
 			MinTemp:     d.MinTemp,
 			MaxTemp:     d.MaxTemp,
-			Description: weather.LocalizedDescription(d.WeatherCode, lang),
+			Description: i18n.WeatherDescription(d.WeatherCode, lang),
 			Icon:        d.Icon,
 		}
 	}
@@ -331,7 +313,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		tomorrowMax = tm.MaxTemp
 
 		diff := tomorrowMax - todayMax
-		trend = trendText(lang, diff)
+		trend = i18n.TrendSentence(lang, diff)
 	}
 
 	// мини‑карточки других городов (переиспользуем уже загруженный город)
@@ -351,7 +333,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		}
 		cardDesc := strings.TrimSpace(d.Current.Description)
 		if cardDesc == "" {
-			cardDesc = weather.LocalizedDescription(d.Current.WeatherCode, lang)
+			cardDesc = i18n.WeatherDescription(d.Current.WeatherCode, lang)
 		}
 		if d.IsFallback {
 			cardDesc = text.WeatherUnavailableMsg
@@ -374,14 +356,14 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		hourly = append(hourly, HourlyView{
 			TimeLabel:   h.Time.Format("15:04"),
 			Temperature: h.Temperature,
-			Description: weather.LocalizedDescription(h.WeatherCode, lang),
+			Description: i18n.WeatherDescription(h.WeatherCode, lang),
 			Icon:        h.Icon,
 		})
 	}
 
 	currentDesc := strings.TrimSpace(data.Current.Description)
 	if currentDesc == "" {
-		currentDesc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+		currentDesc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
 	}
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
@@ -412,6 +394,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		Cities:             cityCards,
 		Hourly:             hourly,
 		WeatherJSON:        buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -469,7 +452,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
-	text := texts(lang)
+	text := i18n.For(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -494,7 +477,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 				if s := strings.TrimSpace(data.Current.Description); s != "" {
 					return s
 				}
-				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
+				return i18n.WeatherDescription(data.Current.WeatherCode, lang)
 			}(),
 			Icon:        data.Current.Icon,
 			IsFallback:  data.IsFallback,
@@ -507,7 +490,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		resp.Hourly = append(resp.Hourly, apiHourly{
 			Time:        h.Time.Format("15:04"),
 			Temperature: h.Temperature,
-			Description: weather.LocalizedDescription(h.WeatherCode, lang),
+			Description: i18n.WeatherDescription(h.WeatherCode, lang),
 			Icon:        h.Icon,
 		})
 	}
@@ -542,7 +525,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
-	text := texts(lang)
+	text := i18n.For(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -593,7 +576,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 				if s := strings.TrimSpace(data.Current.Description); s != "" {
 					return s
 				}
-				return weather.LocalizedDescription(data.Current.WeatherCode, lang)
+				return i18n.WeatherDescription(data.Current.WeatherCode, lang)
 			}(),
 			Icon:        data.Current.Icon,
 			IsFallback:  data.IsFallback,
@@ -787,7 +770,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := detectLang(r)
-	text := texts(lang)
+	text := i18n.For(lang)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
@@ -834,7 +817,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 			Label:       label,
 			MinTemp:     d.MinTemp,
 			MaxTemp:     d.MaxTemp,
-			Description: weather.LocalizedDescription(d.WeatherCode, lang),
+			Description: i18n.WeatherDescription(d.WeatherCode, lang),
 			Icon:        d.Icon,
 		}
 	}
@@ -854,7 +837,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		tomorrowMax = tm.MaxTemp
 
 		diff := tomorrowMax - todayMax
-		trend = trendText(lang, diff)
+		trend = i18n.TrendSentence(lang, diff)
 	}
 
 	// reuse static cities for quick switch
@@ -868,7 +851,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		}
 		cardDesc := strings.TrimSpace(d.Current.Description)
 		if cardDesc == "" {
-			cardDesc = weather.LocalizedDescription(d.Current.WeatherCode, lang)
+			cardDesc = i18n.WeatherDescription(d.Current.WeatherCode, lang)
 		}
 		if d.IsFallback {
 			cardDesc = text.WeatherUnavailableMsg
@@ -890,7 +873,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		hourly = append(hourly, HourlyView{
 			TimeLabel:   h.Time.Format("15:04"),
 			Temperature: h.Temperature,
-			Description: weather.LocalizedDescription(h.WeatherCode, lang),
+			Description: i18n.WeatherDescription(h.WeatherCode, lang),
 			Icon:        h.Icon,
 		})
 	}
@@ -899,7 +882,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 
 	currentDesc := strings.TrimSpace(data.Current.Description)
 	if currentDesc == "" {
-		currentDesc = weather.LocalizedDescription(data.Current.WeatherCode, lang)
+		currentDesc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
 	}
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
@@ -934,6 +917,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		DuplicatesCount:    dupCount,
 		DuplicatesLabel:    dupLabel,
 		DuplicatesURL:      dupURL,
+		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -1150,7 +1134,7 @@ func deriveTypeNames(base string) (string, string, string) {
 	case "місто", "город", "city":
 		return "місто", "город", "city"
 	// селище міського типу / urban-type settlement (manual CSV may use "смт")
-	case "селище", "смт", "посёлок", "поселок", "town", "settlement":
+	case "селище", "смт", "посёлок", "поселок", "town", "settlement", "містечко":
 		return "селище", "посёлок", "settlement"
 	case "село", "village":
 		return "село", "село", "village"
@@ -1297,31 +1281,7 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 		return 0, "", ""
 	}
 
-	var label string
-	switch lang {
-	case "uk":
-		if count == 1 {
-			label = "Є ще 1 варіант"
-		} else if count >= 2 && count <= 4 {
-			label = "Є ще " + strconv.Itoa(count) + " варіанти"
-		} else {
-			label = "Є ще " + strconv.Itoa(count) + " варіантів"
-		}
-	case "en":
-		if count == 1 {
-			label = "1 more result"
-		} else {
-			label = strconv.Itoa(count) + " more results"
-		}
-	default: // ru
-		if count == 1 {
-			label = "Есть ещё 1 вариант"
-		} else if count >= 2 && count <= 4 {
-			label = "Есть ещё " + strconv.Itoa(count) + " варианта"
-		} else {
-			label = "Есть ещё " + strconv.Itoa(count) + " вариантов"
-		}
-	}
+	label := i18n.DuplicatesHint(lang, count)
 
 	// Ссылка на главную с предзаполненным поиском
 	dupURL := "/?lang=" + lang + "&query=" + url.QueryEscape(displayName)
@@ -1329,160 +1289,5 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 }
 
 func detectLang(r *http.Request) string {
-	lang := strings.ToLower(r.URL.Query().Get("lang"))
-	switch lang {
-	case "en", "uk", "ru":
-		return lang
-	default:
-		return "ru"
-	}
+	return i18n.Normalize(r.URL.Query().Get("lang"))
 }
-
-func texts(lang string) TextSet {
-	switch lang {
-	case "en":
-		return TextSet{
-			BrandTop:           "LIVE",
-			BrandBottom:        "WEATHER",
-			NavNow:             "Now",
-			NavCities:          "Cities",
-			BadgeNow:           "NOW",
-			CitiesLabel:        "Cities",
-			CitiesTitle:        "Weather in Ukraine",
-			CityBadge:          "CITY",
-			MetricWind:         "Wind",
-			MetricHumidity:     "Humidity",
-			MetricPressure:     "Pressure",
-			Today:              "Today",
-			Tomorrow:           "Tomorrow",
-			RangeFrom:          "from",
-			RangeTo:            "to",
-			CurrentMetricsAria: "Current conditions",
-			CurrentWeatherAria: "Current weather",
-			ShortForecastAria:  "Short forecast",
-			ForecastLabel:      "Forecast",
-			ForecastTitle:      "Next 3 days",
-			ForecastAria:       "3‑day forecast",
-			TrendLabel:         "Trend",
-			ChartTitle:         "Temperature chart",
-			ChartAria:          "Temperature changes over 3 days",
-			OtherCitiesAria:    "Other cities",
-			QuickSwitchTitle:   "Quick switch",
-			SearchPlaceholder:     "Type a settlement…",
-			Footer:                "Data: Open‑Meteo · Updated every 10 minutes",
-			MoreLink:              "Details",
-			WeatherUnavailableMsg: "Data temporarily unavailable",
-		}
-	case "uk":
-		return TextSet{
-			BrandTop:           "ЖИВА",
-			BrandBottom:        "ПОГОДА",
-			NavNow:             "Зараз",
-			NavCities:          "Міста",
-			BadgeNow:           "ЗАРАЗ",
-			CitiesLabel:        "Міста",
-			CitiesTitle:        "Погода по Україні",
-			CityBadge:          "МІСТО",
-			MetricWind:         "Вітер",
-			MetricHumidity:     "Вологість",
-			MetricPressure:     "Тиск",
-			Today:              "Сьогодні",
-			Tomorrow:           "Завтра",
-			RangeFrom:          "від",
-			RangeTo:            "до",
-			CurrentMetricsAria: "Поточні показники",
-			CurrentWeatherAria: "Поточна погода",
-			ShortForecastAria:  "Короткий прогноз",
-			ForecastLabel:      "Прогноз",
-			ForecastTitle:      "3 дні наперед",
-			ForecastAria:       "Прогноз на 3 дні",
-			TrendLabel:         "Тренд",
-			ChartTitle:         "Графік температури",
-			ChartAria:          "Зміна температури за 3 дні",
-			OtherCitiesAria:    "Інші міста",
-			QuickSwitchTitle:   "Швидкий перехід",
-			SearchPlaceholder:     "Введи населений пункт…",
-			Footer:                "Дані: Open‑Meteo · Оновлення кожні 10 хвилин",
-			MoreLink:              "Докладніше",
-			WeatherUnavailableMsg: "Дані тимчасово недоступні",
-		}
-	default: // ru
-		return TextSet{
-			BrandTop:           "ЖИВАЯ",
-			BrandBottom:        "ПОГОДА",
-			NavNow:             "Сейчас",
-			NavCities:          "Города",
-			BadgeNow:           "СЕЙЧАС",
-			CitiesLabel:        "Города",
-			CitiesTitle:        "Погода по Украине",
-			CityBadge:          "ГОРОД",
-			MetricWind:         "Ветер",
-			MetricHumidity:     "Влажность",
-			MetricPressure:     "Давление",
-			Today:              "Сегодня",
-			Tomorrow:           "Завтра",
-			RangeFrom:          "от",
-			RangeTo:            "до",
-			CurrentMetricsAria: "Текущие показатели",
-			CurrentWeatherAria: "Текущая погода",
-			ShortForecastAria:  "Краткий прогноз",
-			ForecastLabel:      "Прогноз",
-			ForecastTitle:      "3 дня вперёд",
-			ForecastAria:       "Прогноз на 3 дня",
-			TrendLabel:         "Тренд",
-			ChartTitle:         "График температуры",
-			ChartAria:          "График изменения температуры за 3 дня",
-			OtherCitiesAria:    "Другие города",
-			QuickSwitchTitle:   "Быстрый переход",
-			SearchPlaceholder:     "Введи населённый пункт…",
-			Footer:                "Данные: Open‑Meteo · Обновление каждые 10 минут",
-			MoreLink:              "Подробнее",
-			WeatherUnavailableMsg: "Данные временно недоступны",
-		}
-	}
-}
-
-func trendText(lang string, diff float64) string {
-	switch lang {
-	case "en":
-		switch {
-		case diff > 4:
-			return "A noticeable warm‑up is expected tomorrow."
-		case diff > 2:
-			return "Tomorrow will be a bit warmer than today."
-		case diff < -4:
-			return "A significant cool‑down is expected tomorrow."
-		case diff < -2:
-			return "Tomorrow will feel slightly cooler than today."
-		default:
-			return "Temperature will stay roughly the same in the coming days."
-		}
-	case "uk":
-		switch {
-		case diff > 4:
-			return "Завтра очікується відчутне потепління."
-		case diff > 2:
-			return "Завтра буде трохи тепліше, ніж сьогодні."
-		case diff < -4:
-			return "Завтра очікується помітне похолодання."
-		case diff < -2:
-			return "Завтра буде трохи прохолодніше, ніж сьогодні."
-		default:
-			return "У найближчі дні температура буде приблизно на одному рівні."
-		}
-	default: // ru
-		switch {
-		case diff > 4:
-			return "Завтра ожидается заметное потепление."
-		case diff > 2:
-			return "Завтра станет немного теплее, чем сегодня."
-		case diff < -4:
-			return "Завтра ожидается ощутимое похолодание."
-		case diff < -2:
-			return "Завтра будет чуть прохладнее, чем сегодня."
-		default:
-			return "Температура в ближайшие дни будет примерно на одном уровне."
-		}
-	}
-}
-

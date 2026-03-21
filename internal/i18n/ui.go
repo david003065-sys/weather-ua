@@ -1,0 +1,236 @@
+package i18n
+
+// UI is the full SSR string bundle for one language (templates + meta).
+type UI struct {
+	BrandTop            string
+	BrandBottom         string
+	NavNow              string
+	NavCities           string
+	BadgeNow            string
+	CitiesLabel         string
+	CitiesTitle         string
+	CityBadge           string
+	MetricWind          string
+	MetricHumidity      string
+	MetricPressure      string
+	Today               string
+	Tomorrow            string
+	RangeFrom           string
+	RangeTo             string
+	CurrentMetricsAria  string
+	CurrentWeatherAria  string
+	ShortForecastAria   string
+	ForecastLabel       string
+	ForecastTitle       string
+	ForecastAria        string
+	TrendLabel          string
+	ChartTitle          string
+	ChartAria           string
+	OtherCitiesAria     string
+	QuickSwitchTitle    string
+	SearchPlaceholder   string
+	Footer              string
+	MoreLink            string
+	WeatherUnavailableMsg string
+
+	// Units (value is rendered separately, e.g. "{{.Wind}}{{.Text.UnitWind}}")
+	UnitWind     string
+	UnitPressure string
+	UnitHumidity string // usually "%"
+
+	// Extra UI (formerly template conditionals)
+	ThemeAuto       string
+	ThemeLight      string
+	ThemeDark       string
+	ThemeSwitchAria string
+	LangSwitchAria  string
+	NavAria         string
+	BrandHomeAria   string
+	GeoDetectButton string
+	SearchSectionAria       string
+	SuggestionsAria         string
+	SunnyIconTitle          string
+	CitiesToggleMore        string
+	CitiesToggleLess        string
+	RecentSectionLabel      string
+	RecentSectionTitle      string
+	FavoritesSectionLabel   string
+	FavoritesSectionTitle   string
+	ChooseAnotherDuplicate  string
+	HourlySectionTitle      string
+	MetaDescriptionTemplate string // may contain %s for city list
+}
+
+// For returns all UI strings for SSR.
+func For(lang string) UI {
+	switch Normalize(lang) {
+	case "en":
+		return UI{
+			BrandTop:              "LIVE",
+			BrandBottom:           "WEATHER",
+			NavNow:                "Now",
+			NavCities:             "Cities",
+			BadgeNow:              "NOW",
+			CitiesLabel:           "Cities",
+			CitiesTitle:           "Weather in Ukraine",
+			CityBadge:             "CITY",
+			MetricWind:            "Wind",
+			MetricHumidity:        "Humidity",
+			MetricPressure:        "Pressure",
+			Today:                 "Today",
+			Tomorrow:              "Tomorrow",
+			RangeFrom:             "from",
+			RangeTo:               "to",
+			CurrentMetricsAria:    "Current conditions",
+			CurrentWeatherAria:    "Current weather",
+			ShortForecastAria:     "Short forecast",
+			ForecastLabel:         "Forecast",
+			ForecastTitle:         "Next 3 days",
+			ForecastAria:          "3-day forecast",
+			TrendLabel:            "Trend",
+			ChartTitle:            "Temperature chart",
+			ChartAria:             "Temperature changes over 3 days",
+			OtherCitiesAria:       "Other cities",
+			QuickSwitchTitle:      "Quick switch",
+			SearchPlaceholder:     "Search for a place…",
+			Footer:                "Weather data · Updated every 10 minutes",
+			MoreLink:              "Details",
+			WeatherUnavailableMsg: "Data temporarily unavailable",
+			UnitWind:              " km/h",
+			UnitPressure:          " mmHg",
+			UnitHumidity:          "%",
+			ThemeAuto:             "Auto",
+			ThemeLight:            "Light",
+			ThemeDark:             "Dark",
+			ThemeSwitchAria:       "Theme mode",
+			LangSwitchAria:        "Language",
+			NavAria:               "Main navigation",
+			BrandHomeAria:         "Live Weather — home",
+			GeoDetectButton:       "Detect my location",
+			SearchSectionAria:     "Search places",
+			SuggestionsAria:       "Search suggestions",
+			SunnyIconTitle:        "Clear sky",
+			CitiesToggleMore:      "More",
+			CitiesToggleLess:      "Show less",
+			RecentSectionLabel:    "History",
+			RecentSectionTitle:    "Recent places",
+			FavoritesSectionLabel: "Places",
+			FavoritesSectionTitle: "Favourites",
+			ChooseAnotherDuplicate: "Choose another",
+			HourlySectionTitle:    "Today — hourly",
+			MetaDescriptionTemplate: "Live weather in Ukraine: %s.",
+		}
+	case "uk":
+		return UI{
+			BrandTop:              "ЖИВА",
+			BrandBottom:           "ПОГОДА",
+			NavNow:                "Зараз",
+			NavCities:             "Міста",
+			BadgeNow:              "ЗАРАЗ",
+			CitiesLabel:           "Міста",
+			CitiesTitle:           "Погода в Україні",
+			CityBadge:             "МІСТО",
+			MetricWind:            "Вітер",
+			MetricHumidity:        "Вологість",
+			MetricPressure:        "Тиск",
+			Today:                 "Сьогодні",
+			Tomorrow:              "Завтра",
+			RangeFrom:             "від",
+			RangeTo:               "до",
+			CurrentMetricsAria:    "Поточні показники",
+			CurrentWeatherAria:    "Поточна погода",
+			ShortForecastAria:     "Короткий прогноз",
+			ForecastLabel:         "Прогноз",
+			ForecastTitle:         "Наступні 3 дні",
+			ForecastAria:          "Прогноз на 3 дні",
+			TrendLabel:            "Тренд",
+			ChartTitle:            "Графік температури",
+			ChartAria:             "Зміна температури за 3 дні",
+			OtherCitiesAria:       "Інші міста",
+			QuickSwitchTitle:      "Швидкий перехід",
+			SearchPlaceholder:     "Введи населений пункт…",
+			Footer:                "Дані про погоду · Оновлення кожні 10 хвилин",
+			MoreLink:              "Докладніше",
+			WeatherUnavailableMsg: "Дані тимчасово недоступні",
+			UnitWind:              " км/год",
+			UnitPressure:          " мм рт. ст.",
+			UnitHumidity:          "%",
+			ThemeAuto:             "Авто",
+			ThemeLight:            "Світла",
+			ThemeDark:             "Темна",
+			ThemeSwitchAria:       "Режим теми",
+			LangSwitchAria:        "Мова інтерфейсу",
+			NavAria:               "Головна навігація",
+			BrandHomeAria:         "Жива погода — на головну",
+			GeoDetectButton:       "Визначити моє місцезнаходження",
+			SearchSectionAria:     "Пошук населеного пункту",
+			SuggestionsAria:       "Підказки населених пунктів",
+			SunnyIconTitle:        "Ясно",
+			CitiesToggleMore:      "Ще",
+			CitiesToggleLess:      "Згорнути",
+			RecentSectionLabel:    "Історія",
+			RecentSectionTitle:    "Недавні місця",
+			FavoritesSectionLabel: "Місця",
+			FavoritesSectionTitle: "Обрані",
+			ChooseAnotherDuplicate: "Обрати інший",
+			HourlySectionTitle:    "Сьогодні — погодинно",
+			MetaDescriptionTemplate: "Жива погода в Україні: %s.",
+		}
+	default: // ru
+		return UI{
+			BrandTop:              "ЖИВАЯ",
+			BrandBottom:           "ПОГОДА",
+			NavNow:                "Сейчас",
+			NavCities:             "Города",
+			BadgeNow:              "СЕЙЧАС",
+			CitiesLabel:           "Города",
+			CitiesTitle:           "Погода в Украине",
+			CityBadge:             "ГОРОД",
+			MetricWind:            "Ветер",
+			MetricHumidity:        "Влажность",
+			MetricPressure:        "Давление",
+			Today:                 "Сегодня",
+			Tomorrow:              "Завтра",
+			RangeFrom:             "от",
+			RangeTo:               "до",
+			CurrentMetricsAria:    "Текущие показатели",
+			CurrentWeatherAria:    "Текущая погода",
+			ShortForecastAria:     "Краткий прогноз",
+			ForecastLabel:         "Прогноз",
+			ForecastTitle:         "3 дня вперёд",
+			ForecastAria:          "Прогноз на 3 дня",
+			TrendLabel:            "Тренд",
+			ChartTitle:            "График температуры",
+			ChartAria:             "Изменение температуры за 3 дня",
+			OtherCitiesAria:       "Другие города",
+			QuickSwitchTitle:      "Быстрый переход",
+			SearchPlaceholder:     "Введи населённый пункт…",
+			Footer:                "Данные о погоде · Обновление каждые 10 минут",
+			MoreLink:              "Подробнее",
+			WeatherUnavailableMsg: "Данные временно недоступны",
+			UnitWind:              " км/ч",
+			UnitPressure:          " мм рт. ст.",
+			UnitHumidity:          "%",
+			ThemeAuto:             "Авто",
+			ThemeLight:            "Светлая",
+			ThemeDark:             "Тёмная",
+			ThemeSwitchAria:       "Режим темы",
+			LangSwitchAria:        "Выбор языка",
+			NavAria:               "Основная навигация",
+			BrandHomeAria:         "Живая погода — на главную",
+			GeoDetectButton:       "Определить моё местоположение",
+			SearchSectionAria:     "Поиск населённого пункта",
+			SuggestionsAria:       "Подсказки населённых пунктов",
+			SunnyIconTitle:        "Ясно",
+			CitiesToggleMore:      "Ещё",
+			CitiesToggleLess:      "Свернуть",
+			RecentSectionLabel:    "История",
+			RecentSectionTitle:    "Недавние места",
+			FavoritesSectionLabel: "Места",
+			FavoritesSectionTitle: "Избранное",
+			ChooseAnotherDuplicate: "Выбрать другой",
+			HourlySectionTitle:    "Сегодня — по часам",
+			MetaDescriptionTemplate: "Живая погода в Украине: %s.",
+		}
+	}
+}

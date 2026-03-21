@@ -1,6 +1,6 @@
 {{ define "title" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }} — {{ .Text.NavNow }}{{ end }}
 
-{{ define "description" }}{{ .Text.CitiesTitle }}: Днепр, Киев, Павлоград, Вольногорск.{{ end }}
+{{ define "description" }}{{ .MetaDescription }}{{ end }}
 
 {{ define "index-content" }}
 <section class="hero" aria-labelledby="hero-title">
@@ -12,7 +12,7 @@
             </div>
             <div class="hero-main__icon" aria-hidden="true">
                 <svg class="weather-icon weather-icon--hero" viewBox="0 0 80 80" role="img">
-                    <title>Солнечно</title>
+                    <title>{{ .Text.SunnyIconTitle }}</title>
                     <defs>
                         <radialGradient id="sunGradient" cx="50%" cy="0%" r="70%">
                             <stop offset="0%" stop-color="#fde68a"/>
@@ -45,19 +45,19 @@
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricWind }}</span>
                         <span class="detail-value">
-                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }} км/ч{{ end }}
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
                         </span>
                     </div>
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricHumidity }}</span>
                         <span class="detail-value">
-                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}%{{ end }}
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
                         </span>
                     </div>
                     <div class="hero-main__detail">
                         <span class="detail-label">{{ .Text.MetricPressure }}</span>
                         <span class="detail-value">
-                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }} мм{{ end }}
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
                         </span>
                     </div>
                 </div>
@@ -82,20 +82,12 @@
                 </div>
             </div>
             {{ end }}
-            <button id="js-geo-btn" class="btn btn-ghost hero-main__geo">
-                {{- if eq .Lang "en" -}}
-                    Detect my location
-                {{- else if eq .Lang "uk" -}}
-                    Визначити моє місцезнаходження
-                {{- else -}}
-                    Определить моё местоположение
-                {{- end -}}
-            </button>
+            <button id="js-geo-btn" class="btn btn-ghost hero-main__geo">{{ .Text.GeoDetectButton }}</button>
         </div>
     </div>
 </section>
 
-<section class="search-section" aria-label="Поиск населённого пункта">
+<section class="search-section" aria-label="{{ .Text.SearchSectionAria }}">
     <div class="search-shell">
         <div class="search-input-wrap">
             <input
@@ -106,7 +98,7 @@
                 placeholder="{{ .Text.SearchPlaceholder }}"
             >
         </div>
-        <div id="js-place-suggestions" class="search-suggestions" role="listbox" aria-label="Подсказки населённых пунктов"></div>
+        <div id="js-place-suggestions" class="search-suggestions" role="listbox" aria-label="{{ .Text.SuggestionsAria }}"></div>
     </div>
 </section>
 
@@ -135,13 +127,13 @@
                     <span class="meta-pair">
                         <span class="meta-pair__label">{{ $.Text.MetricWind }}</span>
                         <span class="meta-pair__value">
-                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .WindSpeed }} км/ч{{ end }}
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .WindSpeed }}{{ $.Text.UnitWind }}{{ end }}
                         </span>
                     </span>
                     <span class="meta-pair">
                         <span class="meta-pair__label">{{ $.Text.MetricHumidity }}</span>
                         <span class="meta-pair__value">
-                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Humidity }}%{{ end }}
+                            {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Humidity }}{{ $.Text.UnitHumidity }}{{ end }}
                         </span>
                     </span>
                 </div>
@@ -158,37 +150,29 @@
             type="button"
             id="js-cities-toggle"
             class="btn btn-outline cities-toggle"
-            data-label-more="{{ if eq .Lang "en" }}More{{ else if eq .Lang "uk" }}Ще{{ else }}Ещё{{ end }}"
-            data-label-less="{{ if eq .Lang "en" }}Collapse{{ else if eq .Lang "uk" }}Згорнути{{ else }}Свернуть{{ end }}"
+            data-label-more="{{ .Text.CitiesToggleMore }}"
+            data-label-less="{{ .Text.CitiesToggleLess }}"
         >
-            {{ if eq .Lang "en" }}More{{ else if eq .Lang "uk" }}Ще{{ else }}Ещё{{ end }}
+            {{ .Text.CitiesToggleMore }}
         </button>
     </div>
 </section>
 
-<section class="recent-section" aria-label="Недавние города">
+<section class="recent-section" aria-label="{{ .Text.RecentSectionTitle }}">
     <header class="section-header">
         <div class="section-header__labels">
-            <span class="section-label">
-                {{ if eq .Lang "en" }}History{{ else if eq .Lang "uk" }}Історія{{ else }}Недавние{{ end }}
-            </span>
-            <h2 class="section-title">
-                {{ if eq .Lang "en" }}Recent cities{{ else if eq .Lang "uk" }}Недавні міста{{ else }}Недавние города{{ end }}
-            </h2>
+            <span class="section-label">{{ .Text.RecentSectionLabel }}</span>
+            <h2 class="section-title">{{ .Text.RecentSectionTitle }}</h2>
         </div>
     </header>
     <div id="js-recent-list" class="cities-grid favorites-grid"></div>
 </section>
 
-<section class="favorites-section" aria-label="Избранные города">
+<section class="favorites-section" aria-label="{{ .Text.FavoritesSectionTitle }}">
     <header class="section-header">
         <div class="section-header__labels">
-            <span class="section-label">
-                {{ if eq .Lang "en" }}Cities{{ else if eq .Lang "uk" }}Міста{{ else }}Города{{ end }}
-            </span>
-            <h2 class="section-title">
-                {{ if eq .Lang "en" }}Favourites{{ else if eq .Lang "uk" }}Обрані міста{{ else }}Избранные города{{ end }}
-            </h2>
+            <span class="section-label">{{ .Text.FavoritesSectionLabel }}</span>
+            <h2 class="section-title">{{ .Text.FavoritesSectionTitle }}</h2>
         </div>
     </header>
     <div id="js-favorites-list" class="cities-grid favorites-grid"></div>

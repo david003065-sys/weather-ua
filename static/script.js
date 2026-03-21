@@ -8,6 +8,17 @@
     const cityId = app.dataset.cityId || "";
     const lang = document.documentElement.lang || "ru";
 
+    function readClientI18n() {
+        var el = document.getElementById("__CLIENT_I18N__");
+        if (!el || !el.textContent) return {};
+        try {
+            return JSON.parse(String(el.textContent).trim() || "{}");
+        } catch (e) {
+            return {};
+        }
+    }
+    var clientI18n = readClientI18n();
+
     function mapCodeToClass(code, night) {
         if (night) return "night";
         if (code === 0) return "sunny";
@@ -83,7 +94,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: "Макс",
+                            label: clientI18n.chartMax || "Макс",
                             data: max,
                             borderColor: lineMax,
                             backgroundColor: fillMax,
@@ -95,7 +106,7 @@
                             pointBorderColor: textStrong
                         },
                         {
-                            label: "Мин",
+                            label: clientI18n.chartMin || "Мин",
                             data: min,
                             borderColor: lineMin,
                             backgroundColor: fillMin,
@@ -194,8 +205,16 @@
             var isFallback = !!data.current.isFallback;
             if (tempEl) tempEl.textContent = isFallback ? "—" : Math.round(data.current.temperature);
             if (descEl) descEl.textContent = data.current.description;
-            if (windEl) windEl.textContent = isFallback ? "—" : Math.round(data.current.wind) + " км/ч";
-            if (humEl) humEl.textContent = isFallback ? "—" : Math.round(data.current.humidity) + "%";
+            if (windEl) {
+                windEl.textContent = isFallback
+                    ? "—"
+                    : Math.round(data.current.wind) + (clientI18n.windSuffix || " км/ч");
+            }
+            if (humEl) {
+                humEl.textContent = isFallback
+                    ? "—"
+                    : Math.round(data.current.humidity) + (clientI18n.humiditySuffix || "%");
+            }
             if (!isFallback) updateBackgroundByTemp(data.current.temperature);
         }
 
@@ -259,26 +278,14 @@
         if (!input || !box) return;
 
         var lang = document.documentElement.lang || "ru";
-        var messages = {
-            ru: {
-                empty: "Ничего не найдено",
-                error: "Ошибка поиска",
-                tooShort: "Введите минимум 2 символа"
-            },
-            uk: {
-                empty: "Нічого не знайдено",
-                error: "Помилка пошуку",
-                tooShort: "Введи мінімум 2 символи"
-            },
-            en: {
-                empty: "No results",
-                error: "Search error",
-                tooShort: "Type at least 2 characters"
-            }
-        };
         function t(key) {
-            var set = messages[lang] || messages.ru;
-            return set[key] || messages.ru[key] || "";
+            var fb = { empty: "No results", error: "Search error", tooShort: "Type at least 2 characters" };
+            if (lang === "uk") fb = { empty: "Нічого не знайдено", error: "Помилка пошуку", tooShort: "Введи мінімум 2 символи" };
+            if (lang === "ru") fb = { empty: "Ничего не найдено", error: "Ошибка поиска", tooShort: "Введите минимум 2 символа" };
+            if (key === "empty") return clientI18n.searchEmpty || fb.empty;
+            if (key === "error") return clientI18n.searchError || fb.error;
+            if (key === "tooShort") return clientI18n.searchTooShort || fb.tooShort;
+            return "";
         }
 
         var timer = null;
@@ -346,9 +353,7 @@
             else t = place.type_en || place.type_uk || place.type_ru || "";
 
             if (t) return t;
-            if (lang === "uk") return "населений пункт";
-            if (lang === "en") return "settlement";
-            return "населённый пункт";
+            return clientI18n.placeTypeFallback || (lang === "en" ? "settlement" : lang === "uk" ? "населений пункт" : "населённый пункт");
         }
 
         function highlightMatch(el, text, query) {
@@ -407,7 +412,7 @@
                 var favBtn = document.createElement("button");
                 favBtn.type = "button";
                 favBtn.className = "search-suggestions__fav";
-                favBtn.setAttribute("aria-label", "Add to favourites");
+                favBtn.setAttribute("aria-label", clientI18n.favAddAria || "Add to favourites");
                 favBtn.textContent = "★";
                 favBtn.addEventListener("click", function (e) {
                     e.stopPropagation();
@@ -681,7 +686,7 @@
                 removeBtn.type = "button";
                 removeBtn.className = "city-card__remove";
                 removeBtn.textContent = "×";
-                removeBtn.title = "Удалить из избранного";
+                removeBtn.title = clientI18n.favRemoveTitle || "Удалить из избранного";
                 removeBtn.addEventListener("click", function (id) {
                     return function (e) {
                         e.preventDefault();
@@ -757,11 +762,18 @@
         async function bootstrapFavorites() {
             var items = readList(FAVORITES_KEY);
             if (items.length) return;
-            var seeds = ["Дніпро", "Київ", "Краматорськ"];
+            var seeds =
+                lang === "en"
+                    ? ["Dnipro", "Kyiv", "Kramatorsk"]
+                    : lang === "ru"
+                      ? ["Днепр", "Киев", "Краматорск"]
+                      : ["Дніпро", "Київ", "Краматорськ"];
             var next = [];
             for (var i = 0; i < seeds.length; i++) {
                 try {
-                    var res = await fetch("/api/places?q=" + encodeURIComponent(seeds[i]) + "&limit=1&lang=uk");
+                    var res = await fetch(
+                        "/api/places?q=" + encodeURIComponent(seeds[i]) + "&limit=1&lang=" + encodeURIComponent(lang)
+                    );
                     if (!res.ok) continue;
                     var arr = await res.json();
                     if (!arr || !arr.length) continue;

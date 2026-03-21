@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"bss/internal/i18n"
+
 	"golang.org/x/sync/singleflight"
 )
 
@@ -667,13 +669,12 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 	for i := 0; i < n; i++ {
 		s := slots[startIdx+i]
 		wmo := mapWeatherAPICodeToWMO(s.wa)
-		cond := describeCode(wmo)
 		out = append(out, Hourly{
 			Time:        s.t,
 			Temperature: s.tmp,
 			WeatherCode: wmo,
 			Description: "",
-			Icon:        cond.Icon,
+			Icon:        i18n.WeatherIcon(wmo),
 		})
 	}
 	return out
@@ -692,14 +693,13 @@ func buildDailySeries(days []weatherAPIForecastDay, loc *time.Location) []Daily 
 			continue
 		}
 		wmo := mapWeatherAPICodeToWMO(fd.Day.Condition.Code)
-		cond := describeCode(wmo)
 		out = append(out, Daily{
 			Date:        date,
 			MinTemp:     fd.Day.MintempC,
 			MaxTemp:     fd.Day.MaxtempC,
 			WeatherCode: wmo,
 			Description: "",
-			Icon:        cond.Icon,
+			Icon:        i18n.WeatherIcon(wmo),
 		})
 	}
 	return out
@@ -711,7 +711,6 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	days := res.Forecast.Forecastday
 
 	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
-	cond := describeCode(wmoNow)
 
 	nowLocal := parseWeatherAPILocaltime(locInfo.Localtime, loc)
 	if nowLocal.IsZero() && locInfo.LocaltimeEpoch > 0 {
@@ -736,7 +735,7 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		Temperature: cur.TempC,
 		WeatherCode: wmoNow,
 		Description: "",
-		Icon:        cond.Icon,
+		Icon:        i18n.WeatherIcon(wmoNow),
 		WindSpeed:   cur.WindKph,
 		Humidity:    float64(cur.Humidity),
 		Pressure:    pressureMM,
@@ -769,50 +768,7 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	}, nil
 }
 
-type condition struct {
-	RU   string
-	EN   string
-	UK   string
-	Icon string
-}
-
-func describeCode(code int) condition {
-	switch code {
-	case 0:
-		return condition{"Ясно", "Clear sky", "Ясно", "☀️"}
-	case 1, 2:
-		return condition{"Преимущественно ясно", "Mostly clear", "Переважно ясно", "🌤"}
-	case 3:
-		return condition{"Облачно", "Cloudy", "Хмарно", "☁️"}
-	case 45, 48:
-		return condition{"Туман", "Fog", "Туман", "🌫"}
-	case 51, 53, 55:
-		return condition{"Мелкий дождь", "Light drizzle", "Невеликий дощ", "🌦"}
-	case 61, 63, 65:
-		return condition{"Дождь", "Rain", "Дощ", "🌧"}
-	case 66, 67:
-		return condition{"Ледяной дождь", "Freezing rain", "Крижаний дощ", "🌧"}
-	case 71, 73, 75, 77:
-		return condition{"Снег", "Snow", "Сніг", "❄️"}
-	case 80, 81, 82:
-		return condition{"Ливни", "Rain showers", "Зливи", "🌧"}
-	case 95:
-		return condition{"Гроза", "Thunderstorm", "Гроза", "⛈"}
-	case 96, 97, 99:
-		return condition{"Гроза с осадками", "Thunderstorm with hail", "Гроза з опадами", "⛈"}
-	default:
-		return condition{"Неизвестно", "Unknown", "Невідомо", "❔"}
-	}
-}
-
+// LocalizedDescription forwards to the shared i18n layer (handlers should prefer i18n.WeatherDescription).
 func LocalizedDescription(code int, lang string) string {
-	c := describeCode(code)
-	switch lang {
-	case "en":
-		return c.EN
-	case "uk":
-		return c.UK
-	default:
-		return c.RU
-	}
+	return i18n.WeatherDescription(code, lang)
 }

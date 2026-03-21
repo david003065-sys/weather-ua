@@ -5,13 +5,13 @@ import "strings"
 var cities = []City{
 	{
 		ID:        "dnipro",
-		Name:      "Днепр",
+		Name:      "Дніпро",
 		Latitude:  48.467,
 		Longitude: 35.040,
 	},
 	{
 		ID:        "kyiv",
-		Name:      "Киев — город Димы",
+		Name:      "Київ",
 		Latitude:  50.4501,
 		Longitude: 30.5234,
 	},
@@ -23,7 +23,7 @@ var cities = []City{
 	},
 	{
 		ID:        "volnogorsk",
-		Name:      "Вольногорск",
+		Name:      "Вільногірськ",
 		Latitude:  48.486,
 		Longitude: 34.016,
 	},
@@ -67,7 +67,7 @@ func LocalizedCityName(id, lang string) string {
 		case "en":
 			return "Kyiv"
 		default:
-			return "Киев — город Димы"
+			return "Киев"
 		}
 	case "pavlograd":
 		switch lang {

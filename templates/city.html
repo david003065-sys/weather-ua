@@ -15,15 +15,7 @@
             {{ if gt .DuplicatesCount 0 }}
             <div class="city-hero__duplicates">
                 <span class="city-hero__duplicates-label">{{ .DuplicatesLabel }}</span>
-                <a href="{{ .DuplicatesURL }}" class="city-hero__duplicates-link">
-                    {{- if eq .Lang "en" -}}
-                        Choose another
-                    {{- else if eq .Lang "uk" -}}
-                        Обрати інший
-                    {{- else -}}
-                        Выбрать другой
-                    {{- end -}}
-                </a>
+                <a href="{{ .DuplicatesURL }}" class="city-hero__duplicates-link">{{ .Text.ChooseAnotherDuplicate }}</a>
             </div>
             {{ end }}
         </div>
@@ -60,19 +52,19 @@
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricHumidity }}</span>
                     <span id="js-current-humidity" class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}%{{ end }}
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
                     </span>
                 </div>
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricWind }}</span>
                     <span id="js-current-wind" class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }} км/ч{{ end }}
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
                     </span>
                 </div>
                 <div class="metric">
                     <span class="metric__label">{{ .Text.MetricPressure }}</span>
                     <span class="metric__value">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }} мм{{ end }}
+                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
                     </span>
                 </div>
             </div>
@@ -121,7 +113,7 @@
     <header class="section-header section-header--compact">
         <div class="section-header__labels">
             <span class="section-label">{{ .Text.ForecastLabel }}</span>
-            <h2 class="section-title">{{ .Text.Today }} — {{ .Text.ShortForecastAria }}</h2>
+            <h2 class="section-title">{{ .Text.HourlySectionTitle }}</h2>
         </div>
     </header>
     <div class="hourly-row">
