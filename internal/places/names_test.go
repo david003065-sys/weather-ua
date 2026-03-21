@@ -48,6 +48,20 @@ func TestLocalizedNameUK_latinUK_skipsToCyrillicRU(t *testing.T) {
 	}
 }
 
+func TestLocalizedDisplayName_volnogorskUKHotfix(t *testing.T) {
+	p := Place{NameUK: "", NameRU: "Вольногорск", Name: ""}
+	if got := LocalizedDisplayName(p, "uk"); got != "Вільногірськ" {
+		t.Fatalf("uk UI: %q", got)
+	}
+	if got := LocalizedDisplayName(p, "ru"); got != "Вольногорск" {
+		t.Fatalf("ru UI unchanged: %q", got)
+	}
+	p2 := Place{NameUK: "Volnogorsk", NameRU: "", Name: ""}
+	if got := LocalizedDisplayName(p2, "uk"); got != "Вільногірськ" {
+		t.Fatalf("uk UI slug-like name: %q", got)
+	}
+}
+
 func TestLocalizedDisplayName_ukDoesNotUseEnglish(t *testing.T) {
 	// No Cyrillic anywhere: only Latin uk + derived EN — uk chain must not pick EN.
 	p := Place{NameUK: "Kyiv", NameRU: "", Name: ""}

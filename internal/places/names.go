@@ -175,9 +175,32 @@ func originalPlaceName(p Place) string {
 	return firstNonEmpty(strings.TrimSpace(p.NameUK), strings.TrimSpace(p.NameRU))
 }
 
+// volnogorskUKLabel is the Ukrainian exonym for the city often labeled "Вольногорск" in Russian sources.
+const volnogorskUKLabel = "Вільногірськ"
+
+func isVolnogorskPlace(p Place) bool {
+	for _, s := range []string{
+		strings.TrimSpace(p.Name),
+		strings.TrimSpace(p.NameUK),
+		strings.TrimSpace(p.NameRU),
+	} {
+		if s == "Вольногорск" {
+			return true
+		}
+		if strings.EqualFold(s, "volnogorsk") {
+			return true
+		}
+	}
+	return false
+}
+
 // LocalizedDisplayName returns the line to show for the active UI language.
 // English is never chosen when lang is uk or ru.
 func LocalizedDisplayName(p Place, lang string) string {
+	if NormalizePlaceLang(lang) == "uk" && isVolnogorskPlace(p) {
+		return volnogorskUKLabel
+	}
+
 	uk := LocalizedNameUK(p)
 	ru := LocalizedNameRU(p)
 	en := LocalizedNameEN(p)
