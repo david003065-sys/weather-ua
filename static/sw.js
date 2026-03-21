@@ -1,5 +1,5 @@
 /* Weather UA — service worker (scope must be site root; registered as /sw.js) */
-const CACHE_NAME = "weather-ua-pwa-v4";
+const CACHE_NAME = "weather-ua-pwa-v5";
 const OFFLINE_URL = "/static/offline.html";
 
 const PRECACHE_URLS = [
@@ -10,8 +10,11 @@ const PRECACHE_URLS = [
   "/static/manifest.json",
   "/static/favicon.svg",
   OFFLINE_URL,
+  "/static/icons/icon-144.png",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
+  "/static/screenshots/wide.png",
+  "/static/screenshots/mobile.png",
 ];
 
 self.addEventListener("install", (event) => {
