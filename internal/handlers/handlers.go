@@ -541,10 +541,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	displayName := pickPlaceDisplayName(place, lang)
-	if displayName == "" {
-		displayName = place.Name
-	}
+	displayName := places.LocalizedDisplayName(*place, lang)
 
 	cacheKey := "place:" + strconv.FormatInt(place.ID, 10)
 	var data *weather.WeatherData
@@ -715,7 +712,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]apiPlace, 0, len(list))
 	for _, p := range list {
-		nameUK, nameRU, nameEN := derivePlaceNames(p)
+		nameUK, nameRU, nameEN := places.LocalizedNameTriple(p)
 		oblastUK, oblastRU, oblastEN := deriveOblastNames(p.Oblast)
 		typeUK, typeRU, typeEN := deriveTypeNames(p.Type)
 
@@ -787,10 +784,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := "place:" + strconv.FormatInt(place.ID, 10)
-	displayName := pickPlaceDisplayName(place, lang)
-	if displayName == "" {
-		displayName = place.Name
-	}
+	displayName := places.LocalizedDisplayName(*place, lang)
 	locationSubtitle := formatPlaceLocation(place, lang)
 	s.logger.Printf("place %d (%s) location subtitle: %s", place.ID, displayName, locationSubtitle)
 	var data *weather.WeatherData
@@ -976,58 +970,6 @@ func hasCyrillic(s string) bool {
 	return false
 }
 
-func isLatinLettersOnly(s string) bool {
-	hasLetter := false
-	for _, r := range s {
-		if !unicode.IsLetter(r) {
-			continue
-		}
-		hasLetter = true
-		if !unicode.In(r, unicode.Latin) {
-			return false
-		}
-	}
-	return hasLetter
-}
-
-// derivePlaceNames возвращает best‑effort имена на укр/рус/англ
-// на основе полей name_uk/name_ru в базе.
-func derivePlaceNames(p places.Place) (string, string, string) {
-	rawUK := strings.TrimSpace(p.NameUK)
-	rawRU := strings.TrimSpace(p.NameRU)
-
-	var nameUK, nameRU, nameEN string
-
-	// RU: предпочитаем явное русское имя, иначе берём кириллицу из name_uk.
-	if rawRU != "" {
-		nameRU = rawRU
-	} else if hasCyrillic(rawUK) {
-		nameRU = rawUK
-	}
-
-	// UK: если name_uk уже на кириллице — используем его,
-	// иначе fall back на русское (хотя бы кириллица), иначе то, что есть.
-	if hasCyrillic(rawUK) {
-		nameUK = rawUK
-	} else if rawRU != "" {
-		nameUK = rawRU
-	} else {
-		nameUK = rawUK
-	}
-
-	// EN: если name_uk уже в латинице — это наш лучший вариант,
-	// иначе транслитеруем из кириллицы.
-	if isLatinLettersOnly(rawUK) && rawUK != "" {
-		nameEN = rawUK
-	} else if rawRU != "" {
-		nameEN = places.TranslitLatin(rawRU)
-	} else if rawUK != "" {
-		nameEN = places.TranslitLatin(rawUK)
-	}
-
-	return nameUK, nameRU, nameEN
-}
-
 func deriveOblastNames(oblastRaw string) (string, string, string) {
 	o := strings.TrimSpace(oblastRaw)
 	if o == "" {
@@ -1145,35 +1087,6 @@ func deriveTypeNames(base string) (string, string, string) {
 	}
 }
 
-func pickPlaceDisplayName(p *places.Place, lang string) string {
-	nameUK, nameRU, nameEN := derivePlaceNames(*p)
-	switch lang {
-	case "uk":
-		if nameUK != "" {
-			return nameUK
-		}
-	case "ru":
-		if nameRU != "" {
-			return nameRU
-		}
-	case "en":
-		if nameEN != "" {
-			return nameEN
-		}
-	}
-	// Fallbacks
-	if nameUK != "" {
-		return nameUK
-	}
-	if nameRU != "" {
-		return nameRU
-	}
-	if nameEN != "" {
-		return nameEN
-	}
-	return strings.TrimSpace(p.Name)
-}
-
 func countryName(lang string) string {
 	switch lang {
 	case "uk":
@@ -1259,17 +1172,7 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 		if other.ID == p.ID {
 			continue
 		}
-		// сравниваем по локализованному имени
-		nameUK, nameRU, nameEN := derivePlaceNames(other)
-		var candidate string
-		switch lang {
-		case "uk":
-			candidate = nameUK
-		case "en":
-			candidate = nameEN
-		default:
-			candidate = nameRU
-		}
+		candidate := places.LocalizedDisplayName(other, lang)
 		if candidate == "" {
 			candidate = other.Name
 		}

@@ -49,49 +49,6 @@ func IsKnownCity(id string) bool {
 	return ok
 }
 
-func LocalizedCityName(id, lang string) string {
-	switch id {
-	case "dnipro":
-		switch lang {
-		case "uk":
-			return "Дніпро"
-		case "en":
-			return "Dnipro"
-		default:
-			return "Днепр"
-		}
-	case "kyiv":
-		switch lang {
-		case "uk":
-			return "Київ"
-		case "en":
-			return "Kyiv"
-		default:
-			return "Киев"
-		}
-	case "pavlograd":
-		switch lang {
-		case "uk":
-			return "Павлоград"
-		case "en":
-			return "Pavlohrad"
-		default:
-			return "Павлоград"
-		}
-	case "volnogorsk":
-		switch lang {
-		case "uk":
-			return "Вільногірськ"
-		case "en":
-			return "Vilnohorsk"
-		default:
-			return "Вольногорск"
-		}
-	default:
-		return id
-	}
-}
-
 func NearestCity(lat, lon float64) (City, bool) {
 	if len(cities) == 0 {
 		return City{}, false
