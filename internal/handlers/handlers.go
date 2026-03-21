@@ -1149,7 +1149,8 @@ func deriveTypeNames(base string) (string, string, string) {
 	// Ukrainian/Russian canonical
 	case "місто", "город", "city":
 		return "місто", "город", "city"
-	case "селище", "посёлок", "поселок", "town", "settlement":
+	// селище міського типу / urban-type settlement (manual CSV may use "смт")
+	case "селище", "смт", "посёлок", "поселок", "town", "settlement":
 		return "селище", "посёлок", "settlement"
 	case "село", "village":
 		return "село", "село", "village"

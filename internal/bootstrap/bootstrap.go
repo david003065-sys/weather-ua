@@ -35,7 +35,7 @@ func EnsureData(logger *log.Logger) error {
 			if err != nil {
 				logger.Printf("[bootstrap] type-check failed, rebuilding places.db anyway: %v", err)
 			} else {
-				logger.Printf("[bootstrap] places.db type looks outdated (mostly/only 'місто'); rebuilding…")
+				logger.Printf("[bootstrap] places.db needs regeneration (schema version or type heuristics); rebuilding…")
 			}
 		}
 		_ = os.Remove(dbPath)
@@ -80,6 +80,14 @@ func needsRebuildPlacesByType(dbPath string) (bool, error) {
 		return false, err
 	}
 	defer db.Close()
+
+	var userVer int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&userVer); err != nil {
+		return true, err
+	}
+	if userVer < places.SettlementTypeSchemaVersion {
+		return true, nil
+	}
 
 	// Быстрая эвристика: если в таблице только один distinct type и это "місто" — значит типы
 	// загружаются некорректно (жёстко).
@@ -201,13 +209,14 @@ func downloadAndUnzipSingle(url, dstDir, wantName string) error {
 // --- Генерация CSV с городами Украины (адаптация логики из build_ua_cities_csv) ---
 
 type city struct {
-	geonameID string
-	nameUK    string
-	lat       string
-	lon       string
-	admin1    string
-	oblast    string
+	geonameID   string
+	nameUK      string
+	lat         string
+	lon         string
+	admin1      string
+	oblast      string
 	featureCode string
+	population  int64
 }
 
 type ruAltName struct {
@@ -306,7 +315,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 			continue
 		}
 		parts := strings.Split(line, "\t")
-		if len(parts) < 11 {
+		if len(parts) < 15 {
 			continue
 		}
 
@@ -317,6 +326,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		featureClass := strings.TrimSpace(parts[6])
 		featureCode := strings.TrimSpace(parts[7])
 		admin1Code := strings.TrimSpace(parts[10]) // e.g. "12"
+		population := parsePopulation(parts[14])
 
 		if geonameID == "" || name == "" {
 			continue
@@ -347,13 +357,14 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		}
 
 		c := &city{
-			geonameID: geonameID,
-			nameUK:    name,
-			lat:       lat,
-			lon:       lon,
-			admin1:    admin1Code,
-			oblast:    oblastName,
+			geonameID:   geonameID,
+			nameUK:      name,
+			lat:         lat,
+			lon:         lon,
+			admin1:      admin1Code,
+			oblast:      oblastName,
 			featureCode: featureCode,
+			population:  population,
 		}
 		cities = append(cities, c)
 		idSet[geonameID] = struct{}{}
@@ -364,20 +375,16 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 	return cities, idSet, nil
 }
 
-func typeFromFeatureCode(featureCode string) string {
-	// В base places.type пишем короткие укр-значения:
-	// - "місто" | "селище" | "село"
-	// Остальное — пустая строка, чтобы UI показал "населённый пункт".
-	switch strings.TrimSpace(featureCode) {
-	case "PPLA", "PPLA2", "PPLA3", "PPLA4":
-		return "місто"
-	case "PPL":
-		return "селище"
-	case "PPLC":
-		return "село"
-	default:
-		return ""
+func parsePopulation(field string) int64 {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return 0
 	}
+	n, err := strconv.ParseInt(field, 10, 64)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 func loadRuAltNames(path string, ids map[string]struct{}) (map[string]ruAltName, error) {
@@ -457,7 +464,7 @@ func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
 		if alt, ok := ruNames[c.geonameID]; ok && alt.name != "" {
 			ru = alt.name
 		}
-		typ := typeFromFeatureCode(c.featureCode)
+		typ := places.NormalizeSettlementType(c.featureCode, c.population)
 		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s\n",
 			escapeSemi(c.nameUK),
 			escapeSemi(ru),
@@ -605,6 +612,10 @@ func importPlacesCSV(inputPath, outputPath string, logger *log.Logger) error {
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
+	}
+
+	if _, err := db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, places.SettlementTypeSchemaVersion)); err != nil {
+		return fmt.Errorf("set user_version: %w", err)
 	}
 
 	if logger != nil {

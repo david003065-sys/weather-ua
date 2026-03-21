@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"bss/internal/places"
 )
 
 // GeoNames formats used:
@@ -18,13 +20,14 @@ import (
 // - alternateNamesV2.txt: big alt-names dump (tab-separated)
 
 type city struct {
-	geonameID string
-	nameUK    string
-	lat       string
-	lon       string
-	admin1    string // admin1 code like "01"
-	oblast    string
+	geonameID   string
+	nameUK      string
+	lat         string
+	lon         string
+	admin1      string // admin1 code like "01"
+	oblast      string
 	featureCode string // GeoNames feature code (PPL/PPLA*/PPLC)
+	population  int64
 }
 
 type ruAltName struct {
@@ -154,7 +157,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 			continue
 		}
 		parts := strings.Split(line, "\t")
-		if len(parts) < 11 {
+		if len(parts) < 15 {
 			continue
 		}
 
@@ -165,6 +168,7 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		featureClass := strings.TrimSpace(parts[6])
 		featureCode := strings.TrimSpace(parts[7])
 		admin1Code := strings.TrimSpace(parts[10]) // e.g. "12"
+		population := parsePopulation(parts[14])
 
 		if geonameID == "" || name == "" {
 			continue
@@ -196,13 +200,14 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 		}
 
 		c := &city{
-			geonameID: geonameID,
-			nameUK:    name,
-			lat:       lat,
-			lon:       lon,
-			admin1:    admin1Code,
-			oblast:    oblastName,
+			geonameID:   geonameID,
+			nameUK:      name,
+			lat:         lat,
+			lon:         lon,
+			admin1:      admin1Code,
+			oblast:      oblastName,
 			featureCode: featureCode,
+			population:  population,
 		}
 		cities = append(cities, c)
 		idSet[geonameID] = struct{}{}
@@ -213,20 +218,16 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 	return cities, idSet, nil
 }
 
-func typeFromFeatureCode(featureCode string) string {
-	// В базу places.type пишем короткие укр-значения:
-	// - "місто" | "селище" | "село"
-	// Остальное — пустая строка, чтобы UI показал "населённый пункт".
-	switch strings.TrimSpace(featureCode) {
-	case "PPLA", "PPLA2", "PPLA3", "PPLA4":
-		return "місто"
-	case "PPL":
-		return "селище"
-	case "PPLC":
-		return "село"
-	default:
-		return ""
+func parsePopulation(field string) int64 {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return 0
 	}
+	n, err := strconv.ParseInt(field, 10, 64)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 // loadRuAltNames scans alternateNamesV2.txt once and collects best RU name for given geoname IDs.
@@ -312,7 +313,7 @@ func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
 		if alt, ok := ruNames[c.geonameID]; ok && alt.name != "" {
 			ru = alt.name
 		}
-		typ := typeFromFeatureCode(c.featureCode)
+		typ := places.NormalizeSettlementType(c.featureCode, c.population)
 		// raion всегда пустой (двойной ;;)
 		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s\n",
 			escapeSemi(c.nameUK),

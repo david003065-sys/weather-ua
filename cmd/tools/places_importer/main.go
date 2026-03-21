@@ -158,6 +158,10 @@ func run(inputPath, outputPath string) error {
 		return fmt.Errorf("commit: %w", err)
 	}
 
+	if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", places.SettlementTypeSchemaVersion)); err != nil {
+		return fmt.Errorf("set user_version: %w", err)
+	}
+
 	log.Printf("done, inserted %d places into %s", count, outputPath)
 	return nil
 }
