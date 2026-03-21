@@ -2,15 +2,6 @@
    Atmosphere UI — bold contrast, depth, temperature-first (loads after style.css)
    ============================================================================= */
 
-/* Richer drifting light vs default 0.62 — pairs with deeper --bg in style.css */
-html[data-theme="dark"] .weather-app {
-    --ambient-intensity: 0.84;
-}
-
-html[data-theme="light"] .weather-app {
-    --ambient-intensity: 0.52;
-}
-
 .site-main {
     padding-top: 0.5rem;
     padding-bottom: 4.5rem;
@@ -62,11 +53,9 @@ html[data-theme="light"] .weather-app {
     font-weight: 700;
     letter-spacing: -0.03em;
     color: var(--canvas-text);
-    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
 }
 
 html[data-theme="light"] .atmo-section__title {
-    text-shadow: none;
     color: #0f172a;
 }
 
@@ -107,7 +96,7 @@ html[data-theme="light"] .atmo-section__title {
     border-radius: 999px;
 }
 
-/* Rail cards: richer depth */
+/* Rail cards — solid surfaces, no glass / glow */
 .rail-card,
 .cities-rail > a.city-card {
     position: relative;
@@ -121,14 +110,11 @@ html[data-theme="light"] .atmo-section__title {
     border-radius: 1.35rem;
     text-decoration: none;
     color: inherit;
-    background: linear-gradient(155deg, rgba(30, 41, 59, 0.82) 0%, rgba(15, 23, 42, 0.9) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(18px) saturate(1.12);
-    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+    background: #141c2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     transition:
         transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
         border-color 0.25s ease,
@@ -136,46 +122,23 @@ html[data-theme="light"] .atmo-section__title {
         background 0.25s ease;
 }
 
-.rail-card::after,
-.cities-rail > a.city-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background: radial-gradient(120% 80% at 10% 0%, rgba(56, 189, 248, 0.08), transparent 50%);
-    opacity: 0.9;
-}
-
 html[data-theme="light"] .rail-card,
 html[data-theme="light"] .cities-rail > a.city-card {
-    background: linear-gradient(155deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 245, 249, 0.94) 100%);
-    border-color: rgba(100, 116, 139, 0.28);
-    box-shadow:
-        0 12px 40px rgba(15, 23, 42, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 1);
-}
-
-html[data-theme="light"] .rail-card::after,
-html[data-theme="light"] .cities-rail > a.city-card::after {
-    background: radial-gradient(120% 80% at 15% 0%, rgba(14, 165, 233, 0.12), transparent 55%);
+    background: #ffffff;
+    border-color: rgba(148, 163, 184, 0.28);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 .rail-card:hover,
 .cities-rail > a.city-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(56, 189, 248, 0.45);
-    box-shadow:
-        0 22px 56px rgba(0, 0, 0, 0.5),
-        0 0 40px rgba(56, 189, 248, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translateY(-3px);
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
 }
 
 html[data-theme="light"] .rail-card:hover,
 html[data-theme="light"] .cities-rail > a.city-card:hover {
-    box-shadow:
-        0 18px 48px rgba(15, 23, 42, 0.14),
-        0 0 32px rgba(14, 165, 233, 0.12);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 
 .rail-card__top {
@@ -197,7 +160,6 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
 .rail-card__icon {
     font-size: 1.5rem;
     line-height: 1;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 
 .rail-card__temp {
@@ -215,12 +177,10 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
     letter-spacing: -0.035em;
     line-height: 1;
     color: #f8fafc;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 html[data-theme="light"] .rail-card__temp-val {
     color: #0f172a;
-    text-shadow: 0 2px 12px rgba(14, 165, 233, 0.15);
 }
 
 .rail-card__temp-unit {
@@ -264,7 +224,6 @@ html[data-theme="light"] .rail-card__meta {
     color: #38bdf8;
     font-weight: 600;
     opacity: 1;
-    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4));
 }
 
 .rail-card--switch {
@@ -273,11 +232,8 @@ html[data-theme="light"] .rail-card__meta {
 
 .rail-card--active {
     border-color: rgba(56, 189, 248, 0.65);
-    background: linear-gradient(155deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.88) 100%);
-    box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.45),
-        0 0 32px rgba(56, 189, 248, 0.2),
-        inset 0 0 0 1px rgba(56, 189, 248, 0.15);
+    background: #182236;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 html[data-theme="light"] .rail-card--active {
@@ -340,11 +296,11 @@ html[data-theme="light"] .rail-card--active {
     gap: 0.35rem;
     padding: 1.05rem 0.8rem;
     border-radius: 1.1rem;
-    background: linear-gradient(165deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.11);
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px) saturate(1.1);
-    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    background: #141c2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 html[data-theme="light"] .atmo-forecast-chip {
@@ -363,7 +319,6 @@ html[data-theme="light"] .atmo-forecast-chip {
 
 .atmo-forecast-chip__icon {
     font-size: 1.4rem;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
 .atmo-forecast-chip__desc {
@@ -409,9 +364,9 @@ html[data-theme="light"] .atmo-forecast-chip__hi {
     padding: 0.68rem 0.48rem;
     border-radius: 1rem;
     scroll-snap-align: start;
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.88) 100%);
+    background: #141c2e;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
 }
 
 html[data-theme="light"] .atmo-hourly-chip.hourly-card {
@@ -421,10 +376,10 @@ html[data-theme="light"] .atmo-hourly-chip.hourly-card {
 }
 
 .atmo-chart.chart-card {
-    background: linear-gradient(165deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
+    background: #141c2e;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.25rem;
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.38);
     min-height: 220px;
     padding: 0.85rem;
 }
