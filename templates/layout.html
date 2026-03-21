@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ block "title" . }}Живая погода{{ end }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="{{ block "description" . }}{{ .Text.CitiesTitle }}{{ end }}">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#020617">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,6 +22,30 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="/static/style.css">
+
+    {{/* PWA: instant html bg + standalone flag before paint (matches manifest / theme.js localStorage) */}}
+    <script>
+    (function () {
+        try {
+            var st = localStorage.getItem("weather:themeMode");
+            document.documentElement.style.backgroundColor =
+                st === "light" ? "#f8fafc" : "#020617";
+        } catch (e) {
+            document.documentElement.style.backgroundColor = "#020617";
+        }
+        try {
+            var standalone =
+                window.matchMedia("(display-mode: standalone)").matches === true ||
+                window.navigator.standalone === true;
+            document.documentElement.setAttribute(
+                "data-standalone",
+                standalone ? "true" : "false"
+            );
+        } catch (e2) {
+            document.documentElement.setAttribute("data-standalone", "false");
+        }
+    })();
+    </script>
 
     <script src="/static/pwa.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>

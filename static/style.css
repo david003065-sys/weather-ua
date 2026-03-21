@@ -74,6 +74,7 @@ body {
 
 body {
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: var(--font-family);
     color: var(--text-primary);
     background: var(--bg);
@@ -190,9 +191,12 @@ html[data-theme="light"] body {
 .weather-app {
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
     /* Weather-tuned ambient strength (multiplier for soft glows, not literal effects) */
     --ambient-intensity: 0.62;
     background:
@@ -521,6 +525,7 @@ html[data-theme="light"] .weather-app::after {
     position: sticky;
     top: 0;
     z-index: 10;
+    padding-top: env(safe-area-inset-top, 0px);
     backdrop-filter: blur(18px) saturate(1.05);
     -webkit-backdrop-filter: blur(18px) saturate(1.05);
     background: linear-gradient(
@@ -1613,7 +1618,7 @@ html[data-theme="light"] .weather-app::after {
 
 .site-footer {
     flex-shrink: 0;
-    padding: 0.9rem 0 1.4rem;
+    padding: 0.9rem 0 max(1.4rem, calc(0.85rem + env(safe-area-inset-bottom, 0px)));
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     background: linear-gradient(to top, transparent, rgba(15, 23, 42, 0.35));
     transition: background var(--theme-duration) ease-out, border-color var(--theme-duration) ease-out;
@@ -2374,6 +2379,162 @@ html[data-theme="light"] .theme-switch__item:hover {
     .forecast-card__day,
     .forecast-card__status {
         font-size: 0.8rem;
+    }
+}
+
+/* =============================================================================
+   PWA / STANDALONE — native-like shell (data-standalone from layout <head>)
+   ============================================================================= */
+
+html[data-standalone="true"] .site-header {
+    border-bottom-color: rgba(255, 255, 255, 0.09);
+    backdrop-filter: blur(22px) saturate(1.12);
+    -webkit-backdrop-filter: blur(22px) saturate(1.12);
+}
+
+html[data-theme="dark"][data-standalone="true"] .site-header {
+    background: linear-gradient(
+        to bottom,
+        rgba(2, 6, 23, 0.97),
+        rgba(15, 23, 42, 0.9)
+    );
+}
+
+html[data-theme="light"][data-standalone="true"] .site-header {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+}
+
+/* Snappier first paint in installed mode */
+html[data-standalone="true"] .weather-app.fade-in {
+    animation-duration: 0.34s;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.35, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html[data-standalone="true"] .site-main .shell > section {
+        animation-duration: 0.48s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(1) {
+        animation-delay: 0.03s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(2) {
+        animation-delay: 0.08s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(3) {
+        animation-delay: 0.13s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(4) {
+        animation-delay: 0.18s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(5) {
+        animation-delay: 0.23s;
+    }
+
+    html[data-standalone="true"] .site-main .shell > section:nth-child(6) {
+        animation-delay: 0.28s;
+    }
+}
+
+html[data-standalone="true"] .site-main {
+    padding-top: 0.2rem;
+}
+
+@media (max-width: 720px) {
+    html[data-standalone="true"] .site-main .shell > section + section {
+        margin-top: 0.12rem;
+    }
+
+    html[data-standalone="true"] .hero-main,
+    html[data-standalone="true"] .city-hero {
+        box-shadow:
+            0 22px 56px rgba(0, 0, 0, 0.38),
+            0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    html[data-theme="light"][data-standalone="true"] .hero-main,
+    html[data-theme="light"][data-standalone="true"] .city-hero {
+        box-shadow: var(--focus-card-shadow);
+    }
+
+    html[data-standalone="true"] .nav-link {
+        min-height: 44px;
+        padding: 0.35rem 0.55rem;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 10px;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast),
+            background var(--transition-fast);
+    }
+
+    html[data-standalone="true"] .lang-switch__item,
+    html[data-standalone="true"] .theme-switch__item {
+        min-height: 40px;
+        min-width: 2.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.22rem 0.52rem;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    html[data-standalone="true"] .brand-link {
+        padding: 0.2rem 0;
+        border-radius: 12px;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    html[data-standalone="true"] .pwa-install-btn {
+        min-height: 40px;
+        padding: 0.28rem 0.65rem;
+    }
+}
+
+/* Touch: faster taps, subtle feedback (all modes; stronger feel on phones) */
+.weather-app .nav-link,
+.weather-app .brand-link,
+.weather-app .lang-switch__item,
+.weather-app .theme-switch__item,
+.weather-app .btn,
+.weather-app .pwa-install-btn,
+.weather-app .city-switch__card,
+.weather-app .search-input {
+    -webkit-tap-highlight-color: rgba(56, 189, 248, 0.14);
+    touch-action: manipulation;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .weather-app .nav-link:active,
+    .weather-app .brand-link:active,
+    .weather-app .lang-switch__item:active,
+    .weather-app .theme-switch__item:active {
+        opacity: 0.9;
+        transform: scale(0.98);
+        transition:
+            opacity 90ms ease-out,
+            transform 90ms ease-out;
+    }
+
+    .weather-app .btn:active {
+        transform: scale(0.97);
+        transition-duration: 100ms;
+    }
+}
+
+/* Resilience: if inline script skipped, still style true standalone */
+@media (display-mode: standalone) {
+    .site-header {
+        padding-top: env(safe-area-inset-top, 0px);
     }
 }
 
