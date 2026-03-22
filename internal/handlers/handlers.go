@@ -70,6 +70,9 @@ type IndexPageData struct {
 	TomorrowLabel      string
 	TomorrowMin        float64
 	TomorrowMax        float64
+	DayAfterLabel      string
+	DayAfterMin        float64
+	DayAfterMax        float64
 	Cities             []CitySummary
 	WeatherJSON        template.JS
 	MetaDescription    string
@@ -201,8 +204,8 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var todayLabel, tomorrowLabel string
-	var todayMin, todayMax, tomorrowMin, tomorrowMax float64
+	var todayLabel, tomorrowLabel, dayAfterLabel string
+	var todayMin, todayMax, tomorrowMin, tomorrowMax, dayAfterMin, dayAfterMax float64
 	if len(heroData.Forecast) > 0 {
 		today := heroData.Forecast[0]
 		todayLabel = today.Date.Format("02.01")
@@ -214,6 +217,12 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		tomorrowLabel = tomorrow.Date.Format("02.01")
 		tomorrowMin = tomorrow.MinTemp
 		tomorrowMax = tomorrow.MaxTemp
+	}
+	if len(heroData.Forecast) > 2 {
+		d3 := heroData.Forecast[2]
+		dayAfterLabel = d3.Date.Format("02.01")
+		dayAfterMin = d3.MinTemp
+		dayAfterMax = d3.MaxTemp
 	}
 
 	currentDesc := i18n.WeatherDescription(heroData.Current.WeatherCode, lang)
@@ -247,6 +256,9 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		TomorrowLabel:      tomorrowLabel,
 		TomorrowMin:        tomorrowMin,
 		TomorrowMax:        tomorrowMax,
+		DayAfterLabel:      dayAfterLabel,
+		DayAfterMin:        dayAfterMin,
+		DayAfterMax:        dayAfterMax,
 		Cities:             summaries,
 		WeatherJSON:        buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
 		MetaDescription:    metaDesc,

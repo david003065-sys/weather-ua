@@ -871,34 +871,71 @@ html[data-theme="light"] .weather-hero__condition {
     color: var(--canvas-text);
 }
 
-.hero-summary {
-    margin-top: 16px;
+.hero-forecast {
+    margin-top: 18px;
     display: flex;
-    gap: 12px;
+    gap: 10px;
     justify-content: center;
     flex-wrap: wrap;
-    max-width: 24rem;
+    max-width: 22rem;
     margin-left: auto;
     margin-right: auto;
     padding: 0 0.25rem;
 }
 
-.hero-summary div {
+.forecast-chip {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    text-align: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.75);
     line-height: 1.35;
+    white-space: nowrap;
 }
 
-html[data-theme="light"] .hero-summary div {
-    color: rgba(15, 23, 42, 0.72);
+html[data-theme="light"] .forecast-chip {
     background: rgba(15, 23, 42, 0.06);
+    color: rgba(15, 23, 42, 0.75);
 }
 
-/* Below hero: geo (index) / dupes + summary (city) */
+.location-btn {
+    margin-top: 16px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.location-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.location-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+html[data-theme="light"] .location-btn {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+html[data-theme="light"] .location-btn:hover {
+    background: rgba(15, 23, 42, 0.12);
+}
+
+.location-btn__pin {
+    font-style: normal;
+}
+
+/* Below hero: dupes + summary (city only) */
 .weather-hero-follow {
     display: flex;
     flex-direction: column;

@@ -39,20 +39,15 @@
             </div>
         </div>
 
-        {{ if .TodayLabel }}
-        <div class="hero-summary" aria-label="{{ .Text.ShortForecastAria }}">
-            <div>{{ .Text.Today }} {{ .TodayLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° — {{ printf "%.0f" .TodayMax }}°</div>
-            {{ if .TomorrowLabel }}
-            <div>{{ .Text.Tomorrow }} {{ .TomorrowLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° — {{ printf "%.0f" .TomorrowMax }}°</div>
-            {{ end }}
+        <div class="hero-forecast" aria-label="{{ .Text.ShortForecastAria }}">
+            <div class="forecast-chip">{{ .Text.Today }} · {{ if or .WeatherUnavailable (not .TodayLabel) }}—{{ else }}{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°{{ end }}</div>
+            <div class="forecast-chip">{{ .Text.Tomorrow }} · {{ if or .WeatherUnavailable (not .TomorrowLabel) }}—{{ else }}{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°{{ end }}</div>
+            <div class="forecast-chip">{{ .Text.DayAfterTomorrow }} · {{ if or .WeatherUnavailable (not .DayAfterLabel) }}—{{ else }}{{ printf "%.0f" .DayAfterMin }}°—{{ printf "%.0f" .DayAfterMax }}°{{ end }}</div>
         </div>
-        {{ end }}
+
+        <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
     </div>
 </section>
-
-<div class="weather-hero-follow">
-    <button type="button" id="js-geo-btn" class="btn btn-ghost weather-hero-follow__geo">{{ .Text.GeoDetectButton }}</button>
-</div>
 
 <section class="search-section atmo-search" aria-label="{{ .Text.SearchSectionAria }}">
     <div class="search-shell">

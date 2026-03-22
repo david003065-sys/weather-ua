@@ -15,6 +15,7 @@ type UI struct {
 	MetricPressure      string
 	Today               string
 	Tomorrow            string
+	DayAfterTomorrow    string
 	RangeFrom           string
 	RangeTo             string
 	CurrentMetricsAria  string
@@ -80,6 +81,7 @@ func For(lang string) UI {
 			MetricPressure:        "Pressure",
 			Today:                 "Today",
 			Tomorrow:              "Tomorrow",
+			DayAfterTomorrow:      "Day after",
 			RangeFrom:             "from",
 			RangeTo:               "to",
 			CurrentMetricsAria:    "Current conditions",
@@ -137,6 +139,7 @@ func For(lang string) UI {
 			MetricPressure:        "Тиск",
 			Today:                 "Сьогодні",
 			Tomorrow:              "Завтра",
+			DayAfterTomorrow:      "Післязавтра",
 			RangeFrom:             "від",
 			RangeTo:               "до",
 			CurrentMetricsAria:    "Поточні показники",
@@ -194,6 +197,7 @@ func For(lang string) UI {
 			MetricPressure:        "Давление",
 			Today:                 "Сегодня",
 			Tomorrow:              "Завтра",
+			DayAfterTomorrow:      "Послезавтра",
 			RangeFrom:             "от",
 			RangeTo:               "до",
 			CurrentMetricsAria:    "Текущие показатели",
