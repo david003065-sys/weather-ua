@@ -38,24 +38,29 @@
                 </span>
             </div>
         </div>
+
+        {{ if .TodayLabel }}
+        <div class="weather-hero__range-chips" aria-label="{{ .Text.ShortForecastAria }}">
+            <div class="weather-hero__range-chip">
+                <p class="weather-hero__range-chip__main">
+                    <span class="weather-hero__range-chip__day">{{ .Text.Today }}</span><span class="weather-hero__range-chip__sep" aria-hidden="true"> · </span><span class="weather-hero__range-chip__temps">{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°</span>
+                </p>
+                <p class="weather-hero__range-chip__date">{{ .TodayLabel }}</p>
+            </div>
+            {{ if .TomorrowLabel }}
+            <div class="weather-hero__range-chip">
+                <p class="weather-hero__range-chip__main">
+                    <span class="weather-hero__range-chip__day">{{ .Text.Tomorrow }}</span><span class="weather-hero__range-chip__sep" aria-hidden="true"> · </span><span class="weather-hero__range-chip__temps">{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°</span>
+                </p>
+                <p class="weather-hero__range-chip__date">{{ .TomorrowLabel }}</p>
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
     </div>
 </section>
 
 <div class="weather-hero-follow">
-    {{ if .TodayLabel }}
-    <div class="weather-hero-snippet" aria-label="{{ .Text.ShortForecastAria }}">
-        <p class="weather-hero-snippet__line">
-            <span class="weather-hero-snippet__k">{{ .Text.Today }}</span>
-            {{ .TodayLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° — {{ printf "%.0f" .TodayMax }}°
-        </p>
-        {{ if .TomorrowLabel }}
-        <p class="weather-hero-snippet__line">
-            <span class="weather-hero-snippet__k">{{ .Text.Tomorrow }}</span>
-            {{ .TomorrowLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° — {{ printf "%.0f" .TomorrowMax }}°
-        </p>
-        {{ end }}
-    </div>
-    {{ end }}
     <button type="button" id="js-geo-btn" class="btn btn-ghost weather-hero-follow__geo">{{ .Text.GeoDetectButton }}</button>
 </div>
 
