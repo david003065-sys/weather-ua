@@ -56,7 +56,7 @@
 }
 
 html[data-theme="light"] .atmo-section__title {
-    color: #1c2a3a;
+    color: #112033;
 }
 
 /* --- Horizontal city rails --- */
@@ -124,9 +124,9 @@ html[data-theme="light"] .atmo-section__title {
 
 html[data-theme="light"] .rail-card,
 html[data-theme="light"] .cities-rail > a.city-card {
-    background: #e8eef5;
-    border-color: rgba(95, 111, 130, 0.22);
-    box-shadow: 0 8px 24px rgba(28, 42, 58, 0.06);
+    background: #d4e0ec;
+    border-color: rgba(79, 102, 128, 0.28);
+    box-shadow: 0 8px 24px rgba(17, 32, 51, 0.08);
 }
 
 .rail-card:hover,
@@ -138,8 +138,8 @@ html[data-theme="light"] .cities-rail > a.city-card {
 
 html[data-theme="light"] .rail-card:hover,
 html[data-theme="light"] .cities-rail > a.city-card:hover {
-    border-color: rgba(95, 143, 191, 0.35);
-    box-shadow: 0 12px 32px rgba(28, 42, 58, 0.09);
+    border-color: rgba(95, 143, 191, 0.4);
+    box-shadow: 0 12px 32px rgba(17, 32, 51, 0.1);
 }
 
 .rail-card__top {
@@ -181,7 +181,7 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
 }
 
 html[data-theme="light"] .rail-card__temp-val {
-    color: #1c2a3a;
+    color: #112033;
 }
 
 .rail-card__temp-unit {
@@ -204,11 +204,11 @@ html[data-theme="light"] .rail-card__temp-val {
 }
 
 html[data-theme="light"] .rail-card__desc {
-    color: #5f6f82;
+    color: #4f6680;
 }
 
 html[data-theme="light"] .rail-card__temp-unit {
-    color: #7a8a9c;
+    color: #5d7390;
 }
 
 .rail-card__meta {
@@ -221,7 +221,7 @@ html[data-theme="light"] .rail-card__temp-unit {
 }
 
 html[data-theme="light"] .rail-card__meta {
-    border-top-color: rgba(95, 111, 130, 0.2);
+    border-top-color: rgba(79, 102, 128, 0.28);
 }
 
 .rail-card__chev {
@@ -246,9 +246,9 @@ html[data-theme="light"] .rail-card__chev {
 }
 
 html[data-theme="light"] .rail-card--active {
-    background: linear-gradient(155deg, rgba(95, 143, 191, 0.12) 0%, #e8eef5 100%);
-    border-color: rgba(95, 143, 191, 0.42);
-    box-shadow: 0 12px 36px rgba(95, 143, 191, 0.12);
+    background: linear-gradient(155deg, rgba(95, 143, 191, 0.18) 0%, #d4e0ec 100%);
+    border-color: rgba(95, 143, 191, 0.48);
+    box-shadow: 0 12px 36px rgba(95, 143, 191, 0.14);
 }
 
 /* Legacy city-card inside rail (favorites / recent) */
@@ -313,9 +313,9 @@ html[data-theme="light"] .rail-card--active {
 }
 
 html[data-theme="light"] .atmo-forecast-chip {
-    background: linear-gradient(165deg, #edf2f7 0%, #e8eef5 100%);
-    border-color: rgba(95, 111, 130, 0.2);
-    box-shadow: 0 8px 26px rgba(28, 42, 58, 0.06);
+    background: linear-gradient(165deg, #a8bacf 0%, #9eb2c8 100%);
+    border-color: rgba(79, 102, 128, 0.32);
+    box-shadow: 0 8px 26px rgba(17, 32, 51, 0.08);
 }
 
 .atmo-forecast-chip__day {
@@ -354,16 +354,16 @@ html[data-theme="light"] .atmo-forecast-chip {
 }
 
 html[data-theme="light"] .atmo-forecast-chip__hi {
-    color: #1c2a3a;
+    color: #112033;
 }
 
 html[data-theme="light"] .atmo-forecast-chip__day,
 html[data-theme="light"] .atmo-forecast-chip__desc {
-    color: #5f6f82;
+    color: #4f6680;
 }
 
 html[data-theme="light"] .atmo-forecast-chip__lo {
-    color: #7a8a9c;
+    color: #5d7390;
 }
 
 .atmo-forecast-chip__lo {
@@ -388,9 +388,9 @@ html[data-theme="light"] .atmo-forecast-chip__lo {
 }
 
 html[data-theme="light"] .atmo-hourly-chip.hourly-card {
-    background: linear-gradient(180deg, #edf2f7 0%, #e8eef5 100%);
-    border-color: rgba(95, 111, 130, 0.2);
-    box-shadow: 0 6px 20px rgba(28, 42, 58, 0.05);
+    background: linear-gradient(180deg, #b3c5d8 0%, #a8bacf 100%);
+    border-color: rgba(79, 102, 128, 0.3);
+    box-shadow: 0 6px 20px rgba(17, 32, 51, 0.07);
 }
 
 .atmo-chart.chart-card {
@@ -403,9 +403,9 @@ html[data-theme="light"] .atmo-hourly-chip.hourly-card {
 }
 
 html[data-theme="light"] .atmo-chart.chart-card {
-    background: linear-gradient(165deg, #edf2f7 0%, #e8eef5 100%);
-    border-color: rgba(95, 111, 130, 0.2);
-    box-shadow: 0 12px 36px rgba(28, 42, 58, 0.07);
+    background: linear-gradient(165deg, #cddbe8 0%, #d4e0ec 100%);
+    border-color: rgba(79, 102, 128, 0.28);
+    box-shadow: 0 12px 36px rgba(17, 32, 51, 0.09);
 }
 
 /* --- Reduced motion --- */
