@@ -58,6 +58,8 @@ type IndexPageData struct {
 	Text               TextSet
 	CityID             string
 	CurrentCityName    string
+	// HeroCityTitle is the index hero H1 only (Kyiv uses custom copy per language).
+	HeroCityTitle string
 	CurrentTemp        float64
 	CurrentDescription string
 	CurrentWind        float64
@@ -234,6 +236,19 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		metaNames = append(metaNames, weather.LocalizedCityName(c.ID, lang))
 	}
 	metaDesc := fmt.Sprintf(text.MetaDescriptionTemplate, strings.Join(metaNames, ", "))
+
+	heroCityTitle := weather.LocalizedCityName(heroData.CityID, lang)
+	if heroData.CityID == "kyiv" {
+		switch strings.ToLower(lang) {
+		case "ru":
+			heroCityTitle = "Киев — город Димаса"
+		case "uk":
+			heroCityTitle = "Київ — місто Дімаса"
+		default:
+			heroCityTitle = "Kyiv — Dimas City"
+		}
+	}
+
 	page := IndexPageData{
 		IsIndex:            true,
 		WeatherCode:        heroData.Current.WeatherCode,
@@ -244,6 +259,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		Text:               text,
 		CityID:             "",
 		CurrentCityName:    weather.LocalizedCityName(heroData.CityID, lang),
+		HeroCityTitle:      heroCityTitle,
 		CurrentTemp:        heroData.Current.Temperature,
 		CurrentDescription: currentDesc,
 		CurrentWind:        heroData.Current.WindSpeed,
