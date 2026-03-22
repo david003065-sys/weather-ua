@@ -70,8 +70,8 @@
         <h2 id="cities-title" class="atmo-section__title">{{ .Text.CitiesTitle }}</h2>
     </header>
 
-    <div class="cities-rail-mask">
-        <div class="cities-rail" id="js-cities-grid" data-lang="{{ .Lang }}">
+    <div class="cities-rail-mask cities-rail-mask--home">
+        <div class="cities-rail cities-rail--home" id="js-cities-grid" data-lang="{{ .Lang }}">
             {{ range .Cities }}
             <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-card rail-card" data-city-id="{{ .ID }}">
                 <div class="rail-card__top">
