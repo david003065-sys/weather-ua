@@ -684,8 +684,8 @@ html[data-theme="light"] .theme-switch__item--active {
 }
 
 /* =============================================================================
-   WEATHER HERO — compact app panel (index + city current weather)
-   Content-sized height, top-aligned — no full-viewport stretch
+   WEATHER HERO — compact app panel (index, /city/*, /place/*)
+   Centered content, content-sized height — no full-viewport stretch
    ============================================================================= */
 
 .weather-hero {
@@ -706,11 +706,6 @@ html[data-theme="light"] .theme-switch__item--active {
     background: linear-gradient(180deg, #121a2c 0%, #0f1628 100%);
     border: 1px solid rgba(255, 255, 255, 0.09);
     box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
-}
-
-/* City page: keep compact panel left-aligned */
-.weather-hero--page {
-    align-items: flex-start;
 }
 
 html[data-theme="light"] .weather-hero {
@@ -746,21 +741,11 @@ html[data-theme="light"] .weather-hero__atmo {
     gap: 0.75rem;
 }
 
-.weather-hero--page .weather-hero__content {
-    max-width: none;
-    align-items: flex-start;
-    text-align: left;
-}
-
 .weather-hero__place {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
-}
-
-.weather-hero--page .weather-hero__place {
-    align-items: flex-start;
 }
 
 .weather-hero__city {
@@ -801,10 +786,6 @@ html[data-theme="light"] .weather-hero__subloc {
     margin: 0;
 }
 
-.weather-hero--page .weather-hero__temp-wrap {
-    justify-content: flex-start;
-}
-
 .weather-hero__temp-glow {
     position: absolute;
     left: 50%;
@@ -820,10 +801,6 @@ html[data-theme="light"] .weather-hero__subloc {
         rgba(10, 15, 26, 0.35) 48%,
         transparent 72%
     );
-}
-
-.weather-hero--page .weather-hero__temp-glow {
-    left: 35%;
 }
 
 html[data-theme="light"] .weather-hero__temp-glow {
@@ -842,10 +819,6 @@ html[data-theme="light"] .weather-hero__temp-glow {
     align-items: flex-start;
     justify-content: center;
     gap: 0.2rem;
-}
-
-.weather-hero--page .weather-hero__temp-line {
-    justify-content: flex-start;
 }
 
 /* ~56–72px — still dominant, panel-friendly */
@@ -887,10 +860,6 @@ html[data-theme="light"] .weather-hero__condition {
     color: #4f6680;
 }
 
-.weather-hero--page .weather-hero__condition {
-    margin: 0;
-}
-
 /* One row — minimal blocks, no heavy chrome */
 .weather-hero__metrics {
     display: flex;
@@ -904,11 +873,6 @@ html[data-theme="light"] .weather-hero__condition {
     padding: 0;
 }
 
-.weather-hero--page .weather-hero__metrics {
-    justify-content: flex-start;
-    gap: 0.85rem 1.35rem;
-}
-
 .weather-hero__metric {
     flex: 0 1 auto;
     min-width: 4.5rem;
@@ -917,11 +881,6 @@ html[data-theme="light"] .weather-hero__condition {
     align-items: center;
     gap: 0.2rem;
     text-align: center;
-}
-
-.weather-hero--page .weather-hero__metric {
-    align-items: flex-start;
-    text-align: left;
 }
 
 .weather-hero__metric-label {
@@ -950,10 +909,6 @@ html[data-theme="light"] .weather-hero__condition {
     padding: 0;
 }
 
-.weather-hero--page .hero-forecast {
-    justify-content: flex-start;
-}
-
 .forecast-chip {
     font-size: 12px;
     padding: 5px 11px;
@@ -965,7 +920,7 @@ html[data-theme="light"] .weather-hero__condition {
     opacity: 0.92;
 }
 
-.weather-hero:not(.weather-hero--page) .forecast-chip {
+.weather-hero .forecast-chip {
     font-weight: 500;
 }
 
@@ -991,10 +946,6 @@ html[data-theme="light"] .forecast-chip {
     gap: 0.35rem;
 }
 
-.weather-hero--page .location-btn {
-    align-self: flex-start;
-}
-
 .location-btn:hover {
     background: rgba(255, 255, 255, 0.16);
 }
@@ -1018,18 +969,18 @@ html[data-theme="light"] .location-btn:hover {
     font-style: normal;
 }
 
-/* Below hero: dupes + summary (city only) */
+/* Below hero: dupes + summary (city / place) */
 .weather-hero-follow {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.5rem;
     padding: 0.65rem 0 1rem;
     margin: 0.35rem auto 0;
     max-width: 700px;
     width: 100%;
     box-sizing: border-box;
-    text-align: left;
+    text-align: center;
 }
 
 .weather-hero-follow__geo {
@@ -1042,6 +993,7 @@ html[data-theme="light"] .location-btn:hover {
     line-height: 1.5;
     color: var(--canvas-text-muted);
     max-width: 24rem;
+    text-align: center;
 }
 
 .weather-hero-dupes__link {
@@ -1063,6 +1015,7 @@ html[data-theme="light"] .location-btn:hover {
     font-size: 0.8125rem;
     line-height: 1.55;
     color: var(--canvas-text-muted);
+    text-align: center;
 }
 
 .weather-hero-summary__trend {
