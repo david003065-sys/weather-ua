@@ -40,20 +40,10 @@
         </div>
 
         {{ if .TodayLabel }}
-        <div class="weather-hero__range-chips" aria-label="{{ .Text.ShortForecastAria }}">
-            <div class="weather-hero__range-chip">
-                <p class="weather-hero__range-chip__main">
-                    <span class="weather-hero__range-chip__day">{{ .Text.Today }}</span><span class="weather-hero__range-chip__sep" aria-hidden="true"> · </span><span class="weather-hero__range-chip__temps">{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°</span>
-                </p>
-                <p class="weather-hero__range-chip__date">{{ .TodayLabel }}</p>
-            </div>
+        <div class="hero-summary" aria-label="{{ .Text.ShortForecastAria }}">
+            <div>{{ .Text.Today }} {{ .TodayLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TodayMin }}° — {{ printf "%.0f" .TodayMax }}°</div>
             {{ if .TomorrowLabel }}
-            <div class="weather-hero__range-chip">
-                <p class="weather-hero__range-chip__main">
-                    <span class="weather-hero__range-chip__day">{{ .Text.Tomorrow }}</span><span class="weather-hero__range-chip__sep" aria-hidden="true"> · </span><span class="weather-hero__range-chip__temps">{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°</span>
-                </p>
-                <p class="weather-hero__range-chip__date">{{ .TomorrowLabel }}</p>
-            </div>
+            <div>{{ .Text.Tomorrow }} {{ .TomorrowLabel }} · {{ .Text.RangeFrom }} {{ printf "%.0f" .TomorrowMin }}° — {{ printf "%.0f" .TomorrowMax }}°</div>
             {{ end }}
         </div>
         {{ end }}
