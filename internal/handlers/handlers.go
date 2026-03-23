@@ -1137,7 +1137,134 @@ func countryName(lang string) string {
 	}
 }
 
+func kyivDistrictSubtitle(p *places.Place, lang string) (string, bool) {
+	if p == nil {
+		return "", false
+	}
+
+	var raionRaw string
+	if p.Raion != nil {
+		raionRaw = strings.TrimSpace(*p.Raion)
+	}
+	nameNorm := places.Normalize(strings.TrimSpace(p.Name))
+	if nameNorm == "" {
+		nameNorm = places.Normalize(strings.TrimSpace(p.NameRU))
+	}
+	if nameNorm == "" {
+		nameNorm = places.Normalize(strings.TrimSpace(p.NameUK))
+	}
+	oblastNorm := places.Normalize(strings.TrimSpace(p.Oblast))
+	raionNorm := places.Normalize(raionRaw)
+
+	isBortnychi := nameNorm == "bortnychi" || nameNorm == "бортничі" || nameNorm == "бортничи"
+	isKyivContext := strings.Contains(oblastNorm, "kyiv") ||
+		strings.Contains(oblastNorm, "київ") ||
+		strings.Contains(oblastNorm, "киев") ||
+		strings.Contains(raionNorm, "kyiv") ||
+		strings.Contains(raionNorm, "київ") ||
+		strings.Contains(raionNorm, "киев")
+	if !isKyivContext && !isBortnychi {
+		return "", false
+	}
+
+	districtBase := strings.TrimSpace(raionRaw)
+	if districtBase == "" && isBortnychi {
+		// Explicit override requested for Bortnychi.
+		switch strings.ToLower(lang) {
+		case "uk":
+			districtBase = "Дарницький"
+		case "en":
+			districtBase = "Darnytskyi"
+		default:
+			districtBase = "Дарницкий"
+		}
+	}
+	if districtBase == "" {
+		return "", false
+	}
+
+	districtNorm := places.Normalize(districtBase)
+	switch strings.ToLower(lang) {
+	case "uk":
+		switch {
+		case strings.Contains(districtNorm, "дарниц"):
+			districtBase = "Дарницький"
+		case strings.Contains(districtNorm, "деснян"):
+			districtBase = "Деснянський"
+		case strings.Contains(districtNorm, "дніпров"):
+			districtBase = "Дніпровський"
+		case strings.Contains(districtNorm, "голос"):
+			districtBase = "Голосіївський"
+		case strings.Contains(districtNorm, "оболон"):
+			districtBase = "Оболонський"
+		case strings.Contains(districtNorm, "печер"):
+			districtBase = "Печерський"
+		case strings.Contains(districtNorm, "поділ"):
+			districtBase = "Подільський"
+		case strings.Contains(districtNorm, "святош"):
+			districtBase = "Святошинський"
+		case strings.Contains(districtNorm, "солом"):
+			districtBase = "Солом'янський"
+		case strings.Contains(districtNorm, "шевчен"):
+			districtBase = "Шевченківський"
+		}
+		return districtBase + " район, Київ", true
+	case "en":
+		switch {
+		case strings.Contains(districtNorm, "дарниц") || strings.Contains(districtNorm, "darn"):
+			districtBase = "Darnytskyi"
+		case strings.Contains(districtNorm, "деснян") || strings.Contains(districtNorm, "desn"):
+			districtBase = "Desnianskyi"
+		case strings.Contains(districtNorm, "дніпров") || strings.Contains(districtNorm, "dnipr"):
+			districtBase = "Dniprovskyi"
+		case strings.Contains(districtNorm, "голос") || strings.Contains(districtNorm, "holos"):
+			districtBase = "Holosiivskyi"
+		case strings.Contains(districtNorm, "оболон") || strings.Contains(districtNorm, "obol"):
+			districtBase = "Obolonskyi"
+		case strings.Contains(districtNorm, "печер") || strings.Contains(districtNorm, "pecher"):
+			districtBase = "Pecherskyi"
+		case strings.Contains(districtNorm, "поділ") || strings.Contains(districtNorm, "podil"):
+			districtBase = "Podilskyi"
+		case strings.Contains(districtNorm, "святош") || strings.Contains(districtNorm, "sviat"):
+			districtBase = "Sviatoshynskyi"
+		case strings.Contains(districtNorm, "солом") || strings.Contains(districtNorm, "solom"):
+			districtBase = "Solomianskyi"
+		case strings.Contains(districtNorm, "шевчен") || strings.Contains(districtNorm, "shev"):
+			districtBase = "Shevchenkivskyi"
+		}
+		return districtBase + " District, Kyiv", true
+	default:
+		switch {
+		case strings.Contains(districtNorm, "дарниц"):
+			districtBase = "Дарницкий"
+		case strings.Contains(districtNorm, "деснян"):
+			districtBase = "Деснянский"
+		case strings.Contains(districtNorm, "дніпров") || strings.Contains(districtNorm, "днепров"):
+			districtBase = "Днепровский"
+		case strings.Contains(districtNorm, "голос"):
+			districtBase = "Голосеевский"
+		case strings.Contains(districtNorm, "оболон"):
+			districtBase = "Оболонский"
+		case strings.Contains(districtNorm, "печер"):
+			districtBase = "Печерский"
+		case strings.Contains(districtNorm, "поділ") || strings.Contains(districtNorm, "подол"):
+			districtBase = "Подольский"
+		case strings.Contains(districtNorm, "святош"):
+			districtBase = "Святошинский"
+		case strings.Contains(districtNorm, "солом"):
+			districtBase = "Соломенский"
+		case strings.Contains(districtNorm, "шевчен"):
+			districtBase = "Шевченковский"
+		}
+		return districtBase + " район, Киев", true
+	}
+}
+
 func formatPlaceLocation(p *places.Place, lang string) string {
+	if subtitle, ok := kyivDistrictSubtitle(p, lang); ok {
+		return subtitle
+	}
+
 	var raion string
 	if p.Raion != nil {
 		raion = strings.TrimSpace(*p.Raion)
