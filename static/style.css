@@ -490,6 +490,23 @@ html[data-theme="light"] .theme-switch__item--active {
     bottom: 0.35rem;
 }
 
+.brand-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 999px;
+    background: linear-gradient(160deg, var(--accent) 0%, var(--link-hover) 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.24);
+    flex: 0 0 auto;
+}
+
+html[data-theme="light"] .brand-icon {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+        0 2px 7px rgba(17, 32, 51, 0.16);
+}
+
 .brand-text {
     display: flex;
     flex-direction: column;
@@ -500,14 +517,14 @@ html[data-theme="light"] .theme-switch__item--active {
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: var(--canvas-text-muted);
+    color: var(--text-primary);
 }
 
 .brand-text__title {
     font-size: 0.9rem;
     letter-spacing: 0.18em;
     font-weight: 600;
-    color: var(--canvas-text);
+    color: var(--accent);
 }
 
 .nav {
