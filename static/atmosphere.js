@@ -17,6 +17,16 @@
         }
     }
 
+    /** Светлая тема: Apple-style mesh для «хорошей» погоды (WMO 0–3 / OW 800–804). */
+    function isFairWeatherForAppleMesh(code) {
+        var c = typeof code === "number" ? code : parseInt(code, 10);
+        if (Number.isNaN(c)) return false;
+        if (c >= 200 && c < 900) {
+            return c >= 800 && c <= 804;
+        }
+        return c >= 0 && c <= 3;
+    }
+
     /**
      * @returns {{ sky: string, fx: string }}
      * sky: clear | cloudy | rain | snow | storm
@@ -64,8 +74,15 @@
         this._root = null;
         this._canvas = null;
         this._cloudsLayer = null;
+        this._meshLayer = null;
         this._resizeObs = null;
         this._ensureDom();
+        var self = this;
+        try {
+            global.addEventListener("weather-theme-change", function () {
+                self._syncFromWeatherApp();
+            });
+        } catch (e) {}
         this._syncFromWeatherApp();
     }
 
@@ -84,7 +101,10 @@
         var code = parseInt(app.getAttribute("data-weather-code") || app.dataset.weatherCode || "0", 10);
         if (Number.isNaN(code)) code = 0;
         var night = app.dataset.isNight === "true";
-        this.update(code, night);
+        var isLightTheme =
+            document.documentElement.classList.contains("theme-light") ||
+            document.documentElement.getAttribute("data-theme") === "light";
+        this.update(code, night, isLightTheme);
     };
 
     Atmosphere.prototype._ensureDom = function () {
@@ -96,6 +116,7 @@
             el.className = "weather-bg weather-bg--sky-cloudy weather-bg--day weather-bg--fx-none";
             el.setAttribute("aria-hidden", "true");
             el.innerHTML =
+                '<div class="weather-bg__mesh" aria-hidden="true"></div>' +
                 '<div class="weather-bg__clouds" aria-hidden="true"></div>' +
                 '<canvas class="weather-bg__canvas" aria-hidden="true"></canvas>';
             function mount() {
@@ -110,7 +131,14 @@
                 document.addEventListener("DOMContentLoaded", mount);
             }
         }
+        if (el && !el.querySelector(".weather-bg__mesh")) {
+            var mesh = document.createElement("div");
+            mesh.className = "weather-bg__mesh";
+            mesh.setAttribute("aria-hidden", "true");
+            el.insertBefore(mesh, el.firstChild);
+        }
         this._root = el;
+        this._meshLayer = el.querySelector(".weather-bg__mesh");
         this._cloudsLayer = el.querySelector(".weather-bg__clouds");
         this._canvas = el.querySelector(".weather-bg__canvas");
         if (global.ResizeObserver && this._canvas && this._root) {
@@ -318,11 +346,35 @@
         if (this._cloudsLayer) this._cloudsLayer.innerHTML = "";
     };
 
+    Atmosphere.prototype._clearMeshLayer = function () {
+        if (this._meshLayer) this._meshLayer.innerHTML = "";
+    };
+
+    /** Светлая тема + коды 0–3 (WMO) / 800–804 (OW): 4 сферы Apple Weather mesh. */
+    Atmosphere.prototype._buildAppleLightMesh = function () {
+        if (!this._meshLayer) return;
+        this._meshLayer.innerHTML = "";
+        var colors = [
+            "rgba(255, 185, 172, 0.7)",
+            "rgba(182, 222, 255, 0.6)",
+            "rgba(255, 248, 220, 0.5)",
+            "rgba(230, 210, 255, 0.4)",
+        ];
+        var i;
+        for (i = 0; i < colors.length; i++) {
+            var s = document.createElement("div");
+            s.className = "mesh-sphere mesh-sphere--" + (i + 1);
+            s.style.background = colors[i];
+            s.setAttribute("aria-hidden", "true");
+            this._meshLayer.appendChild(s);
+        }
+    };
+
     /**
      * @param {number} weatherCode — OpenWeather id или WMO
      * @param {boolean} [isNight] — иначе берётся из .weather-app[data-is-night]
      */
-    Atmosphere.prototype.update = function (weatherCode, isNight) {
+    Atmosphere.prototype.update = function (weatherCode, isNight, isLightThemeCached) {
         this._ensureDom();
         var app = document.querySelector(".weather-app");
         if (isNight === undefined && app) {
@@ -332,6 +384,18 @@
         var night = isNight === true || isNight === "true";
         var el = this._root;
         if (!el) return;
+
+        var cNum = typeof weatherCode === "number" ? weatherCode : parseInt(weatherCode, 10);
+        if (Number.isNaN(cNum)) cNum = 0;
+
+        var isLightTheme =
+            isLightThemeCached !== undefined
+                ? isLightThemeCached
+                : document.documentElement.classList.contains("theme-light") ||
+                  document.documentElement.getAttribute("data-theme") === "light";
+
+        el.classList.remove("weather-bg--apple-light-mesh");
+        this._clearMeshLayer();
 
         el.setAttribute("data-wmo", String(weatherCode));
 
@@ -354,6 +418,14 @@
         );
         this._stopPrecip();
         this._clearCloudsLayer();
+
+        var appleLightMesh = isLightTheme && isFairWeatherForAppleMesh(cNum);
+        if (appleLightMesh) {
+            el.classList.add("weather-bg--apple-light-mesh");
+            el.classList.add("weather-bg--fx-none");
+            this._buildAppleLightMesh();
+            return;
+        }
 
         if (prefersReducedMotion()) {
             el.classList.add("weather-bg--fx-none");

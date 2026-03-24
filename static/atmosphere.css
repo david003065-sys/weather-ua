@@ -23,6 +23,109 @@
         opacity 2s ease;
 }
 
+/* Apple Weather–style mesh: светлая тема + «хорошая» погода (atmosphere.js) */
+.theme-light #weather-bg.weather-bg--apple-light-mesh,
+body.theme-light #weather-bg.weather-bg--apple-light-mesh,
+html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
+    background: #ffffff !important;
+}
+
+.weather-bg__mesh {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 2s ease;
+    z-index: 0;
+}
+
+#weather-bg.weather-bg--apple-light-mesh .weather-bg__mesh {
+    opacity: 1;
+}
+
+.weather-bg__mesh .mesh-sphere {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(130px);
+    -webkit-filter: blur(130px);
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+    will-change: transform;
+}
+
+/* Позиции: 1 — верх-слева, 2 — центр, 3 — низ, 4 — верх-право; цвета задаются в JS */
+.weather-bg__mesh .mesh-sphere--1 {
+    width: min(88vw, 42rem);
+    height: min(88vw, 42rem);
+    top: -12%;
+    left: -22%;
+    animation: mesh-drift-1 52s ease-in-out infinite alternate;
+}
+
+.weather-bg__mesh .mesh-sphere--2 {
+    width: min(100vw, 48rem);
+    height: min(100vw, 48rem);
+    top: 18%;
+    left: 22%;
+    animation: mesh-drift-2 44s ease-in-out infinite alternate;
+    animation-delay: -10s;
+}
+
+.weather-bg__mesh .mesh-sphere--3 {
+    width: min(92vw, 44rem);
+    height: min(92vw, 44rem);
+    bottom: -18%;
+    left: 8%;
+    animation: mesh-drift-3 58s ease-in-out infinite alternate;
+    animation-delay: -22s;
+}
+
+.weather-bg__mesh .mesh-sphere--4 {
+    width: min(85vw, 40rem);
+    height: min(85vw, 40rem);
+    top: -8%;
+    right: -20%;
+    animation: mesh-drift-4 48s ease-in-out infinite alternate;
+    animation-delay: -16s;
+}
+
+@keyframes mesh-drift-1 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+        transform: translate3d(9%, 11%, 0) scale(1.14);
+    }
+}
+
+@keyframes mesh-drift-2 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1.06);
+    }
+    100% {
+        transform: translate3d(-10%, 7%, 0) scale(0.92);
+    }
+}
+
+@keyframes mesh-drift-3 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(0.95);
+    }
+    100% {
+        transform: translate3d(6%, -9%, 0) scale(1.1);
+    }
+}
+
+@keyframes mesh-drift-4 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+        transform: translate3d(-8%, 10%, 0) scale(1.08);
+    }
+}
+
 .weather-bg__canvas {
     position: absolute;
     inset: 0;
@@ -337,7 +440,8 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
 @media (prefers-reduced-motion: reduce) {
     #weather-bg .weather-bg__cloud-item,
     #weather-bg .weather-bg__clouds .cloud-fog,
-    #weather-bg .weather-bg__clouds .sky-mesh {
+    #weather-bg .weather-bg__clouds .sky-mesh,
+    #weather-bg .weather-bg__mesh .mesh-sphere {
         animation: none !important;
     }
 }

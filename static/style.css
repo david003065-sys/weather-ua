@@ -751,8 +751,10 @@ html[data-theme="light"] .brand-icon {
 
 html[data-theme="light"] .weather-hero,
 html[data-theme="light"] .weather-card {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(40px) saturate(160%);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
 }
 
 /* Glass only — без внутренней «подложки» */
