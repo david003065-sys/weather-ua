@@ -268,6 +268,7 @@
      * @param {boolean} [isNight] — иначе берётся из .weather-app[data-is-night]
      */
     Atmosphere.prototype.update = function (weatherCode, isNight) {
+        console.log("Atmosphere updating with code:", weatherCode);
         this._ensureDom();
         var app = document.querySelector(".weather-app");
         if (isNight === undefined && app) {
