@@ -22,6 +22,8 @@ import (
 // EnsureData гарантирует, что data/places.db существует.
 // Если файла нет, он автоматически скачивает необходимые GeoNames‑файлы,
 // генерирует CSV с городами и импортирует его в SQLite.
+// Вызов блокирующий и может занять десятки секунд; для проверок живости (health)
+// запускайте HTTP-сервер первым и вызывайте EnsureData в отдельной goroutine.
 func EnsureData(logger *log.Logger) error {
 	const dbPath = "data/places.db"
 	if _, err := os.Stat(dbPath); err == nil {

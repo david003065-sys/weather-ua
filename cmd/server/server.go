@@ -27,30 +27,32 @@ func Run() error {
 	weatherClient.SetLogger(logger)
 	logger.Printf("weather client created once, cache TTL 15m")
 
-	// гарантируем наличие data/places.db (автоматическая загрузка GeoNames на первом запуске)
-	if err := bootstrap.EnsureData(logger); err != nil {
-		logger.Printf("bootstrap data failed: %v", err)
-	}
+	srv := handlers.NewServer(tmpl, weatherClient, nil, logger)
+	srv.SetPlacesInitPending(true)
+	go func() {
+		defer srv.SetPlacesInitPending(false)
 
-	var placesStore *places.Store
-	const placesRelPath = "data/places.db"
-	if _, err := os.Stat(placesRelPath); err == nil {
-		abs, _ := filepath.Abs(placesRelPath)
-		ps, err := places.NewStore(placesRelPath)
-		if err != nil {
-			logger.Printf("failed to init places store at %s: %v", abs, err)
-		} else {
-			placesStore = ps
-			logger.Printf("places store initialized from %s", abs)
+		// Тяжёлая часть: EnsureData (скачивание/импорт) и открытие SQLite + FTS — не блокируют health check.
+		if err := bootstrap.EnsureData(logger); err != nil {
+			logger.Printf("bootstrap data failed: %v", err)
 		}
-	} else {
-		wd, _ := os.Getwd()
-		abs, _ := filepath.Abs(placesRelPath)
-		logger.Printf("places db not found at %s (wd=%s): %v", abs, wd, err)
-	}
-	logger.Printf("search enabled: %v", placesStore != nil)
 
-	srv := handlers.NewServer(tmpl, weatherClient, placesStore, logger)
+		const placesRelPath = "data/places.db"
+		if _, err := os.Stat(placesRelPath); err == nil {
+			abs, _ := filepath.Abs(placesRelPath)
+			ps, err := places.NewStore(placesRelPath)
+			if err != nil {
+				logger.Printf("failed to init places store at %s: %v", abs, err)
+			} else {
+				srv.SetPlacesStore(ps)
+				logger.Printf("places store initialized from %s", abs)
+			}
+		} else {
+			wd, _ := os.Getwd()
+			abs, _ := filepath.Abs(placesRelPath)
+			logger.Printf("places db not found at %s (wd=%s): %v", abs, wd, err)
+		}
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.Index)
@@ -81,7 +83,7 @@ func Run() error {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "10000"
 	}
 
 	addr := ":" + port
