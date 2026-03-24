@@ -63,9 +63,29 @@
         this._cloudsLayer = null;
         this._resizeObs = null;
         this._ensureDom();
+        this._syncFromWeatherApp();
     }
 
+    /** Первичная отрисовка из data-weather-code / data-is-night на .weather-app (SSR). */
+    Atmosphere.prototype._syncFromWeatherApp = function () {
+        var app = document.querySelector(".weather-app");
+        if (!app) {
+            var self = this;
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", function () {
+                    self._syncFromWeatherApp();
+                });
+            }
+            return;
+        }
+        var code = parseInt(app.getAttribute("data-weather-code") || app.dataset.weatherCode || "0", 10);
+        if (Number.isNaN(code)) code = 0;
+        var night = app.dataset.isNight === "true";
+        this.update(code, night);
+    };
+
     Atmosphere.prototype._ensureDom = function () {
+        var self = this;
         var el = document.getElementById("weather-bg");
         if (!el) {
             el = document.createElement("div");
@@ -75,17 +95,21 @@
             el.innerHTML =
                 '<div class="weather-bg__clouds" aria-hidden="true"></div>' +
                 '<canvas class="weather-bg__canvas" aria-hidden="true"></canvas>';
-            var app = document.querySelector(".weather-app");
-            if (app && app.parentNode) {
-                app.parentNode.insertBefore(el, app);
+            function mount() {
+                if (!el.parentNode && document.body) {
+                    document.body.prepend(el);
+                    self._resizeCanvas();
+                }
+            }
+            if (document.body) {
+                mount();
             } else {
-                document.body.insertBefore(el, document.body.firstChild);
+                document.addEventListener("DOMContentLoaded", mount);
             }
         }
         this._root = el;
         this._cloudsLayer = el.querySelector(".weather-bg__clouds");
         this._canvas = el.querySelector(".weather-bg__canvas");
-        var self = this;
         if (global.ResizeObserver && this._canvas && this._root) {
             if (this._resizeObs) this._resizeObs.disconnect();
             this._resizeObs = new ResizeObserver(function () {

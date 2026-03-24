@@ -14,13 +14,16 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    z-index: -1;
+    z-index: -1 !important;
     pointer-events: none;
     overflow: hidden;
     background: #0a0f1a;
     transition:
         background 2s ease,
         opacity 2s ease;
+    /* Временная проверка: есть ли блок в DOM (убрать после отладки) */
+    border: 5px solid red !important;
+    box-sizing: border-box;
 }
 
 .weather-bg__canvas {
@@ -151,6 +154,12 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
     background: linear-gradient(180deg, #94a3b8 0%, #b0bfd2 100%);
+}
+
+/* Иначе непрозрачный фон .weather-app полностью перекрывает #weather-bg */
+.weather-app,
+html[data-theme="light"] .weather-app {
+    background: transparent !important;
 }
 
 .weather-app {
