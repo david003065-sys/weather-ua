@@ -792,11 +792,18 @@ html[data-theme="light"] .weather-hero__atmo {
 
 .weather-hero__city {
     margin: 0;
-    font-size: clamp(1.2rem, 3.4vw, 1.45rem);
+    font-size: 2rem;
     font-weight: 500;
     letter-spacing: -0.02em;
-    line-height: 1.2;
+    line-height: 1.15;
+    text-transform: none;
     color: var(--canvas-text);
+}
+
+@media (max-width: 380px) {
+    .weather-hero__city {
+        font-size: clamp(1.5rem, 6vw, 2rem);
+    }
 }
 
 html[data-theme="light"] .weather-hero__city {
@@ -825,7 +832,7 @@ html[data-theme="light"] .weather-hero__subloc {
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 0.35rem 0;
+    padding: 0.5rem 0 0.25rem;
     margin: 0;
 }
 
@@ -855,12 +862,19 @@ html[data-theme="light"] .weather-hero__temp-glow {
 }
 
 .weather-hero__temp {
-    font-size: 5rem;
-    font-weight: 200;
-    line-height: 0.92;
-    letter-spacing: -0.02em;
+    font-size: 8rem;
+    font-weight: 100 !important;
+    font-synthesis: none;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
     color: #ffffff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.weather-hero__temp strong,
+.weather-hero__temp b {
+    font-weight: 100 !important;
+    font-synthesis: none;
 }
 
 html[data-theme="light"] .weather-hero__temp {
@@ -868,14 +882,14 @@ html[data-theme="light"] .weather-hero__temp {
     text-shadow: none;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 520px) {
     .weather-hero__temp {
-        font-size: clamp(2.75rem, 18vw, 5rem);
+        font-size: clamp(4.25rem, 22vw, 8rem);
     }
 }
 
 .weather-hero__unit {
-    margin-top: 0.85rem;
+    margin-top: 1.35rem;
     margin-left: 0.12rem;
     font-size: 1.35rem;
     font-weight: 300;
@@ -888,11 +902,11 @@ html[data-theme="light"] .weather-hero__unit {
 }
 
 .weather-hero__condition {
-    margin: 0 auto;
+    margin: 0.75rem auto 0;
     max-width: 36rem;
-    font-size: clamp(0.875rem, 2.2vw, 0.95rem);
-    line-height: 1.5;
-    font-weight: 400;
+    font-size: 1.2rem;
+    line-height: 1.45;
+    font-weight: 300;
     letter-spacing: -0.02em;
     color: var(--canvas-text-muted);
 }
