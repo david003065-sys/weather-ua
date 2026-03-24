@@ -2,6 +2,169 @@
    Atmosphere UI — bold contrast, depth, temperature-first (loads after style.css)
    ============================================================================= */
 
+/* -----------------------------------------------------------------------------
+   Живая Атмосфера (#weather-bg) — atmosphere.js / class Atmosphere
+   ----------------------------------------------------------------------------- */
+
+#weather-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: #0a0f1a;
+    transition:
+        background 2s ease,
+        opacity 2s ease;
+}
+
+.weather-bg__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    display: block;
+}
+
+#weather-bg.weather-bg--fx-rain .weather-bg__canvas,
+#weather-bg.weather-bg--fx-snow .weather-bg__canvas {
+    opacity: 1;
+}
+
+.weather-bg__clouds {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 2s ease;
+    pointer-events: none;
+}
+
+#weather-bg.weather-bg--fx-clouds .weather-bg__clouds {
+    opacity: 1;
+}
+
+.weather-bg__cloud-item {
+    position: absolute;
+    animation: weather-bg-cloud-drift linear infinite;
+    will-change: transform;
+}
+
+.weather-bg__cloud-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.15));
+}
+
+html[data-theme="light"] .weather-bg__cloud-svg path {
+    fill: rgba(255, 255, 255, 0.72);
+}
+
+html[data-theme="dark"] .weather-bg__cloud-svg path,
+#weather-bg.weather-bg--night .weather-bg__cloud-svg path {
+    fill: rgba(148, 163, 184, 0.38);
+}
+
+html[data-theme="light"] #weather-bg.weather-bg--night .weather-bg__cloud-svg path {
+    fill: rgba(100, 116, 139, 0.45);
+}
+
+@keyframes weather-bg-cloud-drift {
+    0% {
+        transform: translate3d(-12vw, 0, 0);
+    }
+    100% {
+        transform: translate3d(12vw, 3vh, 0);
+    }
+}
+
+/* Ясно — день */
+html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
+    background: linear-gradient(185deg, #6eb0ff 0%, #9dd0ff 35%, #c5e6ff 65%, #e8f4fc 100%);
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
+    background: linear-gradient(180deg, #1a3a62 0%, #243e5c 45%, #152535 100%);
+}
+
+/* Ясно — ночь */
+#weather-bg.weather-bg--sky-clear.weather-bg--night {
+    background: linear-gradient(185deg, #0a1628 0%, #122238 40%, #0c1522 100%);
+}
+
+html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--night {
+    background: linear-gradient(180deg, #2a3d56 0%, #3d4f6a 50%, #2f4158 100%);
+}
+
+/* Облачно */
+html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
+    background: linear-gradient(180deg, #8faecf 0%, #a8bdd4 45%, #c2d0e0 100%);
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
+    background: linear-gradient(180deg, #1c2636 0%, #283548 55%, #1a222e 100%);
+}
+
+html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
+    background: linear-gradient(180deg, #3d4d63 0%, #4a5a70 100%);
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night,
+#weather-bg.weather-bg--sky-cloudy.weather-bg--night {
+    background: linear-gradient(180deg, #141c28 0%, #1e2838 100%);
+}
+
+/* Дождь / гроза */
+html[data-theme="light"] #weather-bg.weather-bg--sky-rain.weather-bg--day,
+html[data-theme="light"] #weather-bg.weather-bg--sky-storm.weather-bg--day {
+    background: linear-gradient(180deg, #6b7f96 0%, #8a9bb0 50%, #9cabc0 100%);
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-rain.weather-bg--day,
+html[data-theme="dark"] #weather-bg.weather-bg--sky-storm.weather-bg--day,
+html[data-theme="dark"] #weather-bg.weather-bg--sky-rain.weather-bg--night,
+html[data-theme="dark"] #weather-bg.weather-bg--sky-storm.weather-bg--night {
+    background: linear-gradient(180deg, #0e141d 0%, #16202e 55%, #0c121a 100%);
+}
+
+html[data-theme="light"] #weather-bg.weather-bg--sky-rain.weather-bg--night,
+html[data-theme="light"] #weather-bg.weather-bg--sky-storm.weather-bg--night {
+    background: linear-gradient(180deg, #4a5568 0%, #5c6578 100%);
+}
+
+/* Снег */
+html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--day {
+    background: linear-gradient(180deg, #b8c9dc 0%, #d2deed 100%);
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--day,
+html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
+    background: linear-gradient(180deg, #1e2a3a 0%, #2a3848 100%);
+}
+
+html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
+    background: linear-gradient(180deg, #94a3b8 0%, #b0bfd2 100%);
+}
+
+.weather-app {
+    position: relative;
+    z-index: 1;
+}
+
+.weather-app > .site-main,
+.weather-app > .site-footer {
+    position: relative;
+    z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #weather-bg .weather-bg__cloud-item {
+        animation: none !important;
+    }
+}
+
 .site-main {
     padding-top: 0.5rem;
     padding-bottom: 4.5rem;
@@ -501,3 +664,4 @@ html[data-theme="light"] .atmo-chart.chart-card {
         transition: none;
     }
 }
+

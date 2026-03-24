@@ -3,6 +3,7 @@
 {{ define "description" }}{{ .MetaDescription }}{{ end }}
 
 {{ define "index-content" }}
+{{/* Живая Атмосфера: #weather-bg + class Atmosphere — static/atmosphere.css, static/atmosphere.js (defer, перед script.js в templates/layout.html) */}}
 <section class="weather-hero" aria-labelledby="hero-title">
     <div class="weather-hero__atmo" aria-hidden="true"></div>
     <div class="weather-hero__content">

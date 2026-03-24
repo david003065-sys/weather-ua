@@ -6,6 +6,7 @@ const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/static/style.css",
   "/static/atmosphere.css",
+  "/static/atmosphere.js",
   "/static/script.js",
   "/static/theme.js",
   "/static/manifest.json",

@@ -41,9 +41,12 @@
         return "weather-cloudy";
     }
 
-    function syncWeatherAtmosphere(el, code, night) {
+    /**
+     * @param engineCode опционально: OpenWeather id (data.weather[0].id) для Atmosphere; иначе тот же WMO
+     */
+    function syncWeatherAtmosphere(el, wmoCode, night, engineCode) {
         if (!el) return;
-        var c = typeof code === "number" ? code : parseInt(code, 10);
+        var c = typeof wmoCode === "number" ? wmoCode : parseInt(wmoCode, 10);
         if (Number.isNaN(c)) c = 0;
         var n = night === true || night === "true";
         el.dataset.weatherCode = String(c);
@@ -56,6 +59,11 @@
             el.classList.remove(m);
         });
         el.classList.add(mood);
+        var eng =
+            engineCode !== undefined && engineCode !== null ? Number(engineCode) : c;
+        if (typeof atmosphere !== "undefined" && atmosphere && typeof atmosphere.update === "function") {
+            atmosphere.update(eng, n);
+        }
     }
 
     function updateBackgroundByTemp(temp) {
@@ -248,7 +256,14 @@
                 typeof data.current.weatherCode === "number" &&
                 typeof data.current.isNight === "boolean"
             ) {
-                syncWeatherAtmosphere(app, data.current.weatherCode, data.current.isNight);
+                var engineId =
+                    data.weather &&
+                    data.weather[0] &&
+                    data.weather[0].id != null &&
+                    !Number.isNaN(Number(data.weather[0].id))
+                        ? Number(data.weather[0].id)
+                        : data.current.weatherCode;
+                syncWeatherAtmosphere(app, data.current.weatherCode, data.current.isNight, engineId);
             }
         }
 
