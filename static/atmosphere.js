@@ -279,6 +279,8 @@
         var el = this._root;
         if (!el) return;
 
+        el.setAttribute("data-wmo", String(weatherCode));
+
         var skies = ["clear", "cloudy", "rain", "snow", "storm"];
         var i;
         for (i = 0; i < skies.length; i++) {

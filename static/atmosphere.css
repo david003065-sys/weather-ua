@@ -52,6 +52,7 @@
 
 .weather-bg__cloud-item {
     position: absolute;
+    opacity: 0.55;
     animation: weather-bg-cloud-drift linear infinite;
     will-change: transform;
 }
@@ -60,20 +61,20 @@
     display: block;
     width: 100%;
     height: auto;
-    filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.15));
+    filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.2));
 }
 
 html[data-theme="light"] .weather-bg__cloud-svg path {
-    fill: rgba(255, 255, 255, 0.72);
+    fill: rgba(255, 255, 255, 0.85);
 }
 
 html[data-theme="dark"] .weather-bg__cloud-svg path,
 #weather-bg.weather-bg--night .weather-bg__cloud-svg path {
-    fill: rgba(148, 163, 184, 0.38);
+    fill: rgba(203, 213, 225, 0.5);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--night .weather-bg__cloud-svg path {
-    fill: rgba(100, 116, 139, 0.45);
+    fill: rgba(100, 116, 139, 0.55);
 }
 
 @keyframes weather-bg-cloud-drift {
@@ -109,7 +110,7 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
-    background: linear-gradient(180deg, #1c2636 0%, #283548 55%, #1a222e 100%);
+    background: linear-gradient(to bottom, #2c3e50, #1a252f);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
@@ -118,7 +119,17 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night,
 #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
-    background: linear-gradient(180deg, #141c28 0%, #1e2838 100%);
+    background: linear-gradient(to bottom, #2c3e50, #0d1117);
+}
+
+/* WMO 3 — пасмурно: заметный градиент */
+html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy[data-wmo="3"] {
+    background: linear-gradient(to bottom, #8fb4d4, #5a7390) !important;
+}
+
+html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy[data-wmo="3"],
+#weather-bg.weather-bg--sky-cloudy[data-wmo="3"].weather-bg--night {
+    background: linear-gradient(to bottom, #2c3e50, #000000) !important;
 }
 
 /* Дождь / гроза */
