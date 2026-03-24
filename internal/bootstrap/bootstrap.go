@@ -2,11 +2,11 @@ package bootstrap
 
 import (
 	"archive/zip"
+	"bufio"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"io"
-	"bufio"
-	"encoding/csv"
 	"log"
 	"net/http"
 	"os"
@@ -295,12 +295,12 @@ func loadCities(path string, admin1Names map[string]string) ([]*city, map[string
 	defer f.Close()
 
 	allowedFeatureCodes := map[string]struct{}{
-		"PPL":  {},
-		"PPLA": {},
+		"PPL":   {},
+		"PPLA":  {},
 		"PPLA2": {},
 		"PPLA3": {},
 		"PPLA4": {},
-		"PPLC": {},
+		"PPLC":  {},
 	}
 
 	var (
@@ -538,8 +538,8 @@ func importPlacesCSV(inputPath, outputPath string, logger *log.Logger) error {
 	}
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO places (name_uk, name_ru, oblast, raion, type, lat, lon, search_name)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO places (name_uk, name_ru, oblast, raion, type, population, lat, lon, search_name)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("prepare insert: %w", err)
@@ -581,6 +581,12 @@ func importPlacesCSV(inputPath, outputPath string, logger *log.Logger) error {
 		if err != nil {
 			continue
 		}
+		var population int64
+		if popStr := getCSV(row, idx, "population"); popStr != "" {
+			if popVal, err := strconv.ParseInt(strings.TrimSpace(popStr), 10, 64); err == nil && popVal > 0 {
+				population = popVal
+			}
+		}
 
 		normUK := places.Normalize(nameUK)
 		normRU := ""
@@ -601,7 +607,7 @@ func importPlacesCSV(inputPath, outputPath string, logger *log.Logger) error {
 			}
 		}
 
-		if _, err := stmt.Exec(nameUK, nullOr(nameRU), oblast, nullOr(raion), typ, lat, lon, searchName); err != nil {
+		if _, err := stmt.Exec(nameUK, nullOr(nameRU), oblast, nullOr(raion), typ, population, lat, lon, searchName); err != nil {
 			return fmt.Errorf("insert row: %w", err)
 		}
 		count++
@@ -633,6 +639,7 @@ CREATE TABLE IF NOT EXISTS places (
 	oblast TEXT NOT NULL,
 	raion TEXT,
 	type TEXT NOT NULL,
+	population INTEGER NOT NULL DEFAULT 0,
 	lat REAL NOT NULL,
 	lon REAL NOT NULL,
 	search_name TEXT NOT NULL
@@ -657,4 +664,3 @@ func nullOr(s string) interface{} {
 	}
 	return s
 }
-

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -14,22 +15,24 @@ import (
 )
 
 type Place struct {
-	ID      int64   `json:"id"`
+	ID int64 `json:"id"`
 	// Name is the default display name (usually Ukrainian). It mirrors NameUK.
-	Name    string  `json:"name"`
-	NameUK  string  `json:"name_uk"`
-	NameRU  string  `json:"name_ru"`
-	Type    string  `json:"type"`
-	Oblast  string  `json:"oblast"`
-	Raion   *string `json:"raion,omitempty"`
-	Lat     float64 `json:"lat"`
-	Lon     float64 `json:"lon"`
+	Name       string  `json:"name"`
+	NameUK     string  `json:"name_uk"`
+	NameRU     string  `json:"name_ru"`
+	Type       string  `json:"type"`
+	Oblast     string  `json:"oblast"`
+	Raion      *string `json:"raion,omitempty"`
+	Population int64   `json:"population"`
+	Lat        float64 `json:"lat"`
+	Lon        float64 `json:"lon"`
 }
 
 type Store struct {
-	db     *sql.DB
-	getStmt *sql.Stmt
-	useFTS bool
+	db            *sql.DB
+	getStmt       *sql.Stmt
+	useFTS        bool
+	hasPopulation bool
 
 	cache *searchCache
 }
@@ -48,22 +51,24 @@ func NewStore(path string) (*Store, error) {
 	logDBDiagnostics(db)
 
 	useFTS := ensureFTS(db)
+	hasPopulation := hasColumn(db, "places", "population")
 
-	getStmt, err := db.Prepare(`
-		SELECT id, name_uk, name_ru, type, oblast, raion, lat, lon
+	getStmt, err := db.Prepare(fmt.Sprintf(`
+		SELECT %s
 		FROM places
 		WHERE id = ?
-	`)
+	`, selectPlaceColumns(hasPopulation)))
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
 
 	return &Store{
-		db:     db,
-		getStmt: getStmt,
-		useFTS: useFTS,
-		cache:  newSearchCache(256, 60*time.Second),
+		db:            db,
+		getStmt:       getStmt,
+		useFTS:        useFTS,
+		hasPopulation: hasPopulation,
+		cache:         newSearchCache(256, 60*time.Second),
 	}, nil
 }
 
@@ -111,11 +116,21 @@ func (s *Store) Search(ctx context.Context, q string, limit int) ([]Place, error
 		return cached, nil
 	}
 
+	// Берем расширенный пул кандидатов, чтобы итоговое ранжирование
+	// (exact/prefix/population) работало корректно до обрезки limit.
+	candidateLimit := limit * 6
+	if candidateLimit < 30 {
+		candidateLimit = 30
+	}
+	if candidateLimit > 300 {
+		candidateLimit = 300
+	}
+
 	// 1) попробовать FTS5
 	var result []Place
 	var err error
 	if s.useFTS {
-		result, err = s.searchFTS(ctx, qNorm, qLatin, limit)
+		result, err = s.searchFTS(ctx, qNorm, qLatin, candidateLimit)
 		if err != nil {
 			log.Printf("[places] FTS search failed, fallback to LIKE: %v", err)
 		}
@@ -123,10 +138,15 @@ func (s *Store) Search(ctx context.Context, q string, limit int) ([]Place, error
 
 	// 2) если FTS отключён или ничего не нашлось — fallback LIKE
 	if !s.useFTS || len(result) == 0 {
-		result, err = s.searchFallbackLike(ctx, qNorm, qLatin, limit)
+		result, err = s.searchFallbackLike(ctx, qNorm, qLatin, candidateLimit)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	rankPlaces(result, qNorm, qLatin)
+	if len(result) > limit {
+		result = result[:limit]
 	}
 
 	s.cache.Set(key, result)
@@ -141,16 +161,8 @@ func (s *Store) GetByID(ctx context.Context, id int64) (*Place, error) {
 	var p Place
 	var raion sql.NullString
 	var nameRU sql.NullString
-	err := s.getStmt.QueryRowContext(ctx, id).Scan(
-		&p.ID,
-		&p.NameUK,
-		&nameRU,
-		&p.Type,
-		&p.Oblast,
-		&raion,
-		&p.Lat,
-		&p.Lon,
-	)
+	var population sql.NullInt64
+	err := s.getStmt.QueryRowContext(ctx, id).Scan(placeScanTargets(&p, &nameRU, &raion, &population, s.hasPopulation)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -165,6 +177,9 @@ func (s *Store) GetByID(ctx context.Context, id int64) (*Place, error) {
 		v := raion.String
 		p.Raion = &v
 	}
+	if population.Valid {
+		p.Population = population.Int64
+	}
 	return &p, nil
 }
 
@@ -173,26 +188,18 @@ func (s *Store) Nearest(ctx context.Context, lat, lon float64) (*Place, error) {
 	if s == nil {
 		return nil, errors.New("places store not initialized")
 	}
-	const sqlNearest = `
-SELECT id, name_uk, name_ru, type, oblast, raion, lat, lon
+	sqlNearest := fmt.Sprintf(`
+SELECT %s
 FROM places
 ORDER BY ((lat - ?) * (lat - ?) + (lon - ?) * (lon - ?)) ASC
 LIMIT 1;
-`
+`, selectPlaceColumns(s.hasPopulation))
 	row := s.db.QueryRowContext(ctx, sqlNearest, lat, lat, lon, lon)
 	var p Place
 	var raion sql.NullString
 	var nameRU sql.NullString
-	if err := row.Scan(
-		&p.ID,
-		&p.NameUK,
-		&nameRU,
-		&p.Type,
-		&p.Oblast,
-		&raion,
-		&p.Lat,
-		&p.Lon,
-	); err != nil {
+	var population sql.NullInt64
+	if err := row.Scan(placeScanTargets(&p, &nameRU, &raion, &population, s.hasPopulation)...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -205,6 +212,9 @@ LIMIT 1;
 	if raion.Valid {
 		v := raion.String
 		p.Raion = &v
+	}
+	if population.Valid {
+		p.Population = population.Int64
 	}
 	return &p, nil
 }
@@ -446,14 +456,14 @@ func (s *Store) searchFTS(ctx context.Context, qNorm, qLatin string, limit int) 
 	}
 	matchQuery := strings.Join(cleaned, " ")
 
-	const sqlFTS = `
-SELECT p.id, p.name_uk, p.name_ru, p.type, p.oblast, p.raion, p.lat, p.lon
+	sqlFTS := fmt.Sprintf(`
+SELECT %s
 FROM places_fts f
 JOIN places p ON p.id = f.rowid
 WHERE f MATCH ?
 ORDER BY bm25(f) ASC
 LIMIT ?;
-`
+`, prefixedPlaceColumns("p", s.hasPopulation))
 	rows, err := s.db.QueryContext(ctx, sqlFTS, matchQuery, limit)
 	if err != nil {
 		return nil, err
@@ -465,16 +475,8 @@ LIMIT ?;
 		var p Place
 		var raion sql.NullString
 		var nameRU sql.NullString
-		if err := rows.Scan(
-			&p.ID,
-			&p.NameUK,
-			&nameRU,
-			&p.Type,
-			&p.Oblast,
-			&raion,
-			&p.Lat,
-			&p.Lon,
-		); err != nil {
+		var population sql.NullInt64
+		if err := rows.Scan(placeScanTargets(&p, &nameRU, &raion, &population, s.hasPopulation)...); err != nil {
 			return nil, err
 		}
 		p.Name = p.NameUK
@@ -484,6 +486,9 @@ LIMIT ?;
 		if raion.Valid {
 			v := raion.String
 			p.Raion = &v
+		}
+		if population.Valid {
+			p.Population = population.Int64
 		}
 		result = append(result, p)
 	}
@@ -495,16 +500,20 @@ LIMIT ?;
 
 // searchFallbackLike — подстрочный LIKE-поиск по названиям и search_name.
 func (s *Store) searchFallbackLike(ctx context.Context, qNorm, qLatin string, limit int) ([]Place, error) {
-	const sqlLike = `
-SELECT id, name_uk, name_ru, type, oblast, raion, lat, lon
+	orderBy := "LENGTH(name_uk), name_uk"
+	if s.hasPopulation {
+		orderBy = "population DESC, " + orderBy
+	}
+	sqlLike := fmt.Sprintf(`
+SELECT %s
 FROM places
 WHERE
     lower(name_uk) LIKE '%' || ? || '%'
     OR lower(name_ru) LIKE '%' || ? || '%'
     OR search_name LIKE '%' || ? || '%'
-ORDER BY LENGTH(name_uk), name_uk
+ORDER BY %s
 LIMIT ?;
-`
+`, selectPlaceColumns(s.hasPopulation), orderBy)
 	rows, err := s.db.QueryContext(ctx, sqlLike, qNorm, qNorm, qLatin, limit)
 	if err != nil {
 		return nil, err
@@ -516,16 +525,8 @@ LIMIT ?;
 		var p Place
 		var raion sql.NullString
 		var nameRU sql.NullString
-		if err := rows.Scan(
-			&p.ID,
-			&p.NameUK,
-			&nameRU,
-			&p.Type,
-			&p.Oblast,
-			&raion,
-			&p.Lat,
-			&p.Lon,
-		); err != nil {
+		var population sql.NullInt64
+		if err := rows.Scan(placeScanTargets(&p, &nameRU, &raion, &population, s.hasPopulation)...); err != nil {
 			return nil, err
 		}
 		p.Name = p.NameUK
@@ -536,12 +537,118 @@ LIMIT ?;
 			v := raion.String
 			p.Raion = &v
 		}
+		if population.Valid {
+			p.Population = population.Int64
+		}
 		result = append(result, p)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func hasColumn(db *sql.DB, table, col string) bool {
+	rows, err := db.Query(fmt.Sprintf(`PRAGMA table_info(%s)`, table))
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notNull int
+		var dflt sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &dflt, &pk); err != nil {
+			continue
+		}
+		if strings.EqualFold(name, col) {
+			return true
+		}
+	}
+	return false
+}
+
+func selectPlaceColumns(hasPopulation bool) string {
+	base := "id, name_uk, name_ru, type, oblast, raion"
+	if hasPopulation {
+		base += ", population"
+	}
+	base += ", lat, lon"
+	return base
+}
+
+func prefixedPlaceColumns(prefix string, hasPopulation bool) string {
+	p := strings.TrimSpace(prefix)
+	if p == "" {
+		return selectPlaceColumns(hasPopulation)
+	}
+	col := func(name string) string { return p + "." + name }
+	base := col("id") + ", " + col("name_uk") + ", " + col("name_ru") + ", " + col("type") + ", " + col("oblast") + ", " + col("raion")
+	if hasPopulation {
+		base += ", " + col("population")
+	}
+	base += ", " + col("lat") + ", " + col("lon")
+	return base
+}
+
+func placeScanTargets(p *Place, nameRU *sql.NullString, raion *sql.NullString, population *sql.NullInt64, hasPopulation bool) []any {
+	targets := []any{
+		&p.ID,
+		&p.NameUK,
+		nameRU,
+		&p.Type,
+		&p.Oblast,
+		raion,
+	}
+	if hasPopulation {
+		targets = append(targets, population)
+	}
+	targets = append(targets, &p.Lat, &p.Lon)
+	return targets
+}
+
+func rankPlaces(result []Place, qNorm, qLatin string) {
+	queryNorm := Normalize(qNorm)
+	type scored struct {
+		p      Place
+		exact  bool
+		prefix bool
+		pop    int64
+	}
+	scoredItems := make([]scored, 0, len(result))
+	for _, p := range result {
+		nameUKNorm := Normalize(strings.ToLower(strings.TrimSpace(p.NameUK)))
+		nameRUNorm := Normalize(strings.ToLower(strings.TrimSpace(p.NameRU)))
+		exact := nameUKNorm == queryNorm || nameRUNorm == queryNorm || nameUKNorm == qLatin || nameRUNorm == qLatin
+		prefix := strings.HasPrefix(nameUKNorm, queryNorm) || strings.HasPrefix(nameRUNorm, queryNorm) ||
+			strings.HasPrefix(nameUKNorm, qLatin) || strings.HasPrefix(nameRUNorm, qLatin)
+		scoredItems = append(scoredItems, scored{
+			p:      p,
+			exact:  exact,
+			prefix: prefix,
+			pop:    p.Population,
+		})
+	}
+
+	sort.Slice(scoredItems, func(i, j int) bool {
+		a, b := scoredItems[i], scoredItems[j]
+		if a.exact != b.exact {
+			return a.exact
+		}
+		if a.prefix != b.prefix {
+			return a.prefix
+		}
+		if a.pop != b.pop {
+			return a.pop > b.pop
+		}
+		return a.p.NameUK < b.p.NameUK
+	})
+
+	for i := range scoredItems {
+		result[i] = scoredItems[i].p
+	}
 }
 
 // logDBDiagnostics выводит структуру таблиц и пример строки для быстрой отладки.
@@ -583,12 +690,12 @@ func logDBDiagnostics(db *sql.DB) {
 		var cols []string
 		for tri.Next() {
 			var (
-				cid    int
-				name   string
-				ctype  string
+				cid     int
+				name    string
+				ctype   string
 				notnull int
-				dflt   sql.NullString
-				pk     int
+				dflt    sql.NullString
+				pk      int
 			)
 			if err := tri.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
 				log.Printf("[places] table_info scan failed: %v", err)
@@ -622,12 +729,12 @@ func logDBDiagnostics(db *sql.DB) {
 		var colNames []string
 		for tri.Next() {
 			var (
-				cid    int
-				name   string
-				ctype  string
+				cid     int
+				name    string
+				ctype   string
 				notnull int
-				dflt   sql.NullString
-				pk     int
+				dflt    sql.NullString
+				pk      int
 			)
 			if err := tri.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
 				break
@@ -654,4 +761,3 @@ func logDBDiagnostics(db *sql.DB) {
 		log.Printf("[places] sample row from %s: %+v", table, sample)
 	}
 }
-
