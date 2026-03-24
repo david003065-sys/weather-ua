@@ -20,7 +20,7 @@
     /**
      * @returns {{ sky: string, fx: string }}
      * sky: clear | cloudy | rain | snow | storm
-     * fx: none | rain | snow | svg-clouds | cloud-layers — 4×.cloud-fog (WMO 1–3, 45, 48)
+     * fx: none | rain | snow | svg-clouds | cloud-mesh (WMO 3) | cloud-layers — 4×.cloud-fog (WMO 1,2,45,48)
      */
     function resolveState(code, isNight) {
         var c = typeof code === "number" ? code : parseInt(code, 10);
@@ -44,11 +44,13 @@
             if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return { sky: "rain", fx: "rain" };
             if ((c >= 71 && c <= 77) || c === 85 || c === 86) return { sky: "snow", fx: "snow" };
             if (c === 0) return { sky: "clear", fx: "none" };
-            if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
+            if (c === 3) return { sky: "cloudy", fx: "cloud-mesh" };
+            if ([1, 2].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
             return { sky: "cloudy", fx: "none" };
         }
         if (c === 0) return { sky: "clear", fx: "none" };
-        if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
+        if (c === 3) return { sky: "cloudy", fx: "cloud-mesh" };
+        if ([1, 2].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
         if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return { sky: "cloudy", fx: "rain" };
         if ((c >= 71 && c <= 77) || c === 85 || c === 86) return { sky: "cloudy", fx: "snow" };
         return { sky: "cloudy", fx: "none" };
@@ -255,7 +257,20 @@
         this._raf = global.requestAnimationFrame(frame);
     };
 
-    /** WMO 1–3, 45, 48: дымка (CSS), без SVG. */
+    /** WMO 3: mesh — три больших градиентных слоя (без cloud-fog). */
+    Atmosphere.prototype._buildCloudMesh = function () {
+        if (!this._cloudsLayer) return;
+        this._cloudsLayer.innerHTML = "";
+        var i;
+        for (i = 1; i <= 3; i++) {
+            var mesh = document.createElement("div");
+            mesh.className = "sky-mesh sky-mesh--" + i;
+            mesh.setAttribute("aria-hidden", "true");
+            this._cloudsLayer.appendChild(mesh);
+        }
+    };
+
+    /** WMO 1, 2, 45, 48: дымка (CSS), без SVG. */
     Atmosphere.prototype._buildCloudLayers = function () {
         if (!this._cloudsLayer) return;
         this._cloudsLayer.innerHTML = "";
@@ -334,7 +349,8 @@
             "weather-bg--fx-rain",
             "weather-bg--fx-snow",
             "weather-bg--fx-clouds",
-            "weather-bg--fx-cloud-layers"
+            "weather-bg--fx-cloud-layers",
+            "weather-bg--fx-cloud-mesh"
         );
         this._stopPrecip();
         this._clearCloudsLayer();
@@ -361,6 +377,9 @@
         } else if (state.fx === "svg-clouds") {
             el.classList.add("weather-bg--fx-clouds");
             this._buildSvgClouds();
+        } else if (state.fx === "cloud-mesh") {
+            el.classList.add("weather-bg--fx-cloud-mesh");
+            this._buildCloudMesh();
         } else if (state.fx === "cloud-layers") {
             el.classList.add("weather-bg--fx-cloud-layers");
             this._buildCloudLayers();

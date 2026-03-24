@@ -203,7 +203,7 @@ body.theme-light {
     background-image: none !important;
 }
 
-/* App shell: фон страницы — фиксированный слой #weather-bg (atmosphere.css) */
+/* App shell: только «живое небо» (#weather-bg), без собственной заливки */
 .weather-app {
     position: relative;
     min-height: 100vh;
@@ -214,11 +214,20 @@ body.theme-light {
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
     background: transparent !important;
+    background-color: transparent !important;
     background-image: none !important;
+    box-shadow: none;
+}
+
+.weather-app > .site-main,
+.weather-app > .site-footer {
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 html[data-theme="light"] .weather-app {
     background: transparent !important;
+    background-color: transparent !important;
     background-image: none !important;
 }
 
@@ -716,7 +725,9 @@ html[data-theme="light"] .brand-icon {
    Centered content, content-sized height — no full-viewport stretch
    ============================================================================= */
 
-.weather-hero {
+/* iOS Weather–style glass panel */
+.weather-hero,
+.weather-card {
     position: relative;
     isolation: isolate;
     display: flex;
@@ -725,35 +736,37 @@ html[data-theme="light"] .brand-icon {
     justify-content: flex-start;
     min-height: 0;
     height: auto;
-    padding: clamp(20px, 4vw, 28px) clamp(1rem, 3vw, 1.25rem);
+    padding: clamp(22px, 4.5vw, 32px) clamp(1.1rem, 3.2vw, 1.35rem);
     margin: 1.5rem auto;
     width: 100%;
     max-width: 700px;
     box-sizing: border-box;
-    border-radius: 1.25rem;
-    background: linear-gradient(180deg, #121a2c 0%, #0f1628 100%);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
+    border-radius: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
 }
 
-html[data-theme="light"] .weather-hero {
-    background: linear-gradient(180deg, #d4e0ec 0%, #cddbe8 100%);
-    border-color: rgba(79, 102, 128, 0.28);
-    box-shadow: 0 10px 32px rgba(17, 32, 51, 0.09);
+html[data-theme="light"] .weather-hero,
+html[data-theme="light"] .weather-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
-/* Static depth only — no colored haze */
+/* Glass only — без внутренней «подложки» */
 .weather-hero__atmo {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
     border-radius: inherit;
-    background: radial-gradient(ellipse 90% 55% at 50% 0%, rgba(16, 24, 39, 0.45) 0%, transparent 58%);
+    background: transparent;
 }
 
 html[data-theme="light"] .weather-hero__atmo {
-    background: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(95, 143, 191, 0.12) 0%, transparent 58%);
+    background: transparent;
 }
 
 .weather-hero__content {
@@ -767,6 +780,7 @@ html[data-theme="light"] .weather-hero__atmo {
     align-items: center;
     text-align: center;
     gap: 0.75rem;
+    letter-spacing: -0.02em;
 }
 
 .weather-hero__place {
@@ -778,10 +792,10 @@ html[data-theme="light"] .weather-hero__atmo {
 
 .weather-hero__city {
     margin: 0;
-    font-size: clamp(1.05rem, 3vw, 1.25rem);
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    line-height: 1.25;
+    font-size: clamp(1.2rem, 3.4vw, 1.45rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--canvas-text);
 }
 
@@ -794,6 +808,7 @@ html[data-theme="light"] .weather-hero__city {
     font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.4;
+    letter-spacing: -0.02em;
     color: var(--canvas-text-muted);
     opacity: 0.88;
     max-width: 20rem;
@@ -823,21 +838,11 @@ html[data-theme="light"] .weather-hero__subloc {
     height: clamp(4.5rem, 22vw, 7rem);
     pointer-events: none;
     z-index: 0;
-    background: radial-gradient(
-        ellipse 52% 68% at 50% 50%,
-        #0a0f1a 0%,
-        rgba(10, 15, 26, 0.35) 48%,
-        transparent 72%
-    );
+    background: transparent;
 }
 
 html[data-theme="light"] .weather-hero__temp-glow {
-    background: radial-gradient(
-        ellipse 52% 68% at 50% 50%,
-        rgba(95, 143, 191, 0.16) 0%,
-        rgba(174, 191, 211, 0.4) 45%,
-        transparent 72%
-    );
+    background: transparent;
 }
 
 .weather-hero__temp-line {
@@ -849,25 +854,32 @@ html[data-theme="light"] .weather-hero__temp-glow {
     gap: 0.2rem;
 }
 
-/* ~56–72px — still dominant, panel-friendly */
 .weather-hero__temp {
-    font-size: clamp(56px, 11vw, 72px);
-    font-weight: 800;
-    line-height: 0.9;
-    letter-spacing: -0.05em;
+    font-size: 5rem;
+    font-weight: 200;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
     color: #ffffff;
-    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.55);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 html[data-theme="light"] .weather-hero__temp {
     color: #112033;
-    text-shadow: 0 2px 28px rgba(95, 143, 191, 0.18);
+    text-shadow: none;
+}
+
+@media (max-width: 400px) {
+    .weather-hero__temp {
+        font-size: clamp(2.75rem, 18vw, 5rem);
+    }
 }
 
 .weather-hero__unit {
-    margin-top: 0.55rem;
-    font-size: 1.05rem;
-    font-weight: 600;
+    margin-top: 0.85rem;
+    margin-left: 0.12rem;
+    font-size: 1.35rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
     color: #cbd5e1;
 }
 
@@ -881,6 +893,7 @@ html[data-theme="light"] .weather-hero__unit {
     font-size: clamp(0.875rem, 2.2vw, 0.95rem);
     line-height: 1.5;
     font-weight: 400;
+    letter-spacing: -0.02em;
     color: var(--canvas-text-muted);
 }
 
@@ -914,14 +927,14 @@ html[data-theme="light"] .weather-hero__condition {
 .weather-hero__metric-label {
     font-size: 0.625rem;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: -0.02em;
     text-transform: uppercase;
     color: var(--canvas-text-muted);
 }
 
 .weather-hero__metric-value {
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--canvas-text);
 }
@@ -950,6 +963,11 @@ html[data-theme="light"] .weather-hero__condition {
 
 .weather-hero .forecast-chip {
     font-weight: 500;
+    letter-spacing: -0.02em;
+}
+
+.weather-hero .location-btn {
+    letter-spacing: -0.02em;
 }
 
 html[data-theme="light"] .forecast-chip {
