@@ -57,6 +57,7 @@
     function Atmosphere() {
         this._raf = null;
         this._precip = null;
+        this._rainHeavy = false;
         this._drops = [];
         this._root = null;
         this._canvas = null;
@@ -142,6 +143,7 @@
             this._raf = null;
         }
         this._precip = null;
+        this._rainHeavy = false;
         this._drops = [];
         if (this._canvas) {
             var ctx = this._canvas.getContext("2d");
@@ -153,10 +155,16 @@
         }
     };
 
-    Atmosphere.prototype._runPrecip = function (kind) {
+    /**
+     * @param {"rain"|"snow"} kind
+     * @param {{ rainHeavy?: boolean }} [opts] — OpenWeather 502/503: чуть быстрее обычного дождя
+     */
+    Atmosphere.prototype._runPrecip = function (kind, opts) {
         var self = this;
+        opts = opts || {};
         this._stopPrecip();
         this._precip = kind;
+        this._rainHeavy = kind === "rain" && !!opts.rainHeavy;
         var canvas = this._canvas;
         var container = this._root;
         if (!canvas || !container || prefersReducedMotion()) return;
@@ -166,14 +174,31 @@
             var drops = [];
             var i;
             for (i = 0; i < n; i++) {
-                drops.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    len: kind === "rain" ? 10 + Math.random() * 22 : 0,
-                    speed: kind === "rain" ? 15 + Math.random() * 26 : 0.7 + Math.random() * 2.6,
-                    drift: kind === "snow" ? (Math.random() - 0.5) * 1.8 : 0,
-                    r: kind === "snow" ? 0.9 + Math.random() * 2.2 : 0,
-                });
+                if (kind === "rain") {
+                    /* Спокойный дождь: 4–8 px/кадр; ливень 502/503: 8–12 */
+                    var spdLo = self._rainHeavy ? 8 : 4;
+                    var spdSpan = self._rainHeavy ? 4 : 4;
+                    /* Длиннее и тоньше — «стекло» */
+                    var lenLo = 22;
+                    var lenSpan = 18;
+                    drops.push({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        len: lenLo + Math.random() * lenSpan,
+                        speed: spdLo + Math.random() * spdSpan,
+                        drift: 0,
+                        r: 0,
+                    });
+                } else {
+                    drops.push({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        len: 0,
+                        speed: 0.7 + Math.random() * 2.6,
+                        drift: (Math.random() - 0.5) * 1.8,
+                        r: 0.9 + Math.random() * 2.2,
+                    });
+                }
             }
             self._drops = drops;
         }
@@ -190,17 +215,19 @@
             var i;
             var d;
             if (kind === "rain") {
-                ctx.globalAlpha = 0.42;
-                ctx.strokeStyle = "rgba(186, 230, 253, 0.75)";
-                ctx.lineWidth = 1.1;
+                var heavy = self._rainHeavy;
+                ctx.globalAlpha = heavy ? 0.36 : 0.3;
+                ctx.strokeStyle = "rgba(200, 230, 255, 0.55)";
+                ctx.lineWidth = heavy ? 0.68 : 0.52;
+                var wind = heavy ? 0.38 : 0.22;
                 for (i = 0; i < drops.length; i++) {
                     d = drops[i];
                     ctx.beginPath();
                     ctx.moveTo(d.x, d.y);
-                    ctx.lineTo(d.x - 1.5, d.y + d.len);
+                    ctx.lineTo(d.x - 0.55, d.y + d.len);
                     ctx.stroke();
                     d.y += d.speed;
-                    d.x -= 0.5;
+                    d.x -= wind;
                     if (d.y > h + 20) {
                         d.y = -12;
                         d.x = Math.random() * w;
@@ -307,8 +334,10 @@
         if (state.fx === "rain") {
             el.classList.add("weather-bg--fx-rain");
             var self = this;
+            var cNum = typeof weatherCode === "number" ? weatherCode : parseInt(weatherCode, 10);
+            var rainHeavy = !Number.isNaN(cNum) && (cNum === 502 || cNum === 503);
             global.requestAnimationFrame(function () {
-                if (el.classList.contains("weather-bg--fx-rain")) self._runPrecip("rain");
+                if (el.classList.contains("weather-bg--fx-rain")) self._runPrecip("rain", { rainHeavy: rainHeavy });
             });
         } else if (state.fx === "snow") {
             el.classList.add("weather-bg--fx-snow");
