@@ -457,15 +457,19 @@ func (s *Store) searchFTS(ctx context.Context, qNorm, qLatin string, limit int) 
 	}
 	matchQuery := strings.Join(cleaned, " ")
 
+	ftsOrderBy := `bm25(places_fts) ASC`
+	if s.hasPopulation {
+		ftsOrderBy = `(CASE WHEN p.population > 100000 THEN 1 ELSE 0 END) DESC, p.population DESC, LENGTH(p.name_uk) ASC`
+	}
 	// bm25() требует имя FTS-таблицы (places_fts), а не алиас — иначе SQLite: "near \"(\": syntax error".
 	sqlFTS := fmt.Sprintf(`
 SELECT %s
 FROM places_fts f
 JOIN places p ON p.id = f.rowid
 WHERE f MATCH ?
-ORDER BY bm25(places_fts) ASC
+ORDER BY %s
 LIMIT ?;
-`, prefixedPlaceColumns("p", s.hasPopulation))
+`, prefixedPlaceColumns("p", s.hasPopulation), ftsOrderBy)
 	rows, err := s.db.QueryContext(ctx, sqlFTS, matchQuery, limit)
 	if err != nil {
 		return nil, err
@@ -502,17 +506,17 @@ LIMIT ?;
 
 // searchFallbackLike — подстрочный LIKE-поиск по названиям и search_name.
 func (s *Store) searchFallbackLike(ctx context.Context, qNorm, qLatin string, limit int) ([]Place, error) {
-	orderBy := "LENGTH(name_uk), name_uk"
+	orderBy := "LENGTH(p.name_uk) ASC, p.name_uk"
 	if s.hasPopulation {
-		orderBy = "population DESC, " + orderBy
+		orderBy = `(CASE WHEN p.population > 100000 THEN 1 ELSE 0 END) DESC, p.population DESC, LENGTH(p.name_uk) ASC`
 	}
 	sqlLike := fmt.Sprintf(`
 SELECT %s
-FROM places
+FROM places p
 WHERE
-    lower(name_uk) LIKE '%%' || ? || '%%'
-    OR lower(name_ru) LIKE '%%' || ? || '%%'
-    OR search_name LIKE '%%' || ? || '%%'
+    lower(p.name_uk) LIKE '%%' || ? || '%%'
+    OR lower(p.name_ru) LIKE '%%' || ? || '%%'
+    OR p.search_name LIKE '%%' || ? || '%%'
 ORDER BY %s
 LIMIT ?;
 `, selectPlaceColumns(s.hasPopulation), orderBy)
