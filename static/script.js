@@ -503,7 +503,7 @@
                 }
                 var res = await fetch(url, { signal: signal });
                 if (!res.ok) {
-                    clearSuggestions();
+                    renderMessage(t("error"));
                     return;
                 }
                 var json = await res.json();

@@ -116,14 +116,15 @@ func (s *Store) Search(ctx context.Context, q string, limit int) ([]Place, error
 		return cached, nil
 	}
 
-	// Берем расширенный пул кандидатов, чтобы итоговое ранжирование
-	// (exact/prefix/population) работало корректно до обрезки limit.
-	candidateLimit := limit * 6
-	if candidateLimit < 30 {
-		candidateLimit = 30
+	// Берем умеренно расширенный пул кандидатов, чтобы итоговое ранжирование
+	// (exact/prefix/population) работало корректно до обрезки limit, но без
+	// деградации latency для подсказок.
+	candidateLimit := limit * 3
+	if candidateLimit < 20 {
+		candidateLimit = 20
 	}
-	if candidateLimit > 300 {
-		candidateLimit = 300
+	if candidateLimit > 120 {
+		candidateLimit = 120
 	}
 
 	// 1) попробовать FTS5

@@ -35,13 +35,13 @@ func NewServer(tmpl *template.Template, weatherClient *weather.Client, placesSto
 }
 
 type CitySummary struct {
-	ID          string
-	Name        string
-	Temperature float64
-	Description string
-	Icon        string
-	WindSpeed   float64
-	Humidity    float64
+	ID                 string
+	Name               string
+	Temperature        float64
+	Description        string
+	Icon               string
+	WindSpeed          float64
+	Humidity           float64
 	WeatherUnavailable bool
 }
 
@@ -49,17 +49,17 @@ type CitySummary struct {
 type TextSet = i18n.UI
 
 type IndexPageData struct {
-	IsIndex            bool
-	WeatherCode        int
-	IsNight            bool
-	WeatherMood        string
-	Lang               string
-	Path               string
-	Text               TextSet
-	CityID             string
-	CurrentCityName    string
+	IsIndex         bool
+	WeatherCode     int
+	IsNight         bool
+	WeatherMood     string
+	Lang            string
+	Path            string
+	Text            TextSet
+	CityID          string
+	CurrentCityName string
 	// HeroCityTitle is the index hero H1 only (Kyiv uses custom copy per language).
-	HeroCityTitle string
+	HeroCityTitle      string
 	CurrentTemp        float64
 	CurrentDescription string
 	CurrentWind        float64
@@ -115,20 +115,20 @@ type CityPageData struct {
 	CurrentPressure    float64
 	WeatherUnavailable bool
 	Forecast           []DailyView
-	TodayLabel       string
-	TodayMin         float64
-	TodayMax         float64
-	TomorrowLabel    string
-	TomorrowMin      float64
-	TomorrowMax      float64
-	TrendText        string
-	Cities           []CitySummary
-	Hourly           []HourlyView
-	WeatherJSON      template.JS
-	DuplicatesCount  int
-	DuplicatesLabel  string
-	DuplicatesURL    string
-	ClientI18n       template.JS
+	TodayLabel         string
+	TodayMin           float64
+	TodayMax           float64
+	TomorrowLabel      string
+	TomorrowMin        float64
+	TomorrowMax        float64
+	TrendText          string
+	Cities             []CitySummary
+	Hourly             []HourlyView
+	WeatherJSON        template.JS
+	DuplicatesCount    int
+	DuplicatesLabel    string
+	DuplicatesURL      string
+	ClientI18n         template.JS
 }
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -167,13 +167,13 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			desc = text.WeatherUnavailableMsg
 		}
 		summaries = append(summaries, CitySummary{
-			ID:          data.CityID,
-			Name:        weather.LocalizedCityName(data.CityID, lang),
-			Temperature: data.Current.Temperature,
-			Description: desc,
-			Icon:        data.Current.Icon,
-			WindSpeed:   data.Current.WindSpeed,
-			Humidity:    data.Current.Humidity,
+			ID:                 data.CityID,
+			Name:               weather.LocalizedCityName(data.CityID, lang),
+			Temperature:        data.Current.Temperature,
+			Description:        desc,
+			Icon:               data.Current.Icon,
+			WindSpeed:          data.Current.WindSpeed,
+			Humidity:           data.Current.Humidity,
 			WeatherUnavailable: data.IsFallback,
 		})
 	}
@@ -186,7 +186,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			heroData = &weather.WeatherData{
 				CityID: c0.ID,
 				// CityName не используется напрямую в шаблоне, но пусть будет.
-				CityName: c0.Name,
+				CityName:   c0.Name,
 				IsFallback: true,
 				Current: weather.Current{
 					Temperature: 0,
@@ -370,13 +370,13 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 			cardDesc = text.WeatherUnavailableMsg
 		}
 		cityCards = append(cityCards, CitySummary{
-			ID:          d.CityID,
-			Name:        weather.LocalizedCityName(d.CityID, lang),
-			Temperature: d.Current.Temperature,
-			Description: cardDesc,
-			Icon:        d.Current.Icon,
-			WindSpeed:   d.Current.WindSpeed,
-			Humidity:    d.Current.Humidity,
+			ID:                 d.CityID,
+			Name:               weather.LocalizedCityName(d.CityID, lang),
+			Temperature:        d.Current.Temperature,
+			Description:        cardDesc,
+			Icon:               d.Current.Icon,
+			WindSpeed:          d.Current.WindSpeed,
+			Humidity:           d.Current.Humidity,
 			WeatherUnavailable: d.IsFallback,
 		})
 	}
@@ -437,11 +437,11 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 // --- API: weather by city id (existing) ---
 
 type apiWeatherResponse struct {
-	CityID   string        `json:"cityId"`
-	CityName string        `json:"cityName"`
-	Lang     string        `json:"lang"`
-	Current  apiCurrent    `json:"current"`
-	Hourly   []apiHourly   `json:"hourly,omitempty"`
+	CityID   string      `json:"cityId"`
+	CityName string      `json:"cityName"`
+	Lang     string      `json:"lang"`
+	Current  apiCurrent  `json:"current"`
+	Hourly   []apiHourly `json:"hourly,omitempty"`
 }
 
 type apiCurrent struct {
@@ -735,7 +735,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 300*time.Millisecond)
+	ctx, cancel := context.WithTimeout(r.Context(), 800*time.Millisecond)
 	defer cancel()
 
 	list, err := s.places.Search(ctx, q, limit)
@@ -889,13 +889,13 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 			cardDesc = text.WeatherUnavailableMsg
 		}
 		cityCards = append(cityCards, CitySummary{
-			ID:          d.CityID,
-			Name:        weather.LocalizedCityName(d.CityID, lang),
-			Temperature: d.Current.Temperature,
-			Description: cardDesc,
-			Icon:        d.Current.Icon,
-			WindSpeed:   d.Current.WindSpeed,
-			Humidity:    d.Current.Humidity,
+			ID:                 d.CityID,
+			Name:               weather.LocalizedCityName(d.CityID, lang),
+			Temperature:        d.Current.Temperature,
+			Description:        cardDesc,
+			Icon:               d.Current.Icon,
+			WindSpeed:          d.Current.WindSpeed,
+			Humidity:           d.Current.Humidity,
 			WeatherUnavailable: d.IsFallback,
 		})
 	}
@@ -1026,61 +1026,61 @@ func deriveOblastNames(oblastRaw string) (string, string, string) {
 
 	// Словарь основных областей Украины.
 	var oblastMap = map[string]oblastNames{
-		"vinnytsia":             {"Вінницька область", "Винницкая область", "Vinnytsia Oblast"},
-		"vinnytskaoblast":       {"Вінницька область", "Винницкая область", "Vinnytsia Oblast"},
-		"volyn":                 {"Волинська область", "Волынская область", "Volyn Oblast"},
-		"volynskaoblast":        {"Волинська область", "Волынская область", "Volyn Oblast"},
-		"dnipropetrovsk":        {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
-		"dnipropetrovska":       {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
-		"dnipropetrovskaoblast": {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
-		"donetsk":               {"Донецька область", "Донецкая область", "Donetsk Oblast"},
-		"donetskaoblast":        {"Донецька область", "Донецкая область", "Donetsk Oblast"},
-		"zhytomyr":              {"Житомирська область", "Житомирская область", "Zhytomyr Oblast"},
-		"zhytomyrskaoblast":     {"Житомирська область", "Житомирская область", "Zhytomyr Oblast"},
-		"zakarpattia":           {"Закарпатська область", "Закарпатская область", "Zakarpattia Oblast"},
-		"zakarpatskaoblast":     {"Закарпатська область", "Закарпатская область", "Zakarpattia Oblast"},
-		"zaporizhzhia":          {"Запорізька область", "Запорожская область", "Zaporizhzhia Oblast"},
-		"zaporizkaoblast":       {"Запорізька область", "Запорожская область", "Zaporizhzhia Oblast"},
-		"ivano-frankivsk":       {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
-		"ivanofrankivsk":        {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
+		"vinnytsia":              {"Вінницька область", "Винницкая область", "Vinnytsia Oblast"},
+		"vinnytskaoblast":        {"Вінницька область", "Винницкая область", "Vinnytsia Oblast"},
+		"volyn":                  {"Волинська область", "Волынская область", "Volyn Oblast"},
+		"volynskaoblast":         {"Волинська область", "Волынская область", "Volyn Oblast"},
+		"dnipropetrovsk":         {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
+		"dnipropetrovska":        {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
+		"dnipropetrovskaoblast":  {"Дніпропетровська область", "Днепропетровская область", "Dnipropetrovsk Oblast"},
+		"donetsk":                {"Донецька область", "Донецкая область", "Donetsk Oblast"},
+		"donetskaoblast":         {"Донецька область", "Донецкая область", "Donetsk Oblast"},
+		"zhytomyr":               {"Житомирська область", "Житомирская область", "Zhytomyr Oblast"},
+		"zhytomyrskaoblast":      {"Житомирська область", "Житомирская область", "Zhytomyr Oblast"},
+		"zakarpattia":            {"Закарпатська область", "Закарпатская область", "Zakarpattia Oblast"},
+		"zakarpatskaoblast":      {"Закарпатська область", "Закарпатская область", "Zakarpattia Oblast"},
+		"zaporizhzhia":           {"Запорізька область", "Запорожская область", "Zaporizhzhia Oblast"},
+		"zaporizkaoblast":        {"Запорізька область", "Запорожская область", "Zaporizhzhia Oblast"},
+		"ivano-frankivsk":        {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
+		"ivanofrankivsk":         {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
 		"ivano frankivskaoblast": {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
 		"ivano-frankivskaoblast": {"Івано‑Франківська область", "Ивано‑Франковская область", "Ivano‑Frankivsk Oblast"},
-		"kyiv":                  {"Київська область", "Киевская область", "Kyiv Oblast"},
-		"kyivskaoblast":         {"Київська область", "Киевская область", "Kyiv Oblast"},
-		"kirovohrad":            {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
-		"kirovohradskaobla":     {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
-		"kirovohradskaoblast":   {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
-		"luhansk":               {"Луганська область", "Луганская область", "Luhansk Oblast"},
-		"luhanskaoblast":        {"Луганська область", "Луганская область", "Luhansk Oblast"},
-		"lviv":                  {"Львівська область", "Львовская область", "Lviv Oblast"},
-		"lvivskaoblast":         {"Львівська область", "Львовская область", "Lviv Oblast"},
-		"mykolaiv":              {"Миколаївська область", "Николаевская область", "Mykolaiv Oblast"},
-		"mykolaivskaoblast":     {"Миколаївська область", "Николаевская область", "Mykolaiv Oblast"},
-		"odesa":                 {"Одеська область", "Одесская область", "Odesa Oblast"},
-		"odeskaoblast":          {"Одеська область", "Одесская область", "Odesa Oblast"},
-		"poltava":               {"Полтавська область", "Полтавская область", "Poltava Oblast"},
-		"poltavskaoblast":       {"Полтавська область", "Полтавская область", "Poltava Oblast"},
-		"rivne":                 {"Рівненська область", "Ровенская область", "Rivne Oblast"},
-		"rivnenskaoblast":       {"Рівненська область", "Ровенская область", "Rivne Oblast"},
-		"sumy":                  {"Сумська область", "Сумская область", "Sumy Oblast"},
-		"sumskaoblast":          {"Сумська область", "Сумская область", "Sumy Oblast"},
-		"ternopil":              {"Тернопільська область", "Тернопольская область", "Ternopil Oblast"},
-		"ternopilskaoblast":     {"Тернопільська область", "Тернопольская область", "Ternopil Oblast"},
-		"kharkiv":               {"Харківська область", "Харьковская область", "Kharkiv Oblast"},
-		"kharkivskaoblast":      {"Харківська область", "Харьковская область", "Kharkiv Oblast"},
-		"kherson":               {"Херсонська область", "Херсонская область", "Kherson Oblast"},
-		"khersonskaoblast":      {"Херсонська область", "Херсонская область", "Kherson Oblast"},
-		"khmelnytskyi":          {"Хмельницька область", "Хмельницкая область", "Khmelnytskyi Oblast"},
-		"khmelnytskaoblast":     {"Хмельницька область", "Хмельницкая область", "Khmelnytskyi Oblast"},
-		"cherkasy":              {"Черкаська область", "Черкасская область", "Cherkasy Oblast"},
-		"cherkaskaoblast":       {"Черкаська область", "Черкасская область", "Cherkasy Oblast"},
-		"chernivtsi":            {"Чернівецька область", "Черновицкая область", "Chernivtsi Oblast"},
-		"chernivetskaoblast":    {"Чернівецька область", "Черновицкая область", "Chernivtsi Oblast"},
-		"chernihiv":             {"Чернігівська область", "Черниговская область", "Chernihiv Oblast"},
-		"chernihivskaoblast":    {"Чернігівська область", "Черниговская область", "Chernihiv Oblast"},
-		"crimea":                {"Автономна Республіка Крим", "Автономная Республика Крым", "Autonomous Republic of Crimea"},
-		"respublikakrym":        {"Автономна Республіка Крим", "Автономная Республика Крым", "Autonomous Republic of Crimea"},
-		"sevastopol":            {"Севастополь", "Севастополь", "Sevastopol"},
+		"kyiv":                   {"Київська область", "Киевская область", "Kyiv Oblast"},
+		"kyivskaoblast":          {"Київська область", "Киевская область", "Kyiv Oblast"},
+		"kirovohrad":             {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
+		"kirovohradskaobla":      {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
+		"kirovohradskaoblast":    {"Кіровоградська область", "Кировоградская область", "Kirovohrad Oblast"},
+		"luhansk":                {"Луганська область", "Луганская область", "Luhansk Oblast"},
+		"luhanskaoblast":         {"Луганська область", "Луганская область", "Luhansk Oblast"},
+		"lviv":                   {"Львівська область", "Львовская область", "Lviv Oblast"},
+		"lvivskaoblast":          {"Львівська область", "Львовская область", "Lviv Oblast"},
+		"mykolaiv":               {"Миколаївська область", "Николаевская область", "Mykolaiv Oblast"},
+		"mykolaivskaoblast":      {"Миколаївська область", "Николаевская область", "Mykolaiv Oblast"},
+		"odesa":                  {"Одеська область", "Одесская область", "Odesa Oblast"},
+		"odeskaoblast":           {"Одеська область", "Одесская область", "Odesa Oblast"},
+		"poltava":                {"Полтавська область", "Полтавская область", "Poltava Oblast"},
+		"poltavskaoblast":        {"Полтавська область", "Полтавская область", "Poltava Oblast"},
+		"rivne":                  {"Рівненська область", "Ровенская область", "Rivne Oblast"},
+		"rivnenskaoblast":        {"Рівненська область", "Ровенская область", "Rivne Oblast"},
+		"sumy":                   {"Сумська область", "Сумская область", "Sumy Oblast"},
+		"sumskaoblast":           {"Сумська область", "Сумская область", "Sumy Oblast"},
+		"ternopil":               {"Тернопільська область", "Тернопольская область", "Ternopil Oblast"},
+		"ternopilskaoblast":      {"Тернопільська область", "Тернопольская область", "Ternopil Oblast"},
+		"kharkiv":                {"Харківська область", "Харьковская область", "Kharkiv Oblast"},
+		"kharkivskaoblast":       {"Харківська область", "Харьковская область", "Kharkiv Oblast"},
+		"kherson":                {"Херсонська область", "Херсонская область", "Kherson Oblast"},
+		"khersonskaoblast":       {"Херсонська область", "Херсонская область", "Kherson Oblast"},
+		"khmelnytskyi":           {"Хмельницька область", "Хмельницкая область", "Khmelnytskyi Oblast"},
+		"khmelnytskaoblast":      {"Хмельницька область", "Хмельницкая область", "Khmelnytskyi Oblast"},
+		"cherkasy":               {"Черкаська область", "Черкасская область", "Cherkasy Oblast"},
+		"cherkaskaoblast":        {"Черкаська область", "Черкасская область", "Cherkasy Oblast"},
+		"chernivtsi":             {"Чернівецька область", "Черновицкая область", "Chernivtsi Oblast"},
+		"chernivetskaoblast":     {"Чернівецька область", "Черновицкая область", "Chernivtsi Oblast"},
+		"chernihiv":              {"Чернігівська область", "Черниговская область", "Chernihiv Oblast"},
+		"chernihivskaoblast":     {"Чернігівська область", "Черниговская область", "Chernihiv Oblast"},
+		"crimea":                 {"Автономна Республіка Крим", "Автономная Республика Крым", "Autonomous Republic of Crimea"},
+		"respublikakrym":         {"Автономна Республіка Крим", "Автономная Республика Крым", "Autonomous Republic of Crimea"},
+		"sevastopol":             {"Севастополь", "Севастополь", "Sevastopol"},
 	}
 
 	if v, ok := oblastMap[key]; ok {
