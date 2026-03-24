@@ -20,7 +20,7 @@
     /**
      * @returns {{ sky: string, fx: string }}
      * sky: clear | cloudy | rain | snow | storm
-     * fx: none | rain | snow | svg-clouds | cloud-layers (WMO 1–3, 45, 48)
+     * fx: none | rain | snow | svg-clouds | cloud-layers — 4×.cloud-fog (WMO 1–3, 45, 48)
      */
     function resolveState(code, isNight) {
         var c = typeof code === "number" ? code : parseInt(code, 10);
@@ -255,16 +255,16 @@
         this._raf = global.requestAnimationFrame(frame);
     };
 
-    /** WMO 1–3, 45, 48: мягкие CSS-слои вместо SVG. */
+    /** WMO 1–3, 45, 48: дымка (CSS), без SVG. */
     Atmosphere.prototype._buildCloudLayers = function () {
         if (!this._cloudsLayer) return;
         this._cloudsLayer.innerHTML = "";
         var i;
-        for (i = 1; i <= 4; i++) {
-            var layer = document.createElement("div");
-            layer.className = "cloud-layer cloud-layer--" + i;
-            layer.setAttribute("aria-hidden", "true");
-            this._cloudsLayer.appendChild(layer);
+        for (i = 0; i < 4; i++) {
+            var fog = document.createElement("div");
+            fog.className = "cloud-fog";
+            fog.setAttribute("aria-hidden", "true");
+            this._cloudsLayer.appendChild(fog);
         }
     };
 
