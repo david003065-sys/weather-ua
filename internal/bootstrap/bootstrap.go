@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"database/sql"
-	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
@@ -21,9 +20,8 @@ import (
 
 // EnsureData гарантирует, что data/places.db существует.
 // Если файла нет, он автоматически скачивает необходимые GeoNames‑файлы,
-// генерирует CSV с городами и импортирует его в SQLite.
-// Вызов блокирующий и может занять десятки секунд; для проверок живости (health)
-// запускайте HTTP-сервер первым и вызывайте EnsureData в отдельной goroutine.
+// генерирует CSV с городами и собирает SQLite через places.BuildDatabase (FTS5 включён).
+// Вызов блокирующий; для продакшена обычно коммитят готовый data/places.db и собирают его через cmd/build_db.
 func EnsureData(logger *log.Logger) error {
 	const dbPath = "data/places.db"
 	if _, err := os.Stat(dbPath); err == nil {
@@ -486,183 +484,6 @@ func escapeSemi(s string) string {
 	return strings.ReplaceAll(s, "\r", " ")
 }
 
-// --- Импорт CSV в SQLite (адаптация логики из places_importer) ---
-
 func importPlacesCSV(inputPath, outputPath string, logger *log.Logger) error {
-	f, err := os.Open(inputPath)
-	if err != nil {
-		return fmt.Errorf("open input: %w", err)
-	}
-	defer f.Close()
-
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
-		return fmt.Errorf("mkdir data: %w", err)
-	}
-
-	if err := os.RemoveAll(outputPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("remove old db: %w", err)
-	}
-
-	db, err := sql.Open("sqlite3", outputPath)
-	if err != nil {
-		return fmt.Errorf("open db: %w", err)
-	}
-	defer db.Close()
-
-	if err := createSchema(db); err != nil {
-		return fmt.Errorf("create schema: %w", err)
-	}
-
-	reader := csv.NewReader(f)
-	reader.Comma = ';'
-	reader.TrimLeadingSpace = true
-
-	header, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("read header: %w", err)
-	}
-
-	idx := map[string]int{}
-	for i, h := range header {
-		idx[strings.ToLower(strings.TrimSpace(h))] = i
-	}
-
-	required := []string{"name_uk", "oblast", "type", "lat", "lon"}
-	for _, col := range required {
-		if _, ok := idx[col]; !ok {
-			return fmt.Errorf("missing required column %q in csv", col)
-		}
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-
-	stmt, err := tx.Prepare(`
-		INSERT INTO places (name_uk, name_ru, oblast, raion, type, population, lat, lon, search_name)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`)
-	if err != nil {
-		return fmt.Errorf("prepare insert: %w", err)
-	}
-	defer stmt.Close()
-
-	count := 0
-	for {
-		row, err := reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return fmt.Errorf("read row: %w", err)
-		}
-
-		nameUK := getCSV(row, idx, "name_uk")
-		if nameUK == "" {
-			continue
-		}
-		nameRU := getCSV(row, idx, "name_ru")
-		oblast := getCSV(row, idx, "oblast")
-		raion := getCSV(row, idx, "raion")
-		typ := getCSV(row, idx, "type")
-		if typ == "" {
-			typ = "місто"
-		}
-
-		latStr := getCSV(row, idx, "lat")
-		lonStr := getCSV(row, idx, "lon")
-		if latStr == "" || lonStr == "" {
-			continue
-		}
-		lat, err := strconv.ParseFloat(strings.ReplaceAll(latStr, ",", "."), 64)
-		if err != nil {
-			continue
-		}
-		lon, err := strconv.ParseFloat(strings.ReplaceAll(lonStr, ",", "."), 64)
-		if err != nil {
-			continue
-		}
-		var population int64
-		if popStr := getCSV(row, idx, "population"); popStr != "" {
-			if popVal, err := strconv.ParseInt(strings.TrimSpace(popStr), 10, 64); err == nil && popVal > 0 {
-				population = popVal
-			}
-		}
-
-		normUK := places.Normalize(nameUK)
-		normRU := ""
-		if nameRU != "" {
-			normRU = places.Normalize(nameRU)
-		}
-		searchName := normUK
-		if normRU != "" && normRU != normUK {
-			searchName = normUK + "|" + normRU
-		}
-		if alt := getCSV(row, idx, "alt_search"); alt != "" {
-			if altNorm := places.Normalize(alt); altNorm != "" && !strings.Contains(searchName, altNorm) {
-				if searchName == "" {
-					searchName = altNorm
-				} else {
-					searchName = searchName + "|" + altNorm
-				}
-			}
-		}
-
-		if _, err := stmt.Exec(nameUK, nullOr(nameRU), oblast, nullOr(raion), typ, population, lat, lon, searchName); err != nil {
-			return fmt.Errorf("insert row: %w", err)
-		}
-		count++
-		if logger != nil && count%5000 == 0 {
-			logger.Printf("[bootstrap] inserted %d rows into %s…", count, outputPath)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit: %w", err)
-	}
-
-	if _, err := db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, places.SettlementTypeSchemaVersion)); err != nil {
-		return fmt.Errorf("set user_version: %w", err)
-	}
-
-	if logger != nil {
-		logger.Printf("[bootstrap] done, inserted %d places into %s", count, outputPath)
-	}
-	return nil
-}
-
-func createSchema(db *sql.DB) error {
-	schema := `
-CREATE TABLE IF NOT EXISTS places (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	name_uk TEXT NOT NULL,
-	name_ru TEXT,
-	oblast TEXT NOT NULL,
-	raion TEXT,
-	type TEXT NOT NULL,
-	population INTEGER NOT NULL DEFAULT 0,
-	lat REAL NOT NULL,
-	lon REAL NOT NULL,
-	search_name TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_places_search_name ON places(search_name);
-`
-	_, err := db.Exec(schema)
-	return err
-}
-
-func getCSV(row []string, idx map[string]int, key string) string {
-	i, ok := idx[key]
-	if !ok || i < 0 || i >= len(row) {
-		return ""
-	}
-	return strings.TrimSpace(row[i])
-}
-
-func nullOr(s string) interface{} {
-	if strings.TrimSpace(s) == "" {
-		return nil
-	}
-	return s
+	return places.BuildDatabase(inputPath, outputPath, logger)
 }

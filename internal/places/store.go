@@ -50,7 +50,7 @@ func NewStore(path string) (*Store, error) {
 	// diagnostics: log tables, schema and example row
 	logDBDiagnostics(db)
 
-	useFTS := ensureFTS(db)
+	useFTS := verifyFTSSearchable(db)
 	hasPopulation := hasColumn(db, "places", "population")
 
 	getStmt, err := db.Prepare(fmt.Sprintf(`
@@ -357,72 +357,43 @@ func TranslitLatin(s string) string {
 	return replacer.Replace(s)
 }
 
-// ensureFTS настраивает FTS5-индекс и триггеры, если они доступны.
-// Возвращает true, если FTS5 включён и готов к использованию.
-func ensureFTS(db *sql.DB) bool {
-	// проверить поддержку FTS5 и создать виртуальную таблицу
-	_, err := db.Exec(`
-CREATE VIRTUAL TABLE IF NOT EXISTS places_fts USING fts5(
-	name_uk,
-	name_ru,
-	oblast,
-	raion,
-	search_name,
-	content='places',
-	content_rowid='id',
-	tokenize='unicode61 remove_diacritics 2'
-);
-`)
-	if err != nil {
-		if strings.Contains(err.Error(), "no such module: fts5") {
-			log.Printf("[places] FTS5 module not available, falling back to LIKE search: %v", err)
-			return false
-		}
-		log.Printf("[places] create FTS5 table failed, falling back to LIKE: %v", err)
+// verifyFTSSearchable проверяет, что БД собрана утилитой build_db: таблица places_fts есть и
+// синхронизирована с places. DDL и массовая вставка в FTS на рантайме не выполняются.
+func verifyFTSSearchable(db *sql.DB) bool {
+	var n int
+	err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='places_fts'`).Scan(&n)
+	if err != nil || n == 0 {
+		log.Printf("[places] places_fts missing, using LIKE search: %v", err)
 		return false
 	}
 
-	// триггеры синхронизации
-	if _, err := db.Exec(`
-CREATE TRIGGER IF NOT EXISTS places_fts_ai AFTER INSERT ON places BEGIN
-	INSERT INTO places_fts(rowid, name_uk, name_ru, oblast, raion, search_name)
-	VALUES (new.id, new.name_uk, new.name_ru, new.oblast, new.raion, new.search_name);
-END;
-CREATE TRIGGER IF NOT EXISTS places_fts_ad AFTER DELETE ON places BEGIN
-	DELETE FROM places_fts WHERE rowid = old.id;
-END;
-CREATE TRIGGER IF NOT EXISTS places_fts_au AFTER UPDATE ON places BEGIN
-	UPDATE places_fts SET
-		name_uk = new.name_uk,
-		name_ru = new.name_ru,
-		oblast = new.oblast,
-		raion = new.raion,
-		search_name = new.search_name
-	WHERE rowid = new.id;
-END;
-`); err != nil {
-		log.Printf("[places] create FTS5 triggers failed (will still try to use FTS): %v", err)
-	}
-
-	// если FTS-поисковый индекс пустой, а основная таблица нет — заполнить
 	var baseCount, ftsCount int64
 	if err := db.QueryRow(`SELECT COUNT(*) FROM places`).Scan(&baseCount); err != nil {
 		log.Printf("[places] count(places) failed: %v", err)
+		return false
 	}
 	if err := db.QueryRow(`SELECT COUNT(*) FROM places_fts`).Scan(&ftsCount); err != nil {
-		log.Printf("[places] count(places_fts) failed: %v", err)
-	}
-	if baseCount > 0 && ftsCount == 0 {
-		log.Printf("[places] populating FTS index from %d rows", baseCount)
-		if _, err := db.Exec(`
-INSERT INTO places_fts(rowid, name_uk, name_ru, oblast, raion, search_name)
-SELECT id, name_uk, name_ru, oblast, raion, search_name FROM places;
-`); err != nil {
-			log.Printf("[places] populate FTS index failed: %v", err)
+		if strings.Contains(err.Error(), "no such module: fts5") {
+			log.Printf("[places] FTS5 module not available, falling back to LIKE: %v", err)
+		} else {
+			log.Printf("[places] count(places_fts) failed: %v", err)
 		}
+		return false
 	}
 
-	log.Printf("[places] FTS5 enabled (places=%d, places_fts=%d)", baseCount, ftsCount)
+	if baseCount == 0 {
+		return true
+	}
+	if ftsCount == 0 {
+		log.Printf("[places] places_fts empty while places has %d rows — rebuild with go run ./cmd/build_db", baseCount)
+		return false
+	}
+	if ftsCount != baseCount {
+		log.Printf("[places] FTS out of sync (places=%d places_fts=%d), using LIKE until rebuild", baseCount, ftsCount)
+		return false
+	}
+
+	log.Printf("[places] FTS5 ready (places=%d)", baseCount)
 	return true
 }
 

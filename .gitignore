@@ -13,9 +13,11 @@ bin/
 # Logs
 *.log
 
-# Data and large assets
-data/
-*.db
+# Data and large assets (commit data/places.db for Render / CI)
+data/*
+!data/places.db
+# SQLite at repo root only (not data/places.db)
+/*.db
 *.txt
 *.csv
 

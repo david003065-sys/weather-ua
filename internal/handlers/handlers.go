@@ -10,8 +10,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -23,56 +21,17 @@ import (
 type Server struct {
 	tmpl    *template.Template
 	weather *weather.Client
+	places  *places.Store
 	logger  *log.Logger
-
-	placesMu            sync.RWMutex
-	places              *places.Store
-	placesInitPending   atomic.Bool // true пока в фоне идёт bootstrap / открытие places.db
 }
 
 func NewServer(tmpl *template.Template, weatherClient *weather.Client, placesStore *places.Store, logger *log.Logger) *Server {
-	s := &Server{
+	return &Server{
 		tmpl:    tmpl,
 		weather: weatherClient,
+		places:  placesStore,
 		logger:  logger,
 	}
-	if placesStore != nil {
-		s.places = placesStore
-	}
-	return s
-}
-
-// SetPlacesInitPending помечает, что база мест ещё загружается (HTTP уже слушает порт).
-func (s *Server) SetPlacesInitPending(v bool) {
-	s.placesInitPending.Store(v)
-}
-
-// SetPlacesStore выставляет хранилище после фоновой инициализации (или nil при ошибке).
-func (s *Server) SetPlacesStore(store *places.Store) {
-	s.placesMu.Lock()
-	s.places = store
-	s.placesMu.Unlock()
-}
-
-type placesLoadState int
-
-const (
-	placesReady placesLoadState = iota
-	placesInitializing
-	placesUnavailable
-)
-
-func (s *Server) placesState() (*places.Store, placesLoadState) {
-	s.placesMu.RLock()
-	p := s.places
-	s.placesMu.RUnlock()
-	if p != nil {
-		return p, placesReady
-	}
-	if s.placesInitPending.Load() {
-		return nil, placesInitializing
-	}
-	return nil, placesUnavailable
 }
 
 type CitySummary struct {
@@ -585,12 +544,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	ps, st := s.placesState()
-	switch st {
-	case placesInitializing:
-		http.Error(w, "Service is initializing", http.StatusServiceUnavailable)
-		return
-	case placesUnavailable:
+	if s.places == nil {
 		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -612,7 +566,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
 
-	place, err := ps.GetByID(ctx, id)
+	place, err := s.places.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Printf("api place weather get %d: %v", id, err)
 		http.Error(w, "failed to load place", http.StatusInternalServerError)
@@ -688,10 +642,10 @@ func (s *Server) GeoRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// сначала пробуем найти ближайший населённый пункт в базе places
-	if ps, st := s.placesState(); st == placesReady {
+	if s.places != nil {
 		ctx, cancel := context.WithTimeout(r.Context(), 600*time.Millisecond)
 		defer cancel()
-		place, err := ps.Nearest(ctx, lat, lon)
+		place, err := s.places.Nearest(ctx, lat, lon)
 		if err != nil {
 			s.logger.Printf("nearest place failed: %v", err)
 		} else if place != nil {
@@ -774,16 +728,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.Printf("places search q=%q norm=%q limit=%d", q, norm, limit)
 
-	ps, st := s.placesState()
-	switch st {
-	case placesInitializing:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(struct {
-			Initializing bool   `json:"initializing"`
-			Message      string `json:"message"`
-		}{true, "Service is initializing"})
-		return
-	case placesUnavailable:
+	if s.places == nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Write([]byte("[]"))
 		return
@@ -792,7 +737,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 800*time.Millisecond)
 	defer cancel()
 
-	list, err := ps.Search(ctx, q, limit)
+	list, err := s.places.Search(ctx, q, limit)
 	if err != nil {
 		s.logger.Printf("places search %q: %v", q, err)
 		http.Error(w, "search failed", http.StatusInternalServerError)
@@ -842,12 +787,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	ps, st := s.placesState()
-	switch st {
-	case placesInitializing:
-		http.Error(w, "Service is initializing", http.StatusServiceUnavailable)
-		return
-	case placesUnavailable:
+	if s.places == nil {
 		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -869,7 +809,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
 
-	place, err := ps.GetByID(ctx, id)
+	place, err := s.places.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Printf("get place %d: %v", id, err)
 		http.Error(w, "failed to load place", http.StatusInternalServerError)
@@ -1376,14 +1316,13 @@ func formatPlaceLocation(p *places.Place, lang string) string {
 }
 
 func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, lang, displayName string) (int, string, string) {
-	ps, st := s.placesState()
-	if st != placesReady {
+	if s.places == nil {
 		return 0, "", ""
 	}
 
 	// Ищем все населённые пункты с таким же названием (в выбранном языке).
 	q := displayName
-	list, err := ps.Search(ctx, q, 10)
+	list, err := s.places.Search(ctx, q, 10)
 	if err != nil || len(list) == 0 {
 		return 0, "", ""
 	}

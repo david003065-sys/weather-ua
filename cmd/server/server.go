@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"bss/internal/bootstrap"
 	"bss/internal/handlers"
 	"bss/internal/places"
 	"bss/internal/weather"
@@ -27,32 +27,21 @@ func Run() error {
 	weatherClient.SetLogger(logger)
 	logger.Printf("weather client created once, cache TTL 15m")
 
-	srv := handlers.NewServer(tmpl, weatherClient, nil, logger)
-	srv.SetPlacesInitPending(true)
-	go func() {
-		defer srv.SetPlacesInitPending(false)
+	// Готовая БД из репозитория / артефакта сборки (см. cmd/build_db). Рабочая директория — корень проекта (Render: repo root).
+	const placesRelPath = "data/places.db"
+	if _, err := os.Stat(placesRelPath); err != nil {
+		wd, _ := os.Getwd()
+		abs, _ := filepath.Abs(placesRelPath)
+		return fmt.Errorf("places database not found at %s (cwd=%s): %w — build with: go run ./cmd/build_db -input <csv-or-json> -output data/places.db", abs, wd, err)
+	}
+	abs, _ := filepath.Abs(placesRelPath)
+	ps, err := places.NewStore(placesRelPath)
+	if err != nil {
+		return fmt.Errorf("open places store at %s: %w", abs, err)
+	}
+	logger.Printf("places store ready at %s", abs)
 
-		// Тяжёлая часть: EnsureData (скачивание/импорт) и открытие SQLite + FTS — не блокируют health check.
-		if err := bootstrap.EnsureData(logger); err != nil {
-			logger.Printf("bootstrap data failed: %v", err)
-		}
-
-		const placesRelPath = "data/places.db"
-		if _, err := os.Stat(placesRelPath); err == nil {
-			abs, _ := filepath.Abs(placesRelPath)
-			ps, err := places.NewStore(placesRelPath)
-			if err != nil {
-				logger.Printf("failed to init places store at %s: %v", abs, err)
-			} else {
-				srv.SetPlacesStore(ps)
-				logger.Printf("places store initialized from %s", abs)
-			}
-		} else {
-			wd, _ := os.Getwd()
-			abs, _ := filepath.Abs(placesRelPath)
-			logger.Printf("places db not found at %s (wd=%s): %v", abs, wd, err)
-		}
-	}()
+	srv := handlers.NewServer(tmpl, weatherClient, ps, logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.Index)

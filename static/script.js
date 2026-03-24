@@ -511,10 +511,6 @@
                 if (requestId !== lastRequestId) {
                     return;
                 }
-                if (json && json.initializing) {
-                    renderMessage(json.message || "Service is initializing");
-                    return;
-                }
                 if (!Array.isArray(json)) {
                     renderMessage(t("error"));
                     return;
