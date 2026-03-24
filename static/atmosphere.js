@@ -20,7 +20,7 @@
     /**
      * @returns {{ sky: string, fx: string }}
      * sky: clear | cloudy | rain | snow | storm
-     * fx: none | rain | snow | svg-clouds
+     * fx: none | rain | snow | svg-clouds | cloud-layers (WMO 1–3, 45, 48)
      */
     function resolveState(code, isNight) {
         var c = typeof code === "number" ? code : parseInt(code, 10);
@@ -44,11 +44,11 @@
             if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return { sky: "rain", fx: "rain" };
             if ((c >= 71 && c <= 77) || c === 85 || c === 86) return { sky: "snow", fx: "snow" };
             if (c === 0) return { sky: "clear", fx: "none" };
-            if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "svg-clouds" };
+            if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
             return { sky: "cloudy", fx: "none" };
         }
         if (c === 0) return { sky: "clear", fx: "none" };
-        if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "svg-clouds" };
+        if ([1, 2, 3].indexOf(c) >= 0 || c === 45 || c === 48) return { sky: "cloudy", fx: "cloud-layers" };
         if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return { sky: "cloudy", fx: "rain" };
         if ((c >= 71 && c <= 77) || c === 85 || c === 86) return { sky: "cloudy", fx: "snow" };
         return { sky: "cloudy", fx: "none" };
@@ -255,6 +255,19 @@
         this._raf = global.requestAnimationFrame(frame);
     };
 
+    /** WMO 1–3, 45, 48: мягкие CSS-слои вместо SVG. */
+    Atmosphere.prototype._buildCloudLayers = function () {
+        if (!this._cloudsLayer) return;
+        this._cloudsLayer.innerHTML = "";
+        var i;
+        for (i = 1; i <= 4; i++) {
+            var layer = document.createElement("div");
+            layer.className = "cloud-layer cloud-layer--" + i;
+            layer.setAttribute("aria-hidden", "true");
+            this._cloudsLayer.appendChild(layer);
+        }
+    };
+
     Atmosphere.prototype._buildSvgClouds = function () {
         if (!this._cloudsLayer) return;
         this._cloudsLayer.innerHTML = "";
@@ -286,7 +299,7 @@
         }
     };
 
-    Atmosphere.prototype._clearSvgClouds = function () {
+    Atmosphere.prototype._clearCloudsLayer = function () {
         if (this._cloudsLayer) this._cloudsLayer.innerHTML = "";
     };
 
@@ -295,7 +308,6 @@
      * @param {boolean} [isNight] — иначе берётся из .weather-app[data-is-night]
      */
     Atmosphere.prototype.update = function (weatherCode, isNight) {
-        console.log("Atmosphere updating with code:", weatherCode);
         this._ensureDom();
         var app = document.querySelector(".weather-app");
         if (isNight === undefined && app) {
@@ -321,10 +333,11 @@
             "weather-bg--fx-none",
             "weather-bg--fx-rain",
             "weather-bg--fx-snow",
-            "weather-bg--fx-clouds"
+            "weather-bg--fx-clouds",
+            "weather-bg--fx-cloud-layers"
         );
         this._stopPrecip();
-        this._clearSvgClouds();
+        this._clearCloudsLayer();
 
         if (prefersReducedMotion()) {
             el.classList.add("weather-bg--fx-none");
@@ -348,6 +361,9 @@
         } else if (state.fx === "svg-clouds") {
             el.classList.add("weather-bg--fx-clouds");
             this._buildSvgClouds();
+        } else if (state.fx === "cloud-layers") {
+            el.classList.add("weather-bg--fx-cloud-layers");
+            this._buildCloudLayers();
         } else {
             el.classList.add("weather-bg--fx-none");
         }
