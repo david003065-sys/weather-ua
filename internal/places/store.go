@@ -457,12 +457,13 @@ func (s *Store) searchFTS(ctx context.Context, qNorm, qLatin string, limit int) 
 	}
 	matchQuery := strings.Join(cleaned, " ")
 
+	// bm25() требует имя FTS-таблицы (places_fts), а не алиас — иначе SQLite: "near \"(\": syntax error".
 	sqlFTS := fmt.Sprintf(`
 SELECT %s
 FROM places_fts f
 JOIN places p ON p.id = f.rowid
 WHERE f MATCH ?
-ORDER BY bm25(f) ASC
+ORDER BY bm25(places_fts) ASC
 LIMIT ?;
 `, prefixedPlaceColumns("p", s.hasPopulation))
 	rows, err := s.db.QueryContext(ctx, sqlFTS, matchQuery, limit)
@@ -509,9 +510,9 @@ func (s *Store) searchFallbackLike(ctx context.Context, qNorm, qLatin string, li
 SELECT %s
 FROM places
 WHERE
-    lower(name_uk) LIKE '%' || ? || '%'
-    OR lower(name_ru) LIKE '%' || ? || '%'
-    OR search_name LIKE '%' || ? || '%'
+    lower(name_uk) LIKE '%%' || ? || '%%'
+    OR lower(name_ru) LIKE '%%' || ? || '%%'
+    OR search_name LIKE '%%' || ? || '%%'
 ORDER BY %s
 LIMIT ?;
 `, selectPlaceColumns(s.hasPopulation), orderBy)
