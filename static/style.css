@@ -980,26 +980,31 @@ html[data-theme="light"] .weather-hero__condition {
 .weather-advice {
     display: flex;
     align-items: center;
-    padding: 15px 25px;
-    margin-top: 20px;
-    width: 100%;
-    max-width: 700px;
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    justify-content: center;
+    padding: 0;
+    margin: 8px 0 24px 0;
+    background: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
     font-size: 0.95rem;
-    font-weight: 400;
+    font-weight: 300;
     color: #fff;
     line-height: 1.4;
-    gap: 0.75rem;
+    opacity: 0.9;
+    text-align: center;
+    gap: 0.55rem;
 }
 
 .weather-advice__icon {
     flex: 0 0 auto;
-    font-size: 1.1rem;
+    font-size: 14px;
     line-height: 1;
+}
+
+.weather-advice__text {
+    text-align: center;
 }
 
 .forecast-chip {

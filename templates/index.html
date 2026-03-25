@@ -19,6 +19,11 @@
 
         <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
 
+        <div class="weather-advice" role="status" aria-live="polite">
+            <span class="weather-advice__icon" aria-hidden="true">💡</span>
+            <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
+        </div>
+
         <div class="weather-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
             <div class="weather-hero__metric">
                 <span class="weather-hero__metric-label">{{ .Text.MetricWind }}</span>
@@ -49,11 +54,6 @@
         <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
     </div>
 </section>
-
-<div class="weather-advice" role="status" aria-live="polite">
-    <span class="weather-advice__icon" aria-hidden="true">💡</span>
-    <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
-</div>
 
 <section class="search-section atmo-search" aria-label="{{ .Text.SearchSectionAria }}">
     <div class="search-shell">
