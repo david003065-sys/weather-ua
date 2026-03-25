@@ -1046,18 +1046,21 @@ html[data-theme="light"] .weather-hero__condition {
 
 .metrics-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     width: 100%;
     max-width: none;
     margin-top: 20px;
     justify-items: center;
 }
 
+.metric-card,
 .metrics-card {
     position: relative;
-    width: 160px;
-    height: 160px;
+    width: 100%;
+    max-width: 150px;
+    aspect-ratio: 1 / 1;
+    min-height: 150px;
     padding: 14px 12px 12px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.05);
@@ -1092,14 +1095,16 @@ html[data-theme="light"] .weather-hero__condition {
 
 .metrics-card__label {
     opacity: 0.5;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 400;
     letter-spacing: -0.02em;
-    margin-top: 10px;
+    margin-top: 4px;
+    align-self: flex-start;
 }
 
 .metrics-card__value {
-    margin-top: 8px;
+    margin-top: auto;
+    margin-bottom: auto;
     display: flex;
     align-items: baseline;
     justify-content: center;
@@ -1120,7 +1125,7 @@ html[data-theme="light"] .weather-hero__condition {
 
 .metrics-card__sub {
     margin-top: auto;
-    padding-top: 10px;
+    padding-top: 6px;
     font-size: 0.62rem;
     font-weight: 300;
     opacity: 0.55;

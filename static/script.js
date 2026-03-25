@@ -188,9 +188,22 @@
     var humidityMetricsEl = document.getElementById("js-metrics-humidity");
     var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
     var pressureMetricsEl = document.getElementById("js-metrics-pressure");
+    var metricsLabelUvEl = document.getElementById("js-metrics-label-uv");
+    var metricsLabelHumidityEl = document.getElementById("js-metrics-label-humidity");
+    var metricsLabelVisibilityEl = document.getElementById("js-metrics-label-visibility");
+    var metricsLabelPressureEl = document.getElementById("js-metrics-label-pressure");
+    var metricsUnitPressureEl = document.getElementById("js-metrics-unit-pressure");
 
-    function updateMetricsGrid(current) {
+    function updateMetricsGrid(current, newCityName) {
         if (!current) return;
+        console.log("Updating metrics for:", newCityName || "unknown");
+
+        // Force Russian labels for this block per product requirement.
+        if (metricsLabelUvEl) metricsLabelUvEl.textContent = "УФ-индекс";
+        if (metricsLabelHumidityEl) metricsLabelHumidityEl.textContent = "Влажность";
+        if (metricsLabelVisibilityEl) metricsLabelVisibilityEl.textContent = "Видимость";
+        if (metricsLabelPressureEl) metricsLabelPressureEl.textContent = "Давление";
+        if (metricsUnitPressureEl) metricsUnitPressureEl.textContent = "мм рт. ст.";
 
         var uv = current.uv_index;
         if (uvIndexEl) {
@@ -323,7 +336,7 @@
             }
 
             // Health metrics grid.
-            updateMetricsGrid(json.current);
+            updateMetricsGrid(json.current, json.cityName);
 
             // Hourly scroller.
             renderHourlyForecast(json.hourly);
@@ -644,7 +657,7 @@
             } catch (_) {
                 /* ignore */
             }
-            updateMetricsGrid(data.current);
+            updateMetricsGrid(data.current, data.cityName);
             renderHourlyForecast(data.hourly);
             if (
                 data.current &&
