@@ -101,7 +101,7 @@
         var code = parseInt(app.getAttribute("data-weather-code") || app.dataset.weatherCode || "0", 10);
         if (Number.isNaN(code)) code = 0;
         var night = app.dataset.isNight === "true";
-        var isLightTheme =
+        const isLightTheme =
             document.documentElement.classList.contains("theme-light") ||
             document.documentElement.getAttribute("data-theme") === "light";
         this.update(code, night, isLightTheme);
@@ -367,6 +367,22 @@
             s.style.background = colors[i];
             s.setAttribute("aria-hidden", "true");
             this._meshLayer.appendChild(s);
+        }
+        var sun = document.createElement("div");
+        sun.className = "mesh-sun";
+        sun.setAttribute("aria-hidden", "true");
+        this._meshLayer.appendChild(sun);
+
+        var cloudWrap = document.createElement("div");
+        cloudWrap.className = "mesh-clouds";
+        cloudWrap.setAttribute("aria-hidden", "true");
+        this._meshLayer.appendChild(cloudWrap);
+
+        for (i = 1; i <= 3; i++) {
+            var c = document.createElement("div");
+            c.className = "mesh-cloud mesh-cloud--" + i;
+            c.setAttribute("aria-hidden", "true");
+            cloudWrap.appendChild(c);
         }
     };
 
