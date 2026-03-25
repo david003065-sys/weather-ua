@@ -189,7 +189,7 @@
     var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
     var pressureMetricsEl = document.getElementById("js-metrics-pressure");
 
-    function updateHealthMetrics(current) {
+    function updateMetricsGrid(current) {
         if (!current) return;
 
         var uv = current.uv_index;
@@ -236,6 +236,99 @@
             } else {
                 pressureMetricsEl.textContent = "—";
             }
+        }
+    }
+
+    function getRouteWeatherRequest() {
+        var path = (window.location && window.location.pathname) || "/";
+        // strip trailing slash (except root)
+        if (path.length > 1 && path[path.length - 1] === "/") path = path.slice(0, -1);
+
+        var mCity = path.match(/^\/city\/([^\/?#]+)$/);
+        if (mCity && mCity[1]) {
+            var cityId = decodeURIComponent(mCity[1]);
+            return {
+                kind: "city",
+                url:
+                    "/api/weather/" +
+                    encodeURIComponent(cityId) +
+                    "?lang=" +
+                    encodeURIComponent(lang)
+            };
+        }
+
+        var mPlace = path.match(/^\/place\/([^\/?#]+)$/);
+        if (mPlace && mPlace[1]) {
+            var placeId = decodeURIComponent(mPlace[1]);
+            return {
+                kind: "place",
+                url:
+                    "/api/place_weather?id=" +
+                    encodeURIComponent(placeId) +
+                    "&lang=" +
+                    encodeURIComponent(lang)
+            };
+        }
+
+        // default (index)
+        return {
+            kind: "default",
+            url:
+                "/api/weather/" +
+                encodeURIComponent(DEFAULT_CITY_ID) +
+                "?lang=" +
+                encodeURIComponent(lang)
+        };
+    }
+
+    async function refreshIndexFromRoute() {
+        if (!hourlyScrollEl) return;
+        // Metrics grid exists only on the index template.
+        var hasMetrics = !!document.querySelector(".metrics-grid");
+        if (!hasMetrics) return;
+
+        var req = getRouteWeatherRequest();
+        if (!req || !req.url) return;
+
+        try {
+            var res = await fetch(req.url);
+            if (!res.ok) return;
+            var json = await res.json();
+            if (!json || !json.current) return;
+
+            // Update main hero (temperature + condition) to prevent mismatch.
+            var tempElNow = document.getElementById("js-current-temp");
+            var descElNow = document.querySelector(".weather-hero__condition");
+            var heroTitleEl = document.getElementById("hero-title");
+
+            var isFallbackNow = !!json.current.isFallback;
+            if (tempElNow) tempElNow.textContent = isFallbackNow ? "—" : Math.round(json.current.temperature);
+            if (descElNow) descElNow.textContent = json.current.description || (isFallbackNow ? "—" : "");
+            if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
+
+            // Update atmosphere / precipitation / clouds for the new code.
+            if (json.current.weatherCode !== undefined && json.current.isNight !== undefined) {
+                syncWeatherAtmosphere(app, json.current.weatherCode, json.current.isNight, json.current.weatherCode);
+            }
+
+            // Update background and smart advice.
+            if (!isFallbackNow) {
+                updateBackgroundByTemp(json.current.temperature);
+                updateSmartAdvice(
+                    json.current.temperature,
+                    json.current.wind,
+                    json.current.humidity,
+                    isRainWmo(json.current.weatherCode)
+                );
+            }
+
+            // Health metrics grid.
+            updateMetricsGrid(json.current);
+
+            // Hourly scroller.
+            renderHourlyForecast(json.hourly);
+        } catch (e) {
+            console.error("refreshIndexFromRoute failed", e);
         }
     }
 
@@ -481,23 +574,29 @@
         });
     }
 
-    // Index page: render hourly scroller once from API payload.
-    if (isIndexPage && hourlyScrollEl) {
+    // Index page: keep hourly + metrics in sync with the current route.
+    if (hourlyScrollEl) {
+        // Patch pushState so route changes without full navigation still refresh this UI.
+        if (history && history.pushState && !history.__weatherRoutePatched) {
+            history.__weatherRoutePatched = true;
+            var __origPushState = history.pushState;
+            history.pushState = function () {
+                var ret = __origPushState.apply(this, arguments);
+                window.dispatchEvent(new Event("weather:routeChanged"));
+                return ret;
+            };
+            window.addEventListener("popstate", function () {
+                window.dispatchEvent(new Event("weather:routeChanged"));
+            });
+        }
+
         setTimeout(function () {
-            (async function () {
-                try {
-                    var res = await fetch(
-                        "/api/weather/" + encodeURIComponent(DEFAULT_CITY_ID) + "?lang=" + encodeURIComponent(lang)
-                    );
-                    if (!res.ok) return;
-                    var json = await res.json();
-                    renderHourlyForecast(json.hourly);
-                    updateHealthMetrics(json.current);
-                } catch (e) {
-                    console.error("hourly forecast failed", e);
-                }
-            })();
+            refreshIndexFromRoute();
         }, 800);
+
+        window.addEventListener("weather:routeChanged", function () {
+            refreshIndexFromRoute();
+        });
     }
 
     // Auto refresh for city page
@@ -545,7 +644,7 @@
             } catch (_) {
                 /* ignore */
             }
-            updateHealthMetrics(data.current);
+            updateMetricsGrid(data.current);
             renderHourlyForecast(data.hourly);
             if (
                 data.current &&

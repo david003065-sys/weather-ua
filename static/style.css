@@ -1047,16 +1047,18 @@ html[data-theme="light"] .weather-hero__condition {
 .metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
     max-width: none;
     margin-top: 20px;
+    justify-items: center;
 }
 
 .metrics-card {
     position: relative;
-    aspect-ratio: 1 / 1;
-    padding: 14px 12px;
+    width: 160px;
+    height: 160px;
+    padding: 14px 12px 12px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
@@ -1065,52 +1067,64 @@ html[data-theme="light"] .weather-hero__condition {
     box-shadow: none;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
+    justify-content: flex-start;
+    align-items: center;
     overflow: hidden;
+    text-align: center;
 }
 
 .metrics-card__icon {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 16px;
-    opacity: 0.9;
+    top: 12px;
+    right: 12px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.95;
     pointer-events: none;
+    color: #fff;
+}
+
+.metrics-card__icon svg {
+    display: block;
+    width: 18px;
+    height: 18px;
 }
 
 .metrics-card__label {
-    opacity: 0.6;
-    font-size: 0.8rem;
+    opacity: 0.5;
+    font-size: 0.75rem;
     font-weight: 400;
     letter-spacing: -0.02em;
+    margin-top: 10px;
 }
 
 .metrics-card__value {
-    margin-top: 10px;
-    width: 100%;
+    margin-top: 8px;
     display: flex;
     align-items: baseline;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 6px;
+    width: 100%;
     color: #ffffff;
-    font-size: 1.35rem;
+    font-size: 1.6rem;
     font-weight: 500;
     letter-spacing: -0.03em;
+    white-space: nowrap;
 }
 
 .metrics-card__unit {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 400;
     opacity: 0.95;
 }
 
 .metrics-card__sub {
-    margin-top: 8px;
-    font-size: 0.76rem;
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 0.62rem;
     font-weight: 300;
-    opacity: 0.75;
-    line-height: 1.25;
+    opacity: 0.55;
+    line-height: 1.2;
 }
 
 .weather-advice {
