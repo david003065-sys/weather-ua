@@ -65,23 +65,9 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label" id="js-metrics-label-uv">УФ-индекс</span>
+                    <span class="metric-label">УФ-индекс</span>
                     <span class="metric-card__nums">
-                        <span class="metric-value" id="js-metrics-uv">—</span><span class="metric-uv-sub" id="js-metrics-uv-sub"></span>
-                    </span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2s7 8 7 14a7 7 0 0 1-14 0c0-6 7-14 7-14z"></path>
-                    </svg>
-                </span>
-                <div class="metric-card__main">
-                    <span class="metric-label" id="js-metrics-label-humidity">Влажность</span>
-                    <span class="metric-card__nums">
-                        <span class="metric-value" id="js-metrics-humidity">—</span><span class="metric-unit">%</span>
+                        <span class="metric-value" id="uv-index-val">—</span><span class="metric-uv-sub" id="uv-index-sub"></span>
                     </span>
                 </div>
             </div>
@@ -94,9 +80,23 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label" id="js-metrics-label-visibility">Видимость</span>
+                    <span class="metric-label">Видимость</span>
                     <span class="metric-card__nums">
-                        <span class="metric-value" id="js-metrics-visibility">—</span><span class="metric-unit">км</span>
+                        <span class="metric-value" id="visibility-val">—</span><span class="metric-unit">км</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">Ощущается</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
                     </span>
                 </div>
             </div>
@@ -110,11 +110,22 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label" id="js-metrics-label-pressure">Давление</span>
+                    <span class="metric-label">Давление</span>
                     <span class="metric-card__nums">
-                        <span class="metric-value" id="js-metrics-pressure">—</span><span class="metric-unit" id="js-metrics-unit-pressure">мм рт. ст.</span>
+                        <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
                     </span>
                 </div>
+            </div>
+        </div>
+
+        <div class="metrics-sun-row" aria-label="Восход и закат">
+            <div class="metrics-sun-item">
+                <span class="metric-label">Рассвет</span>
+                <span class="metric-value metrics-sun-item__time" id="sunrise-val">—</span>
+            </div>
+            <div class="metrics-sun-item">
+                <span class="metric-label">Закат</span>
+                <span class="metric-value metrics-sun-item__time" id="sunset-val">—</span>
             </div>
         </div>
     </div>

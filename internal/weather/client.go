@@ -522,16 +522,18 @@ type weatherAPIForecastResponse struct {
 		Localtime      string `json:"localtime"`
 	} `json:"location"`
 	Current *struct {
-		TempC     float64 `json:"temp_c"`
-		IsDay     int     `json:"is_day"`
-		WindKph   float64 `json:"wind_kph"`
-		// UV index (WeatherAPI uses `uv` in /forecast.json → current.uv)
-		UV        float64 `json:"uv"`
-		// Visibility in km (WeatherAPI uses `vis_km` in /forecast.json → current.vis_km)
-		VisKm     float64 `json:"vis_km"`
+		TempC      float64 `json:"temp_c"`
+		FeelslikeC float64 `json:"feelslike_c"`
+		IsDay      int     `json:"is_day"`
+		WindKph    float64 `json:"wind_kph"`
+		// UV index (WeatherAPI: current.uv)
+		UV float64 `json:"uv"`
+		// Visibility: km preferred; miles used if km is zero (аналог open-meteo visibility).
+		VisKm      float64 `json:"vis_km"`
+		VisMiles   float64 `json:"vis_miles"`
 		PressureMb float64 `json:"pressure_mb"`
-		Humidity  int     `json:"humidity"`
-		Condition struct {
+		Humidity   int     `json:"humidity"`
+		Condition  struct {
 			Code int    `json:"code"`
 			Text string `json:"text"`
 			Icon string `json:"icon"`
@@ -547,8 +549,8 @@ type weatherAPIForecastResponse struct {
 }
 
 type weatherAPIForecastDay struct {
-	Date  string `json:"date"`
-	Day   struct {
+	Date string `json:"date"`
+	Day  struct {
 		MaxtempC  float64 `json:"maxtemp_c"`
 		MintempC  float64 `json:"mintemp_c"`
 		Condition struct {
@@ -697,13 +699,24 @@ func buildDailySeries(days []weatherAPIForecastDay, loc *time.Location) []Daily 
 			continue
 		}
 		wmo := mapWeatherAPICodeToWMO(fd.Day.Condition.Code)
+		sr := parseAstroTime(fd.Date, fd.Astro.Sunrise, loc)
+		ss := parseAstroTime(fd.Date, fd.Astro.Sunset, loc)
+		var srStr, ssStr string
+		if !sr.IsZero() {
+			srStr = sr.Format("15:04")
+		}
+		if !ss.IsZero() {
+			ssStr = ss.Format("15:04")
+		}
 		out = append(out, Daily{
-			Date:        date,
-			MinTemp:     fd.Day.MintempC,
-			MaxTemp:     fd.Day.MaxtempC,
-			WeatherCode: wmo,
-			Description: "",
-			Icon:        i18n.WeatherIcon(wmo),
+			Date:         date,
+			MinTemp:      fd.Day.MintempC,
+			MaxTemp:      fd.Day.MaxtempC,
+			WeatherCode:  wmo,
+			Description:  "",
+			Icon:         i18n.WeatherIcon(wmo),
+			SunriseLocal: srStr,
+			SunsetLocal:  ssStr,
 		})
 	}
 	return out
@@ -732,20 +745,26 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		isNight = nowLocal.Before(sunrise) || nowLocal.After(sunset)
 	}
 
-	// Давление: мм рт. ст., как раньше с Open-Meteo (hPa / 1.333).
+	// Давление: мм рт. ст. (hPa / 1.333).
 	pressureMM := cur.PressureMb / 1.333
 
+	visKm := cur.VisKm
+	if visKm <= 0 && cur.VisMiles > 0 {
+		visKm = cur.VisMiles * 1.60934
+	}
+
 	current := Current{
-		Temperature: cur.TempC,
-		WeatherCode: wmoNow,
-		Description: "",
-		Icon:        i18n.WeatherIcon(wmoNow),
-		WindSpeed:   cur.WindKph,
-		Humidity:    float64(cur.Humidity),
-		UVIndex:     float64(cur.UV),
-		VisibilityKm: cur.VisKm,
-		Pressure:    pressureMM,
-		IsNight:     isNight,
+		Temperature:  cur.TempC,
+		FeelsLike:    cur.FeelslikeC,
+		WeatherCode:  wmoNow,
+		Description:  "",
+		Icon:         i18n.WeatherIcon(wmoNow),
+		WindSpeed:    cur.WindKph,
+		Humidity:     float64(cur.Humidity),
+		UVIndex:      float64(cur.UV),
+		VisibilityKm: visKm,
+		Pressure:     pressureMM,
+		IsNight:      isNight,
 	}
 
 	forecast := buildDailySeries(days, loc)

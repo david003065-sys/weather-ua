@@ -11,15 +11,17 @@ type City struct {
 
 type Current struct {
 	Temperature float64
-	WeatherCode int
-	Description string
-	Icon        string
-	WindSpeed   float64
-	Humidity    float64
-	UVIndex     float64
+	// FeelsLike — ощущается как (°C), WeatherAPI: feelslike_c
+	FeelsLike    float64
+	WeatherCode  int
+	Description  string
+	Icon         string
+	WindSpeed    float64
+	Humidity     float64
+	UVIndex      float64
 	VisibilityKm float64
-	Pressure    float64
-	IsNight     bool
+	Pressure     float64
+	IsNight      bool
 }
 
 type Daily struct {
@@ -29,6 +31,9 @@ type Daily struct {
 	WeatherCode int
 	Description string
 	Icon        string
+	// SunriseLocal, SunsetLocal — локальное время суток "15:04" из astro первого дня прогноза.
+	SunriseLocal string
+	SunsetLocal  string
 }
 
 type Hourly struct {
@@ -40,13 +45,13 @@ type Hourly struct {
 }
 
 type WeatherData struct {
-	CityID   string
-	CityName string
-	Current  Current
-	Forecast []Daily
-	Hourly   []Hourly
-	Sunrise  time.Time
-	Sunset   time.Time
+	CityID           string
+	CityName         string
+	Current          Current
+	Forecast         []Daily
+	Hourly           []Hourly
+	Sunrise          time.Time
+	Sunset           time.Time
 	Timezone         string
 	UTCOffsetSeconds int
 	// LastUpdated — момент получения этого снимка от провайдера (UTC). Для кэша без поля используется Timestamp записи кэша.
@@ -70,4 +75,3 @@ type CachedWeather struct {
 type WeatherCache struct {
 	Data map[string]CachedWeather
 }
-

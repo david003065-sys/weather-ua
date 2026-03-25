@@ -20,11 +20,11 @@ import (
 )
 
 type Server struct {
-	tmpl    *template.Template
-	weather *weather.Client
-	places  *places.Store
+	tmpl     *template.Template
+	weather  *weather.Client
+	places   *places.Store
 	placesMu sync.RWMutex
-	logger  *log.Logger
+	logger   *log.Logger
 }
 
 func NewServer(tmpl *template.Template, weatherClient *weather.Client, placesStore *places.Store, logger *log.Logger) *Server {
@@ -472,20 +472,60 @@ type apiWeatherResponse struct {
 	Lang     string      `json:"lang"`
 	Current  apiCurrent  `json:"current"`
 	Hourly   []apiHourly `json:"hourly,omitempty"`
+	// Sunrise/Sunset — сегодня, локальное время "15:04" (из astro первого дня WeatherAPI).
+	Sunrise string          `json:"sunrise,omitempty"`
+	Sunset  string          `json:"sunset,omitempty"`
+	Daily   []apiDailyAstro `json:"daily,omitempty"`
+}
+
+type apiDailyAstro struct {
+	Date    string `json:"date"`
+	Sunrise string `json:"sunrise"`
+	Sunset  string `json:"sunset"`
 }
 
 type apiCurrent struct {
 	Temperature float64 `json:"temperature"`
-	Description string  `json:"description"`
-	Icon        string  `json:"icon"`
-	IsFallback  bool    `json:"isFallback"`
-	Wind        float64 `json:"wind"`
-	Humidity    float64 `json:"humidity"`
-	UVIndex     float64 `json:"uv_index"`
-	Visibility  float64 `json:"visibility"`
-	Pressure    float64 `json:"pressure"`
-	WeatherCode int     `json:"weatherCode"`
-	IsNight     bool    `json:"isNight"`
+	// ApparentTemperature — ощущается как °C (WeatherAPI feelslike_c).
+	ApparentTemperature float64 `json:"apparent_temperature"`
+	Description         string  `json:"description"`
+	Icon                string  `json:"icon"`
+	IsFallback          bool    `json:"isFallback"`
+	Wind                float64 `json:"wind"`
+	Humidity            float64 `json:"humidity"`
+	UVIndex             float64 `json:"uv_index"`
+	Visibility          float64 `json:"visibility"`
+	Pressure            float64 `json:"pressure"`
+	WeatherCode         int     `json:"weatherCode"`
+	IsNight             bool    `json:"isNight"`
+}
+
+func apiSunStrings(data *weather.WeatherData) (rise, set string) {
+	if data == nil {
+		return "", ""
+	}
+	if !data.Sunrise.IsZero() {
+		rise = data.Sunrise.Format("15:04")
+	}
+	if !data.Sunset.IsZero() {
+		set = data.Sunset.Format("15:04")
+	}
+	return rise, set
+}
+
+func apiDailyFromForecast(forecast []weather.Daily) []apiDailyAstro {
+	if len(forecast) == 0 {
+		return nil
+	}
+	out := make([]apiDailyAstro, 0, len(forecast))
+	for _, d := range forecast {
+		out = append(out, apiDailyAstro{
+			Date:    d.Date.Format("2006-01-02"),
+			Sunrise: d.SunriseLocal,
+			Sunset:  d.SunsetLocal,
+		})
+	}
+	return out
 }
 
 type apiHourly struct {
@@ -531,12 +571,17 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sunriseStr, sunsetStr := apiSunStrings(data)
 	resp := apiWeatherResponse{
 		CityID:   data.CityID,
 		CityName: weather.LocalizedCityName(data.CityID, lang),
 		Lang:     lang,
+		Sunrise:  sunriseStr,
+		Sunset:   sunsetStr,
+		Daily:    apiDailyFromForecast(data.Forecast),
 		Current: apiCurrent{
-			Temperature: data.Current.Temperature,
+			Temperature:         data.Current.Temperature,
+			ApparentTemperature: data.Current.FeelsLike,
 			Description: func() string {
 				if data.IsFallback {
 					return text.WeatherUnavailableMsg
@@ -633,12 +678,17 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sunriseStr, sunsetStr := apiSunStrings(data)
 	resp := apiWeatherResponse{
 		CityID:   cacheKey,
 		CityName: displayName,
 		Lang:     lang,
+		Sunrise:  sunriseStr,
+		Sunset:   sunsetStr,
+		Daily:    apiDailyFromForecast(data.Forecast),
 		Current: apiCurrent{
-			Temperature: data.Current.Temperature,
+			Temperature:         data.Current.Temperature,
+			ApparentTemperature: data.Current.FeelsLike,
 			Description: func() string {
 				if data.IsFallback {
 					return text.WeatherUnavailableMsg
@@ -826,7 +876,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 type apiFindCityResponse struct {
 	CityName    string `json:"cityName"`              // either weather city ID (kyiv/dnipro) or "place:<places.id>"
 	DisplayName string `json:"displayName,omitempty"` // best-effort localized title
-	PlaceID     *int64  `json:"placeId,omitempty"`
+	PlaceID     *int64 `json:"placeId,omitempty"`
 }
 
 func (s *Server) APIFindCity(w http.ResponseWriter, r *http.Request) {

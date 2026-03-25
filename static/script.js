@@ -182,67 +182,80 @@
         }
     }
 
+    function numFromJSON(v) {
+        if (typeof v === "number" && !Number.isNaN(v)) return v;
+        if (typeof v === "string" && v.trim() !== "") {
+            var n = parseFloat(String(v).replace(",", "."));
+            return Number.isNaN(n) ? NaN : n;
+        }
+        return NaN;
+    }
+
     /**
-     * UV / humidity / visibility / pressure — index + city pages (.metrics-grid).
-     * Clears displayed values first, then applies fresh API payload.
+     * УФ, видимость, ощущается как, давление + рассвет/закат (index + city).
+     * Сначала сброс, затем данные из свежего JSON /api/weather (WeatherAPI на бэкенде).
      */
     function renderMetrics(data) {
         if (!document.querySelector(".metrics-grid")) return;
 
-        var uvIndexEl = document.getElementById("js-metrics-uv");
-        var uvSubEl = document.getElementById("js-metrics-uv-sub");
-        var humidityMetricsEl = document.getElementById("js-metrics-humidity");
-        var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
-        var pressureMetricsEl = document.getElementById("js-metrics-pressure");
-        var metricsLabelUvEl = document.getElementById("js-metrics-label-uv");
-        var metricsLabelHumidityEl = document.getElementById("js-metrics-label-humidity");
-        var metricsLabelVisibilityEl = document.getElementById("js-metrics-label-visibility");
-        var metricsLabelPressureEl = document.getElementById("js-metrics-label-pressure");
-        var metricsUnitPressureEl = document.getElementById("js-metrics-unit-pressure");
+        var uvIndexEl = document.getElementById("uv-index-val");
+        var uvSubEl = document.getElementById("uv-index-sub");
+        var visibilityEl = document.getElementById("visibility-val");
+        var feelsEl = document.getElementById("feels-like-val");
+        var pressureEl = document.getElementById("pressure-val");
+        var pressureUnitEl = document.getElementById("pressure-unit");
+        var sunriseEl = document.getElementById("sunrise-val");
+        var sunsetEl = document.getElementById("sunset-val");
 
-        if (metricsLabelUvEl) metricsLabelUvEl.textContent = "УФ-индекс";
-        if (metricsLabelHumidityEl) metricsLabelHumidityEl.textContent = "Влажность";
-        if (metricsLabelVisibilityEl) metricsLabelVisibilityEl.textContent = "Видимость";
-        if (metricsLabelPressureEl) metricsLabelPressureEl.textContent = "Давление";
-        if (metricsUnitPressureEl) metricsUnitPressureEl.textContent = "мм рт. ст.";
+        if (pressureUnitEl) pressureUnitEl.textContent = "мм рт. ст.";
         if (uvIndexEl) uvIndexEl.textContent = "—";
         if (uvSubEl) uvSubEl.textContent = "";
-        if (humidityMetricsEl) humidityMetricsEl.textContent = "—";
-        if (visibilityMetricsEl) visibilityMetricsEl.textContent = "—";
-        if (pressureMetricsEl) pressureMetricsEl.textContent = "—";
+        if (visibilityEl) visibilityEl.textContent = "—";
+        if (feelsEl) feelsEl.textContent = "—";
+        if (pressureEl) pressureEl.textContent = "—";
+        if (sunriseEl) sunriseEl.textContent = "—";
+        if (sunsetEl) sunsetEl.textContent = "—";
 
         if (!data || !data.current) return;
 
         var current = data.current;
+        var uv = numFromJSON(current.uv_index);
+        if (uvIndexEl && !Number.isNaN(uv)) {
+            uvIndexEl.textContent = String(Math.round(uv));
+        }
+        if (uvSubEl && !Number.isNaN(uv)) {
+            if (uv <= 2) uvSubEl.textContent = "Низкий";
+            else if (uv <= 5) uvSubEl.textContent = "Средний";
+            else uvSubEl.textContent = "Высокий";
+        }
 
-        var uv = current.uv_index;
-        if (uvIndexEl) {
-            if (typeof uv === "number" && !Number.isNaN(uv)) {
-                uvIndexEl.textContent = String(Math.round(uv));
+        var vis = numFromJSON(current.visibility);
+        if (visibilityEl && !Number.isNaN(vis) && vis >= 0) {
+            if (vis > 0) {
+                visibilityEl.textContent = vis < 10 ? vis.toFixed(1) : String(Math.round(vis));
             }
         }
-        if (uvSubEl) {
-            if (typeof uv === "number" && !Number.isNaN(uv)) {
-                if (uv <= 2) uvSubEl.textContent = "Низкий";
-                else if (uv <= 5) uvSubEl.textContent = "Средний";
-                else uvSubEl.textContent = "Высокий";
-            }
+
+        var feels = numFromJSON(current.apparent_temperature);
+        if (feelsEl && !Number.isNaN(feels)) {
+            feelsEl.textContent = String(Math.round(feels));
         }
 
-        var hum = current.humidity;
-        if (humidityMetricsEl && typeof hum === "number" && !Number.isNaN(hum)) {
-            humidityMetricsEl.textContent = String(Math.round(hum));
+        var p = numFromJSON(current.pressure);
+        if (pressureEl && !Number.isNaN(p) && p > 0) {
+            pressureEl.textContent = String(Math.round(p));
         }
 
-        var vis = current.visibility;
-        if (visibilityMetricsEl && typeof vis === "number" && !Number.isNaN(vis) && vis > 0) {
-            visibilityMetricsEl.textContent = vis < 10 ? vis.toFixed(1) : String(Math.round(vis));
-        }
-
-        var p = current.pressure;
-        if (pressureMetricsEl && typeof p === "number" && !Number.isNaN(p)) {
-            pressureMetricsEl.textContent = String(Math.round(p));
-        }
+        var rise =
+            (data.sunrise && String(data.sunrise).trim()) ||
+            (data.daily && data.daily[0] && data.daily[0].sunrise && String(data.daily[0].sunrise).trim()) ||
+            "";
+        var set =
+            (data.sunset && String(data.sunset).trim()) ||
+            (data.daily && data.daily[0] && data.daily[0].sunset && String(data.daily[0].sunset).trim()) ||
+            "";
+        if (sunriseEl && rise) sunriseEl.textContent = rise;
+        if (sunsetEl && set) sunsetEl.textContent = set;
     }
 
     function getRouteWeatherRequest() {
@@ -666,7 +679,7 @@
         }
 
         function cacheKey(id, l) {
-            return "weatherCache:" + id + ":" + l;
+            return "weatherCache:v2:" + id + ":" + l;
         }
 
         async function fetchWeather() {
