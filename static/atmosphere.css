@@ -25,13 +25,13 @@
 
 /* True Apple-like mesh for light theme */
 html[data-theme="light"] #weather-bg {
-    background: #4a90e2 !important;
+    background: #5aa9e6 !important;
 }
 
 .theme-light #weather-bg.weather-bg--apple-light-mesh,
 body.theme-light #weather-bg.weather-bg--apple-light-mesh,
 html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
-    background: #4a90e2 !important;
+    background: #5aa9e6 !important;
 }
 
 .weather-bg__mesh {
@@ -63,8 +63,8 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
 .weather-bg__mesh .mesh-sphere {
     position: absolute;
     border-radius: 50%;
-    filter: blur(60px);
-    -webkit-filter: blur(60px);
+    filter: blur(150px);
+    -webkit-filter: blur(150px);
     opacity: 0.8;
     mix-blend-mode: overlay;
     pointer-events: none;
@@ -106,22 +106,6 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
     right: -20%;
     animation-duration: 48s;
     animation-delay: -16s;
-}
-
-.weather-bg__mesh .mesh-sun {
-    position: absolute;
-    width: 100vw;
-    height: 100vw;
-    top: -30%;
-    left: -30%;
-    right: auto;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.9;
-    mix-blend-mode: screen;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 236, 182, 0.4) 50%, transparent 80%);
-    -webkit-filter: blur(120px);
-    pointer-events: none;
 }
 
 .weather-bg__mesh .mesh-clouds {

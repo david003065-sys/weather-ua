@@ -355,9 +355,8 @@
         if (!this._meshLayer) return;
         this._meshLayer.innerHTML = "";
         var colors = [
-            "rgba(135, 206, 250, 0.8)",  /* светло-голубой */
-            "rgba(255, 192, 160, 0.6)",  /* нежный персик */
-            "rgba(100, 149, 237, 0.5)"  /* васильковый */
+            "rgba(74, 144, 226, 0.6)",  /* насыщенный голубой */
+            "rgba(90, 169, 230, 0.5)"  /* чуть светлее */
         ];
         var i;
         for (i = 0; i < colors.length; i++) {
@@ -366,22 +365,6 @@
             s.style.background = colors[i];
             s.setAttribute("aria-hidden", "true");
             this._meshLayer.appendChild(s);
-        }
-        var sun = document.createElement("div");
-        sun.className = "mesh-sun";
-        sun.setAttribute("aria-hidden", "true");
-        this._meshLayer.appendChild(sun);
-
-        var cloudWrap = document.createElement("div");
-        cloudWrap.className = "mesh-clouds";
-        cloudWrap.setAttribute("aria-hidden", "true");
-        this._meshLayer.appendChild(cloudWrap);
-
-        for (i = 1; i <= 3; i++) {
-            var c = document.createElement("div");
-            c.className = "mesh-cloud mesh-cloud--" + i;
-            c.setAttribute("aria-hidden", "true");
-            cloudWrap.appendChild(c);
         }
     };
 
