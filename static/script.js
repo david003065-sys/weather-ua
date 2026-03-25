@@ -89,6 +89,52 @@
 
     window.updateBackgroundByTemp = updateBackgroundByTemp;
 
+    // Smart Advice (clothes tips) block on index page
+    var adviceTextEl = document.getElementById("js-weather-advice-text");
+
+    function parseFirstNumber(text) {
+        if (text == null) return NaN;
+        var s = String(text).trim().replace(",", ".");
+        var m = s.match(/-?\d+(\.\d+)?/);
+        if (!m) return NaN;
+        return parseFloat(m[0]);
+    }
+
+    function isRainWmo(code) {
+        if (typeof code !== "number" || Number.isNaN(code)) return false;
+        return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+    }
+
+    function updateSmartAdvice(tempC, windKph, humidityPct, isRain) {
+        if (!adviceTextEl) return;
+        if (typeof tempC !== "number" || Number.isNaN(tempC)) return;
+
+        var base;
+        if (tempC < 0) {
+            base = "Одевайся максимально тепло! Пуховик, шарф и перчатки обязательны.";
+        } else if (tempC < 10) {
+            base = "Прохладно. Пальто или теплая куртка будут в самый раз.";
+        } else if (tempC < 18) {
+            base = "Свежо. Ветровка или плотное худи — идеальный выбор.";
+        } else if (tempC < 25) {
+            base = "Комфортно! Футболка и легкая кофта на вечер.";
+        } else {
+            base = "Жара! Выбирай легкую одежду из хлопка и пей больше воды.";
+        }
+
+        var extras = [];
+        if (typeof windKph === "number" && !Number.isNaN(windKph)) {
+            var windMs = windKph / 3.6; // API gives kph
+            if (windMs > 7) extras.push("...но берегись ветра, он сегодня кусачий.");
+        }
+        if (typeof humidityPct === "number" && !Number.isNaN(humidityPct) && humidityPct > 80) {
+            extras.push("Влажность высокая, будет казаться холоднее, чем есть.");
+        }
+        if (isRain) extras.push("И не забудь зонт — сегодня без него никак!");
+
+        adviceTextEl.textContent = extras.length ? base + " " + extras.join(" ") : base;
+    }
+
     syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
@@ -96,6 +142,14 @@
         var initialTemp = parseFloat(initialTempEl.textContent.replace(",", "."));
         if (!Number.isNaN(initialTemp)) {
             updateBackgroundByTemp(initialTemp);
+
+            // Index page: read wind/humidity from the hero metrics (order: wind, humidity, pressure)
+            if (adviceTextEl) {
+                var metricValues = document.querySelectorAll(".weather-hero__metric-value");
+                var initialWind = metricValues[0] ? parseFirstNumber(metricValues[0].textContent) : NaN;
+                var initialHumidity = metricValues[1] ? parseFirstNumber(metricValues[1].textContent) : NaN;
+                updateSmartAdvice(initialTemp, initialWind, initialHumidity, isRainWmo(weatherCode));
+            }
         }
     }
 
@@ -329,6 +383,14 @@
                     : Math.round(data.current.humidity) + (clientI18n.humiditySuffix || "%");
             }
             if (!isFallback) updateBackgroundByTemp(data.current.temperature);
+            if (!isFallback) {
+                updateSmartAdvice(
+                    data.current.temperature,
+                    data.current.wind,
+                    data.current.humidity,
+                    isRainWmo(data.current.weatherCode)
+                );
+            }
             if (
                 data.current &&
                 typeof data.current.weatherCode === "number" &&

@@ -977,6 +977,31 @@ html[data-theme="light"] .weather-hero__condition {
     padding: 0;
 }
 
+.weather-advice {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 700px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.4;
+    gap: 0.75rem;
+}
+
+.weather-advice__icon {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
 .forecast-chip {
     font-size: 12px;
     padding: 5px 11px;
