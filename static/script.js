@@ -91,6 +91,7 @@
 
     // Smart Advice (clothes tips) block on index page
     var adviceTextEl = document.getElementById("js-weather-advice-text");
+    var adviceElement = adviceTextEl ? adviceTextEl.closest(".weather-advice") : null;
 
     function parseFirstNumber(text) {
         if (text == null) return NaN;
@@ -108,6 +109,10 @@
     function updateSmartAdvice(tempC, windKph, humidityPct, isRain) {
         if (!adviceTextEl) return;
         if (typeof tempC !== "number" || Number.isNaN(tempC)) return;
+
+        if (adviceElement) {
+            adviceElement.classList.remove("animate-advice");
+        }
 
         var base;
         if (tempC < 0) {
@@ -133,6 +138,11 @@
         if (isRain) extras.push("И не забудь зонт — сегодня без него никак!");
 
         adviceTextEl.textContent = extras.length ? base + " " + extras.join(" ") : base;
+
+        if (adviceElement) {
+            void adviceElement.offsetWidth; // restart CSS animation
+            adviceElement.classList.add("animate-advice");
+        }
     }
 
     syncWeatherAtmosphere(app, weatherCode, isNight);

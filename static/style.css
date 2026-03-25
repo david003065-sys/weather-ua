@@ -1007,6 +1007,23 @@ html[data-theme="light"] .weather-hero__condition {
     text-align: center;
 }
 
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+        filter: blur(5px);
+    }
+    to {
+        opacity: 0.9;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+.animate-advice {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
 .forecast-chip {
     font-size: 12px;
     padding: 5px 11px;
