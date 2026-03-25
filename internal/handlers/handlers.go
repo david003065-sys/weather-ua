@@ -147,6 +147,9 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	summaries := make([]CitySummary, 0, len(cities))
 
 	var heroData *weather.WeatherData
+	// Always show Kyiv on the main page by default.
+	// (Some city lists are ordered such that the first item is not Kyiv.)
+	const heroCityID = "kyiv"
 
 	for _, city := range cities {
 		data, err := s.weather.GetWeather(ctx, city.ID)
@@ -155,7 +158,8 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if heroData == nil {
+		// Pick Kyiv as a hero weather; other cities are only for the cards list.
+		if heroData == nil && city.ID == heroCityID {
 			heroData = data
 		}
 
@@ -182,7 +186,18 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		// Погода недоступна (ошибка/таймаут Open-Meteo). Страницу рендерим всё равно,
 		// показываем fallback-данные.
 		if len(cities) > 0 {
-			c0 := cities[0]
+			var c0 weather.City
+			found := false
+			for _, c := range cities {
+				if c.ID == heroCityID {
+					c0 = c
+					found = true
+					break
+				}
+			}
+			if !found {
+				c0 = cities[0]
+			}
 			heroData = &weather.WeatherData{
 				CityID: c0.ID,
 				// CityName не используется напрямую в шаблоне, но пусть будет.

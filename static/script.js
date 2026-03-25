@@ -288,31 +288,13 @@
         );
     }
 
-    // 1) Apply saved defaultCity on index load ("/")
+    // On "/" always keep Kyiv (server SSR) unless the user explicitly clicks geo.
+    // (We keep localStorage for the geo result, but we don't auto-redirect on load.)
     var isIndexPage = window.location.pathname === "/";
     if (isIndexPage) {
         var saved = safeStorageGet("defaultCity");
-        if (saved) {
-            applyDefaultCity(saved);
-        } else {
-            // 2) If nothing stored — auto-detect once on first visit
-            var autoKey = "weather:geoAutoTried:v1";
-            var alreadyTried = false;
-            try {
-                alreadyTried = window.sessionStorage && window.sessionStorage.getItem(autoKey);
-            } catch (_) {
-                alreadyTried = false;
-            }
-            if (!alreadyTried && navigator.geolocation) {
-                try {
-                    if (window.sessionStorage) window.sessionStorage.setItem(autoKey, "1");
-                } catch (_) {}
-                setTimeout(function () {
-                    requestGeoAndApply(null);
-                }, 300);
-            } else {
-                applyDefaultCity(DEFAULT_CITY_ID);
-            }
+        if (!saved) {
+            safeStorageSet("defaultCity", DEFAULT_CITY_ID);
         }
     }
 
