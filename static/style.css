@@ -1077,7 +1077,6 @@ html[data-theme="light"] .weather-hero__condition {
     justify-content: flex-start;
     gap: 10px;
     width: 100%;
-    height: 45px;
     padding: 8px 12px;
     box-sizing: border-box;
     border-radius: 12px;
@@ -2915,25 +2914,36 @@ html[data-theme="light"] .weather-app * {
     }
 }
 
-/* Index hero: широкий экран — город слева, почасовка и плитки справа */
+/* Index hero: широкий экран — сетка на карточке 1fr 2fr, атмосфера на всю площадь */
 @media (min-width: 1024px) {
-    .weather-hero.weather-card {
-        max-width: 1150px !important;
-    }
-
-    .weather-hero.weather-card > .weather-hero__content {
+    .weather-hero.weather-card.weather-hero--home {
         display: grid;
-        grid-template-columns: 1fr 1.6fr;
-        grid-template-areas:
-            "left right-top"
-            "left right-bottom";
-        gap: 30px;
-        align-items: center;
-        width: 100%;
+        grid-template-columns: 1fr 2fr;
+        column-gap: clamp(20px, 3vw, 32px);
+        row-gap: 0;
+        align-items: start;
+        max-width: 1200px;
+        width: 90%;
+        overflow: hidden;
+        align-self: center;
     }
 
-    .weather-header {
-        grid-area: left;
+    .weather-hero.weather-card.weather-hero--home > .weather-hero__atmo {
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+        z-index: 0;
+    }
+
+    .weather-hero.weather-card.weather-hero--home > .weather-hero__content {
+        display: contents;
+    }
+
+    .weather-hero--home .weather-header {
+        grid-column: 1;
+        grid-row: 1;
+        position: relative;
+        z-index: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -2941,42 +2951,80 @@ html[data-theme="light"] .weather-app * {
         width: 100%;
     }
 
-    .weather-header .hero-forecast {
+    .weather-hero--home .weather-card__right {
+        grid-column: 2;
+        grid-row: 1;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .weather-hero--home .weather-card__headline {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        width: 100%;
+    }
+
+    .weather-hero--home .weather-card__headline .weather-hero__temp-wrap {
+        justify-content: flex-start;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .weather-hero--home .weather-card__headline .weather-hero__temp {
+        font-size: 10rem !important;
+        letter-spacing: -0.06em;
+        line-height: 1;
+    }
+
+    .weather-hero--home .weather-header .hero-forecast {
         justify-content: flex-start;
     }
 
-    .weather-header .weather-hero__temp-wrap {
-        justify-content: flex-start;
-    }
-
-    .weather-header .weather-advice {
+    .weather-hero--home .weather-header .weather-advice {
         justify-content: flex-start;
         text-align: left;
     }
 
-    .weather-header .location-btn {
+    .weather-hero--home .weather-header .location-btn {
         align-self: flex-start;
     }
 
-    .weather-header .weather-hero__condition {
+    .weather-hero--home .weather-header .weather-hero__condition {
         text-align: left;
         margin-left: 0;
         margin-right: 0;
     }
 
-    .hourly-forecast-container {
-        grid-area: right-top;
+    .weather-hero--home .hourly-forecast-container,
+    .weather-hero--home .hourly-forecast {
         width: 100%;
+        max-width: none;
         margin-top: 0;
-    }
-
-    .weather-details-grid {
-        grid-area: right-bottom;
-        grid-template-columns: repeat(3, 1fr) !important;
-        max-width: none !important;
-        width: 100%;
         margin-left: 0;
         margin-right: 0;
+        box-sizing: border-box;
+    }
+
+    .weather-hero--home .hourly-scroll {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .weather-hero--home .weather-details-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
     }
 }
 

@@ -4,17 +4,19 @@
 
 {{ define "index-content" }}
 {{/* Живая Атмосфера: #weather-bg + class Atmosphere — static/atmosphere.css, static/atmosphere.js (defer, перед script.js в templates/layout.html) */}}
-<section class="weather-hero weather-card" aria-labelledby="hero-title">
+<section class="weather-hero weather-card weather-hero--home" aria-labelledby="hero-title">
     <div class="weather-hero__atmo" aria-hidden="true"></div>
     <div class="weather-hero__content">
         <div class="weather-header">
-            <h1 id="hero-title" class="weather-hero__city">{{ .HeroCityTitle }}</h1>
+            <div class="weather-card__headline">
+                <h1 id="hero-title" class="weather-hero__city">{{ .HeroCityTitle }}</h1>
 
-            <div class="weather-hero__temp-wrap">
-                <div class="weather-hero__temp-glow" aria-hidden="true"></div>
-                <div class="weather-hero__temp-line">
-                    <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
-                    <span class="weather-hero__unit">°C</span>
+                <div class="weather-hero__temp-wrap">
+                    <div class="weather-hero__temp-glow" aria-hidden="true"></div>
+                    <div class="weather-hero__temp-line">
+                        <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
+                        <span class="weather-hero__unit">°C</span>
+                    </div>
                 </div>
             </div>
 
@@ -34,11 +36,12 @@
             <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
         </div>
 
-        <div class="hourly-forecast-container hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
-            <div class="hourly-scroll" id="js-hourly-scroll" aria-hidden="true"></div>
-        </div>
+        <div class="weather-card__right">
+            <div class="hourly-forecast-container hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
+                <div class="hourly-scroll" id="js-hourly-scroll" aria-hidden="true"></div>
+            </div>
 
-        <div class="weather-details-grid" aria-label="{{ .Text.CurrentMetricsAria }}">
+            <div class="weather-details-grid" aria-label="{{ .Text.CurrentMetricsAria }}">
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -145,6 +148,7 @@
                     <span class="metric-label">Закат</span>
                     <span class="metric-value metrics-sun-item__time" id="sunset-val">—</span>
                 </div>
+            </div>
             </div>
         </div>
     </div>
