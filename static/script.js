@@ -182,6 +182,63 @@
         }
     }
 
+    // Health & environment metrics (UV / humidity / visibility / pressure) on index page
+    var uvIndexEl = document.getElementById("js-metrics-uv");
+    var uvSubEl = document.getElementById("js-metrics-uv-sub");
+    var humidityMetricsEl = document.getElementById("js-metrics-humidity");
+    var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
+    var pressureMetricsEl = document.getElementById("js-metrics-pressure");
+
+    function updateHealthMetrics(current) {
+        if (!current) return;
+
+        var uv = current.uv_index;
+        if (uvIndexEl) {
+            if (typeof uv === "number" && !Number.isNaN(uv)) {
+                uvIndexEl.textContent = String(Math.round(uv));
+            } else {
+                uvIndexEl.textContent = "—";
+            }
+        }
+        if (uvSubEl) {
+            if (typeof uv === "number" && !Number.isNaN(uv)) {
+                if (uv <= 2) uvSubEl.textContent = "Низкий";
+                else if (uv <= 5) uvSubEl.textContent = "Средний";
+                else uvSubEl.textContent = "Высокий";
+            } else {
+                uvSubEl.textContent = "";
+            }
+        }
+
+        var hum = current.humidity;
+        if (humidityMetricsEl) {
+            if (typeof hum === "number" && !Number.isNaN(hum)) {
+                humidityMetricsEl.textContent = String(Math.round(hum));
+            } else {
+                humidityMetricsEl.textContent = "—";
+            }
+        }
+
+        var vis = current.visibility;
+        if (visibilityMetricsEl) {
+            if (typeof vis === "number" && !Number.isNaN(vis) && vis > 0) {
+                var visText = vis < 10 ? vis.toFixed(1) : String(Math.round(vis));
+                visibilityMetricsEl.textContent = visText;
+            } else {
+                visibilityMetricsEl.textContent = "—";
+            }
+        }
+
+        var p = current.pressure;
+        if (pressureMetricsEl) {
+            if (typeof p === "number" && !Number.isNaN(p)) {
+                pressureMetricsEl.textContent = String(Math.round(p));
+            } else {
+                pressureMetricsEl.textContent = "—";
+            }
+        }
+    }
+
     syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
@@ -435,6 +492,7 @@
                     if (!res.ok) return;
                     var json = await res.json();
                     renderHourlyForecast(json.hourly);
+                    updateHealthMetrics(json.current);
                 } catch (e) {
                     console.error("hourly forecast failed", e);
                 }
@@ -487,6 +545,7 @@
             } catch (_) {
                 /* ignore */
             }
+            updateHealthMetrics(data.current);
             renderHourlyForecast(data.hourly);
             if (
                 data.current &&

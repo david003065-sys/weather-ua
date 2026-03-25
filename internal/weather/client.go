@@ -525,6 +525,10 @@ type weatherAPIForecastResponse struct {
 		TempC     float64 `json:"temp_c"`
 		IsDay     int     `json:"is_day"`
 		WindKph   float64 `json:"wind_kph"`
+		// UV index (WeatherAPI uses `uv` in /forecast.json → current.uv)
+		UV        float64 `json:"uv"`
+		// Visibility in km (WeatherAPI uses `vis_km` in /forecast.json → current.vis_km)
+		VisKm     float64 `json:"vis_km"`
 		PressureMb float64 `json:"pressure_mb"`
 		Humidity  int     `json:"humidity"`
 		Condition struct {
@@ -738,6 +742,8 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		Icon:        i18n.WeatherIcon(wmoNow),
 		WindSpeed:   cur.WindKph,
 		Humidity:    float64(cur.Humidity),
+		UVIndex:     float64(cur.UV),
+		VisibilityKm: cur.VisKm,
 		Pressure:    pressureMM,
 		IsNight:     isNight,
 	}

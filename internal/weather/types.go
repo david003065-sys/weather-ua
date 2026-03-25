@@ -16,6 +16,8 @@ type Current struct {
 	Icon        string
 	WindSpeed   float64
 	Humidity    float64
+	UVIndex     float64
+	VisibilityKm float64
 	Pressure    float64
 	IsNight     bool
 }

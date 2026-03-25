@@ -56,6 +56,44 @@
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
             <div class="hourly-scroll" id="js-hourly-scroll" aria-hidden="true"></div>
         </div>
+
+        <div class="metrics-grid" aria-label="Health & environment metrics">
+            <div class="metrics-card">
+                <span class="metrics-card__icon" aria-hidden="true">🌞</span>
+                <div class="metrics-card__label">UV Index</div>
+                <div class="metrics-card__value">
+                    <span id="js-metrics-uv">—</span>
+                </div>
+                <div class="metrics-card__sub" id="js-metrics-uv-sub"></div>
+            </div>
+
+            <div class="metrics-card">
+                <span class="metrics-card__icon" aria-hidden="true">💧</span>
+                <div class="metrics-card__label">{{ .Text.MetricHumidity }}</div>
+                <div class="metrics-card__value">
+                    <span id="js-metrics-humidity">—</span>
+                    <span class="metrics-card__unit">%</span>
+                </div>
+            </div>
+
+            <div class="metrics-card">
+                <span class="metrics-card__icon" aria-hidden="true">👁️</span>
+                <div class="metrics-card__label">Visibility</div>
+                <div class="metrics-card__value">
+                    <span id="js-metrics-visibility">—</span>
+                    <span class="metrics-card__unit">km</span>
+                </div>
+            </div>
+
+            <div class="metrics-card">
+                <span class="metrics-card__icon" aria-hidden="true">🩺</span>
+                <div class="metrics-card__label">{{ .Text.MetricPressure }}</div>
+                <div class="metrics-card__value">
+                    <span id="js-metrics-pressure">—</span>
+                    <span class="metrics-card__unit">mmHg</span>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 

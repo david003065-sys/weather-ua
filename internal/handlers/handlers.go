@@ -466,6 +466,9 @@ type apiCurrent struct {
 	IsFallback  bool    `json:"isFallback"`
 	Wind        float64 `json:"wind"`
 	Humidity    float64 `json:"humidity"`
+	UVIndex     float64 `json:"uv_index"`
+	Visibility  float64 `json:"visibility"`
+	Pressure    float64 `json:"pressure"`
 	WeatherCode int     `json:"weatherCode"`
 	IsNight     bool    `json:"isNight"`
 }
@@ -532,6 +535,9 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
+			UVIndex:     data.Current.UVIndex,
+			Visibility:  data.Current.VisibilityKm,
+			Pressure:    data.Current.Pressure,
 			WeatherCode: data.Current.WeatherCode,
 			IsNight:     data.Current.IsNight,
 		},
@@ -630,6 +636,9 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			IsFallback:  data.IsFallback,
 			Wind:        data.Current.WindSpeed,
 			Humidity:    data.Current.Humidity,
+			UVIndex:     data.Current.UVIndex,
+			Visibility:  data.Current.VisibilityKm,
+			Pressure:    data.Current.Pressure,
 			WeatherCode: data.Current.WeatherCode,
 			IsNight:     data.Current.IsNight,
 		},
