@@ -194,9 +194,8 @@
     var metricsLabelPressureEl = document.getElementById("js-metrics-label-pressure");
     var metricsUnitPressureEl = document.getElementById("js-metrics-unit-pressure");
 
-    function updateMetricsGrid(current, newCityName) {
+    function updateMetricsGrid(current) {
         if (!current) return;
-        console.log("Updating metrics for:", newCityName || "unknown");
 
         // Force Russian labels for this block per product requirement.
         if (metricsLabelUvEl) metricsLabelUvEl.textContent = "УФ-индекс";
