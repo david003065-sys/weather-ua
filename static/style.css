@@ -981,6 +981,14 @@ html[data-theme="light"] .weather-hero__condition {
     width: 100%;
     margin-top: 20px;
     padding: 0;
+    background: transparent;
+    border-radius: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* «Стеклянная» полоса только когда есть слоты — без пустой серой плашки */
+.hourly-forecast:has(.hourly-scroll:not(:empty)) {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1044,6 +1052,7 @@ html[data-theme="light"] .weather-hero__condition {
     opacity: 0.9;
 }
 
+.weather-details-grid,
 .metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1053,6 +1062,13 @@ html[data-theme="light"] .weather-hero__condition {
     margin: 15px auto;
     justify-items: stretch;
     box-sizing: border-box;
+}
+
+.weather-details-grid__sun.metrics-sun-row {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    margin: 6px 0 0;
 }
 
 .metric-card {
@@ -1183,7 +1199,7 @@ html[data-theme="light"] .weather-hero__condition {
     align-items: center;
     justify-content: center;
     padding: 0;
-    margin: 8px 0 24px 0;
+    margin: 8px 0 12px 0;
     background: none;
     border: none;
     backdrop-filter: none;

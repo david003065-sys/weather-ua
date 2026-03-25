@@ -200,7 +200,7 @@
      * Сначала сброс, затем данные из свежего JSON /api/weather (WeatherAPI на бэкенде).
      */
     function renderMetrics(data) {
-        if (!document.querySelector(".metrics-grid")) return;
+        if (!document.querySelector(".weather-details-grid") && !document.querySelector(".metrics-grid")) return;
 
         var uvIndexEl = document.getElementById("uv-index-val");
         var uvSubEl = document.getElementById("uv-index-sub");
@@ -210,6 +210,8 @@
         var pressureUnitEl = document.getElementById("pressure-unit");
         var sunriseEl = document.getElementById("sunrise-val");
         var sunsetEl = document.getElementById("sunset-val");
+        var windTileEl = document.getElementById("js-current-wind");
+        var humTileEl = document.getElementById("js-current-humidity");
 
         if (pressureUnitEl) pressureUnitEl.textContent = "мм рт. ст.";
         if (uvIndexEl) uvIndexEl.textContent = "—";
@@ -219,10 +221,33 @@
         if (pressureEl) pressureEl.textContent = "—";
         if (sunriseEl) sunriseEl.textContent = "—";
         if (sunsetEl) sunsetEl.textContent = "—";
+        if (windTileEl) windTileEl.textContent = "—";
+        if (humTileEl) humTileEl.textContent = "—";
 
         if (!data || !data.current) return;
 
         var current = data.current;
+        var isFb = !!current.isFallback;
+        if (windTileEl) {
+            if (isFb) windTileEl.textContent = "—";
+            else {
+                var wSpd = numFromJSON(current.wind);
+                if (!Number.isNaN(wSpd)) {
+                    windTileEl.textContent =
+                        Math.round(wSpd) + (clientI18n.windSuffix || " км/ч");
+                }
+            }
+        }
+        if (humTileEl) {
+            if (isFb) humTileEl.textContent = "—";
+            else {
+                var humPct = numFromJSON(current.humidity);
+                if (!Number.isNaN(humPct)) {
+                    humTileEl.textContent =
+                        Math.round(humPct) + (clientI18n.humiditySuffix || "%");
+                }
+            }
+        }
         var uv = numFromJSON(current.uv_index);
         if (uvIndexEl && !Number.isNaN(uv)) {
             uvIndexEl.textContent = String(Math.round(uv));
@@ -305,7 +330,8 @@
     }
 
     async function refreshIndexFromRoute() {
-        var hasMetrics = !!document.querySelector(".metrics-grid");
+        var hasMetrics =
+            !!document.querySelector(".weather-details-grid") || !!document.querySelector(".metrics-grid");
         if (!getHourlyScrollEl() && !hasMetrics) return;
 
         var req = getRouteWeatherRequest();
@@ -366,28 +392,11 @@
         if (!Number.isNaN(initialTemp)) {
             updateBackgroundByTemp(initialTemp);
 
-            // Index page: read wind/humidity from the hero metrics (order: wind, humidity, pressure)
             if (adviceTextEl) {
-                // On city/place pages we have explicit ids for wind/humidity.
-                // On index page we only have the metric values in order: wind, humidity, pressure.
                 var windEl = document.getElementById("js-current-wind");
                 var humEl = document.getElementById("js-current-humidity");
                 var initialWind = windEl ? parseFirstNumber(windEl.textContent) : NaN;
                 var initialHumidity = humEl ? parseFirstNumber(humEl.textContent) : NaN;
-
-                if (!windEl || !humEl) {
-                    var metricValues = document.querySelectorAll(".weather-hero__metric-value");
-                    initialWind = Number.isNaN(initialWind)
-                        ? metricValues[0]
-                            ? parseFirstNumber(metricValues[0].textContent)
-                            : NaN
-                        : initialWind;
-                    initialHumidity = Number.isNaN(initialHumidity)
-                        ? metricValues[1]
-                            ? parseFirstNumber(metricValues[1].textContent)
-                            : NaN
-                        : initialHumidity;
-                }
                 updateSmartAdvice(initialTemp, initialWind, initialHumidity, isRainWmo(weatherCode));
             }
         }
@@ -601,7 +610,11 @@
     }
 
     // Index page: keep hourly + metrics in sync with the current route.
-    if (getHourlyScrollEl() || document.querySelector(".metrics-grid")) {
+    if (
+        getHourlyScrollEl() ||
+        document.querySelector(".weather-details-grid") ||
+        document.querySelector(".metrics-grid")
+    ) {
         // Patch pushState so route changes without full navigation still refresh this UI.
         if (history && history.pushState && !history.__weatherRoutePatched) {
             history.__weatherRoutePatched = true;
