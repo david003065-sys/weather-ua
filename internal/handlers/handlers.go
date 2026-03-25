@@ -529,10 +529,26 @@ func apiDailyFromForecast(forecast []weather.Daily) []apiDailyAstro {
 }
 
 type apiHourly struct {
-	Time        string  `json:"time"`
-	Temperature float64 `json:"temperature"`
-	Description string  `json:"description"`
-	Icon        string  `json:"icon"`
+	Time                string  `json:"time"`
+	Temperature         float64 `json:"temperature"`
+	ApparentTemperature float64 `json:"apparent_temperature"`
+	Description         string  `json:"description"`
+	Icon                string  `json:"icon"`
+}
+
+// fillAPIHourlyPayload заполняет hourly для JSON (/api/weather и /api/place_weather).
+// Почасовые ряды на бэкенде строятся из WeatherAPI forecast.forecastday[].hour
+// (temp_c, feelslike_c, condition.code — аналог open-meteo hourly=temperature_2m,weather_code,apparent_temperature).
+func fillAPIHourlyPayload(resp *apiWeatherResponse, data *weather.WeatherData, lang string) {
+	for _, h := range data.Hourly {
+		resp.Hourly = append(resp.Hourly, apiHourly{
+			Time:                h.Time.Format("15:04"),
+			Temperature:         h.Temperature,
+			ApparentTemperature: h.FeelsLike,
+			Description:         i18n.WeatherDescription(h.WeatherCode, lang),
+			Icon:                h.Icon,
+		})
+	}
 }
 
 func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
@@ -603,14 +619,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	for _, h := range data.Hourly {
-		resp.Hourly = append(resp.Hourly, apiHourly{
-			Time:        h.Time.Format("15:04"),
-			Temperature: h.Temperature,
-			Description: i18n.WeatherDescription(h.WeatherCode, lang),
-			Icon:        h.Icon,
-		})
-	}
+	fillAPIHourlyPayload(&resp, data, lang)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
@@ -709,6 +718,8 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			IsNight:     data.Current.IsNight,
 		},
 	}
+
+	fillAPIHourlyPayload(&resp, data, lang)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {

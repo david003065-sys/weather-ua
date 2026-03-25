@@ -566,10 +566,11 @@ type weatherAPIForecastDay struct {
 }
 
 type weatherAPIHour struct {
-	TimeEpoch int64   `json:"time_epoch"`
-	Time      string  `json:"time"`
-	TempC     float64 `json:"temp_c"`
-	Condition struct {
+	TimeEpoch  int64   `json:"time_epoch"`
+	Time       string  `json:"time"`
+	TempC      float64 `json:"temp_c"`
+	FeelslikeC float64 `json:"feelslike_c"`
+	Condition  struct {
 		Code int `json:"code"`
 	} `json:"condition"`
 }
@@ -641,15 +642,16 @@ func parseAstroTime(dateISO, clock string, loc *time.Location) time.Time {
 
 func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLocal time.Time) []Hourly {
 	type slot struct {
-		t   time.Time
-		tmp float64
-		wa  int
+		t    time.Time
+		tmp  float64
+		feel float64
+		wa   int
 	}
 	var slots []slot
 	for _, fd := range days {
 		for _, h := range fd.Hour {
 			t := time.Unix(h.TimeEpoch, 0).In(loc)
-			slots = append(slots, slot{t: t, tmp: h.TempC, wa: h.Condition.Code})
+			slots = append(slots, slot{t: t, tmp: h.TempC, feel: h.FeelslikeC, wa: h.Condition.Code})
 		}
 	}
 	if len(slots) == 0 {
@@ -687,6 +689,7 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 		out = append(out, Hourly{
 			Time:        s.t,
 			Temperature: s.tmp,
+			FeelsLike:   s.feel,
 			WeatherCode: wmo,
 			Description: "",
 			Icon:        i18n.WeatherIcon(wmo),

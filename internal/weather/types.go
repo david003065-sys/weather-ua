@@ -39,6 +39,8 @@ type Daily struct {
 type Hourly struct {
 	Time        time.Time
 	Temperature float64
+	// FeelsLike — ощущается как (°C) для слота; WeatherAPI: hour.feelslike_c (аналог open-meteo apparent_temperature).
+	FeelsLike   float64
 	WeatherCode int
 	Description string
 	Icon        string
