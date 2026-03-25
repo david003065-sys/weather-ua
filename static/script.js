@@ -155,9 +155,26 @@
 
             // Index page: read wind/humidity from the hero metrics (order: wind, humidity, pressure)
             if (adviceTextEl) {
-                var metricValues = document.querySelectorAll(".weather-hero__metric-value");
-                var initialWind = metricValues[0] ? parseFirstNumber(metricValues[0].textContent) : NaN;
-                var initialHumidity = metricValues[1] ? parseFirstNumber(metricValues[1].textContent) : NaN;
+                // On city/place pages we have explicit ids for wind/humidity.
+                // On index page we only have the metric values in order: wind, humidity, pressure.
+                var windEl = document.getElementById("js-current-wind");
+                var humEl = document.getElementById("js-current-humidity");
+                var initialWind = windEl ? parseFirstNumber(windEl.textContent) : NaN;
+                var initialHumidity = humEl ? parseFirstNumber(humEl.textContent) : NaN;
+
+                if (!windEl || !humEl) {
+                    var metricValues = document.querySelectorAll(".weather-hero__metric-value");
+                    initialWind = Number.isNaN(initialWind)
+                        ? metricValues[0]
+                            ? parseFirstNumber(metricValues[0].textContent)
+                            : NaN
+                        : initialWind;
+                    initialHumidity = Number.isNaN(initialHumidity)
+                        ? metricValues[1]
+                            ? parseFirstNumber(metricValues[1].textContent)
+                            : NaN
+                        : initialHumidity;
+                }
                 updateSmartAdvice(initialTemp, initialWind, initialHumidity, isRainWmo(weatherCode));
             }
         }
