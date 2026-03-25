@@ -28,32 +28,71 @@
             <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
         </div>
 
-        <div class="weather-hero__metrics" aria-label="{{ .Text.CurrentMetricsAria }}">
-            <div class="weather-hero__metric">
-                <span class="weather-hero__metric-label">{{ .Text.MetricHumidity }}</span>
-                <span id="js-current-humidity" class="weather-hero__metric-value">
-                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}
-                </span>
-            </div>
-            <div class="weather-hero__metric">
-                <span class="weather-hero__metric-label">{{ .Text.MetricWind }}</span>
-                <span id="js-current-wind" class="weather-hero__metric-value">
-                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}
-                </span>
-            </div>
-            <div class="weather-hero__metric">
-                <span class="weather-hero__metric-label">{{ .Text.MetricPressure }}</span>
-                <span class="weather-hero__metric-value">
-                    {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentPressure }}{{ .Text.UnitPressure }}{{ end }}
-                </span>
-            </div>
-        </div>
-
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
             <div class="hourly-scroll" id="js-hourly-scroll"></div>
         </div>
 
-        <div class="metrics-grid" aria-label="Health & environment metrics">
+        <div class="weather-details-grid" aria-label="{{ .Text.CurrentMetricsAria }}">
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">Ощущается</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 1 1-18 0"></path>
+                        <path d="M12 7v5"></path>
+                        <path d="M12 12l4 2"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">Давление</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2s7 8 7 14a7 7 0 0 1-14 0c0-6 7-14 7-14z"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">{{ .Text.MetricHumidity }}</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-current-humidity">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10 0h2.5a2 2 0 0 1 1.94 2.5"></path>
+                        <path d="M2 12h6.5a2 2 0 0 1 1.94 2.5"></path>
+                        <path d="M14.5 12H22"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">{{ .Text.MetricWind }}</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-current-wind">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}</span>
+                    </span>
+                </div>
+            </div>
+
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -91,45 +130,15 @@
                 </div>
             </div>
 
-            <div class="metric-card">
-                <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
-                    </svg>
-                </span>
-                <div class="metric-card__main">
-                    <span class="metric-label">Ощущается</span>
-                    <span class="metric-card__nums">
-                        <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
-                    </span>
+            <div class="weather-details-grid__sun metrics-sun-row" aria-label="Восход и закат">
+                <div class="metrics-sun-item">
+                    <span class="metric-label">Рассвет</span>
+                    <span class="metric-value metrics-sun-item__time" id="sunrise-val">—</span>
                 </div>
-            </div>
-
-            <div class="metric-card">
-                <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 1 1-18 0"></path>
-                        <path d="M12 7v5"></path>
-                        <path d="M12 12l4 2"></path>
-                    </svg>
-                </span>
-                <div class="metric-card__main">
-                    <span class="metric-label">Давление</span>
-                    <span class="metric-card__nums">
-                        <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
-                    </span>
+                <div class="metrics-sun-item">
+                    <span class="metric-label">Закат</span>
+                    <span class="metric-value metrics-sun-item__time" id="sunset-val">—</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="metrics-sun-row" aria-label="Восход и закат">
-            <div class="metrics-sun-item">
-                <span class="metric-label">Рассвет</span>
-                <span class="metric-value metrics-sun-item__time" id="sunrise-val">—</span>
-            </div>
-            <div class="metrics-sun-item">
-                <span class="metric-label">Закат</span>
-                <span class="metric-value metrics-sun-item__time" id="sunset-val">—</span>
             </div>
         </div>
     </div>
