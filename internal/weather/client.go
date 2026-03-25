@@ -402,6 +402,7 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	q.Set("key", apiKey)
 	q.Set("q", fmt.Sprintf("%.4f,%.4f", city.Latitude, city.Longitude))
 	q.Set("days", "3")
+	// Почасовые ряды берём из forecast.forecastday[].hour (temp + condition) — аналог запроса hourly к Open-Meteo.
 	fullURL := weatherAPIBaseURL() + "/forecast.json?" + q.Encode()
 
 	if c.logger != nil {
@@ -667,6 +668,14 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 	n := 12
 	if startIdx+n > len(slots) {
 		n = len(slots) - startIdx
+	}
+	// Если «сейчас» оказалось после последнего слота API (редкий сдвиг TZ/времени) — показываем с начала суток прогноза.
+	if n <= 0 {
+		startIdx = 0
+		n = 12
+		if n > len(slots) {
+			n = len(slots)
+		}
 	}
 	if n <= 0 {
 		return nil

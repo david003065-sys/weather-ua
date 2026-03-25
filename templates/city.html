@@ -49,6 +49,10 @@
             </div>
         </div>
 
+        <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
+            <div class="hourly-scroll" id="js-hourly-scroll"></div>
+        </div>
+
         <div class="metrics-grid" aria-label="Health & environment metrics">
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
@@ -166,22 +170,6 @@
                 <span class="atmo-forecast-chip__hi">{{ printf "%.0f" .MaxTemp }}°</span>
                 <span class="atmo-forecast-chip__lo">{{ printf "%.0f" .MinTemp }}°</span>
             </div>
-        </div>
-        {{ end }}
-    </div>
-</section>
-
-<section class="hourly-section atmo-stack" aria-label="{{ .Text.HourlySectionTitle }}">
-    <header class="atmo-section__head atmo-section__head--tight">
-        <span class="atmo-section__label">{{ .Text.ForecastLabel }}</span>
-        <h2 class="atmo-section__title">{{ .Text.HourlySectionTitle }}</h2>
-    </header>
-    <div class="hourly-row atmo-hourly-rail">
-        {{ range .Hourly }}
-        <div class="hourly-card atmo-hourly-chip">
-            <span class="hourly-time">{{ .TimeLabel }}</span>
-            <span class="hourly-icon" aria-hidden="true">{{ .Icon }}</span>
-            <span class="hourly-temp">{{ printf "%.0f" .Temperature }}°</span>
         </div>
         {{ end }}
     </div>

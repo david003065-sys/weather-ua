@@ -145,11 +145,15 @@
         }
     }
 
-    var hourlyScrollEl = document.getElementById("js-hourly-scroll");
+    function getHourlyScrollEl() {
+        return document.getElementById("js-hourly-scroll");
+    }
 
     function renderHourlyForecast(hourly) {
+        var hourlyScrollEl = getHourlyScrollEl();
         if (!hourlyScrollEl) return;
         hourlyScrollEl.innerHTML = "";
+        hourlyScrollEl.removeAttribute("aria-hidden");
         if (!Array.isArray(hourly) || !hourly.length) return;
 
         for (var i = 0; i < hourly.length; i++) {
@@ -302,7 +306,7 @@
 
     async function refreshIndexFromRoute() {
         var hasMetrics = !!document.querySelector(".metrics-grid");
-        if (!hourlyScrollEl && !hasMetrics) return;
+        if (!getHourlyScrollEl() && !hasMetrics) return;
 
         var req = getRouteWeatherRequest();
         if (!req || !req.url) return;
@@ -339,7 +343,13 @@
                 );
             }
 
-            // Hourly scroller (index only).
+            if (!Array.isArray(json.hourly) || !json.hourly.length) {
+                console.error(
+                    "[weather] hourly missing or empty from API (index/route)",
+                    (req && req.url) || "",
+                    json && json.cityId
+                );
+            }
             renderHourlyForecast(json.hourly);
 
             renderMetrics(json);
@@ -591,7 +601,7 @@
     }
 
     // Index page: keep hourly + metrics in sync with the current route.
-    if (hourlyScrollEl || document.querySelector(".metrics-grid")) {
+    if (getHourlyScrollEl() || document.querySelector(".metrics-grid")) {
         // Patch pushState so route changes without full navigation still refresh this UI.
         if (history && history.pushState && !history.__weatherRoutePatched) {
             history.__weatherRoutePatched = true;
@@ -659,6 +669,9 @@
                 }
             } catch (_) {
                 /* ignore */
+            }
+            if (!Array.isArray(data.hourly) || !data.hourly.length) {
+                console.error("[weather] hourly missing or empty from API (city)", cityId, data);
             }
             renderHourlyForecast(data.hourly);
             if (
