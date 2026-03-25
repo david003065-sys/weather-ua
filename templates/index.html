@@ -7,32 +7,34 @@
 <section class="weather-hero weather-card" aria-labelledby="hero-title">
     <div class="weather-hero__atmo" aria-hidden="true"></div>
     <div class="weather-hero__content">
-        <h1 id="hero-title" class="weather-hero__city">{{ .HeroCityTitle }}</h1>
+        <div class="weather-header">
+            <h1 id="hero-title" class="weather-hero__city">{{ .HeroCityTitle }}</h1>
 
-        <div class="weather-hero__temp-wrap">
-            <div class="weather-hero__temp-glow" aria-hidden="true"></div>
-            <div class="weather-hero__temp-line">
-                <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
-                <span class="weather-hero__unit">°C</span>
+            <div class="weather-hero__temp-wrap">
+                <div class="weather-hero__temp-glow" aria-hidden="true"></div>
+                <div class="weather-hero__temp-line">
+                    <span id="js-current-temp" class="weather-hero__temp">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
+                    <span class="weather-hero__unit">°C</span>
+                </div>
             </div>
+
+            <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
+
+            <div class="weather-advice" role="status" aria-live="polite">
+                <span class="weather-advice__icon" aria-hidden="true">💡</span>
+                <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
+            </div>
+
+            <div class="hero-forecast" aria-label="{{ .Text.ShortForecastAria }}">
+                <div class="forecast-chip">{{ .Text.Today }} · {{ if or .WeatherUnavailable (not .TodayLabel) }}—{{ else }}{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°{{ end }}</div>
+                <div class="forecast-chip">{{ .Text.Tomorrow }} · {{ if or .WeatherUnavailable (not .TomorrowLabel) }}—{{ else }}{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°{{ end }}</div>
+                <div class="forecast-chip">{{ .Text.DayAfterTomorrow }} · {{ if or .WeatherUnavailable (not .DayAfterLabel) }}—{{ else }}{{ printf "%.0f" .DayAfterMin }}°—{{ printf "%.0f" .DayAfterMax }}°{{ end }}</div>
+            </div>
+
+            <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
         </div>
 
-        <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
-
-        <div class="weather-advice" role="status" aria-live="polite">
-            <span class="weather-advice__icon" aria-hidden="true">💡</span>
-            <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
-        </div>
-
-        <div class="hero-forecast" aria-label="{{ .Text.ShortForecastAria }}">
-            <div class="forecast-chip">{{ .Text.Today }} · {{ if or .WeatherUnavailable (not .TodayLabel) }}—{{ else }}{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°{{ end }}</div>
-            <div class="forecast-chip">{{ .Text.Tomorrow }} · {{ if or .WeatherUnavailable (not .TomorrowLabel) }}—{{ else }}{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°{{ end }}</div>
-            <div class="forecast-chip">{{ .Text.DayAfterTomorrow }} · {{ if or .WeatherUnavailable (not .DayAfterLabel) }}—{{ else }}{{ printf "%.0f" .DayAfterMin }}°—{{ printf "%.0f" .DayAfterMax }}°{{ end }}</div>
-        </div>
-
-        <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
-
-        <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
+        <div class="hourly-forecast-container hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
             <div class="hourly-scroll" id="js-hourly-scroll" aria-hidden="true"></div>
         </div>
 
@@ -40,15 +42,29 @@
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10 0h2.5a2 2 0 0 1 1.94 2.5"></path>
-                        <path d="M2 12h6.5a2 2 0 0 1 1.94 2.5"></path>
-                        <path d="M14.5 12H22"></path>
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label">{{ .Text.MetricWind }}</span>
+                    <span class="metric-label">Ощущается</span>
                     <span class="metric-card__nums">
-                        <span class="metric-value" id="js-current-wind">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}</span>
+                        <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 1 1-18 0"></path>
+                        <path d="M12 7v5"></path>
+                        <path d="M12 12l4 2"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">Давление</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
                     </span>
                 </div>
             </div>
@@ -63,6 +79,22 @@
                     <span class="metric-label">{{ .Text.MetricHumidity }}</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="js-current-humidity">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentHumidity }}{{ .Text.UnitHumidity }}{{ end }}</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10 0h2.5a2 2 0 0 1 1.94 2.5"></path>
+                        <path d="M2 12h6.5a2 2 0 0 1 1.94 2.5"></path>
+                        <path d="M14.5 12H22"></path>
+                    </svg>
+                </span>
+                <div class="metric-card__main">
+                    <span class="metric-label">{{ .Text.MetricWind }}</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-current-wind">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentWind }}{{ .Text.UnitWind }}{{ end }}</span>
                     </span>
                 </div>
             </div>
@@ -100,36 +132,6 @@
                     <span class="metric-label">Видимость</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="visibility-val">—</span><span class="metric-unit">км</span>
-                    </span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
-                    </svg>
-                </span>
-                <div class="metric-card__main">
-                    <span class="metric-label">Ощущается</span>
-                    <span class="metric-card__nums">
-                        <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
-                    </span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 1 1-18 0"></path>
-                        <path d="M12 7v5"></path>
-                        <path d="M12 12l4 2"></path>
-                    </svg>
-                </span>
-                <div class="metric-card__main">
-                    <span class="metric-label">Давление</span>
-                    <span class="metric-card__nums">
-                        <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
                     </span>
                 </div>
             </div>

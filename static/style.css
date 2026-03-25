@@ -2915,3 +2915,68 @@ html[data-theme="light"] .weather-app * {
     }
 }
 
+/* Index hero: широкий экран — город слева, почасовка и плитки справа */
+@media (min-width: 1024px) {
+    .weather-hero.weather-card {
+        max-width: 1150px !important;
+    }
+
+    .weather-hero.weather-card > .weather-hero__content {
+        display: grid;
+        grid-template-columns: 1fr 1.6fr;
+        grid-template-areas:
+            "left right-top"
+            "left right-bottom";
+        gap: 30px;
+        align-items: center;
+        width: 100%;
+    }
+
+    .weather-header {
+        grid-area: left;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        width: 100%;
+    }
+
+    .weather-header .hero-forecast {
+        justify-content: flex-start;
+    }
+
+    .weather-header .weather-hero__temp-wrap {
+        justify-content: flex-start;
+    }
+
+    .weather-header .weather-advice {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .weather-header .location-btn {
+        align-self: flex-start;
+    }
+
+    .weather-header .weather-hero__condition {
+        text-align: left;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .hourly-forecast-container {
+        grid-area: right-top;
+        width: 100%;
+        margin-top: 0;
+    }
+
+    .weather-details-grid {
+        grid-area: right-bottom;
+        grid-template-columns: repeat(3, 1fr) !important;
+        max-width: none !important;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
