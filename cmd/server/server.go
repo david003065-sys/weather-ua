@@ -50,6 +50,7 @@ func Run() error {
 	mux.HandleFunc("/api/weather/", srv.APIWeather)
 	mux.HandleFunc("/api/place_weather", srv.APIPlaceWeather)
 	mux.HandleFunc("/api/places", srv.PlacesSuggest)
+	mux.HandleFunc("/api/find-city", srv.APIFindCity)
 	mux.HandleFunc("/weather/geo", srv.GeoRedirect)
 	mux.HandleFunc("/health", srv.Health)
 

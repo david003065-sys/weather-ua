@@ -780,6 +780,77 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// --- /api/find-city: nearest place → route key ---
+type apiFindCityResponse struct {
+	CityName    string `json:"cityName"`              // either weather city ID (kyiv/dnipro) or "place:<places.id>"
+	DisplayName string `json:"displayName,omitempty"` // best-effort localized title
+	PlaceID     *int64  `json:"placeId,omitempty"`
+}
+
+func (s *Server) APIFindCity(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.places == nil {
+		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	latStr := r.URL.Query().Get("lat")
+	lonStr := r.URL.Query().Get("lon")
+	if latStr == "" || lonStr == "" {
+		http.Error(w, "missing lat/lon", http.StatusBadRequest)
+		return
+	}
+
+	lat, err1 := strconv.ParseFloat(latStr, 64)
+	lon, err2 := strconv.ParseFloat(lonStr, 64)
+	if err1 != nil || err2 != nil {
+		http.Error(w, "invalid lat/lon", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 600*time.Millisecond)
+	defer cancel()
+
+	place, err := s.places.Nearest(ctx, lat, lon)
+	if err != nil {
+		s.logger.Printf("find city nearest failed: %v", err)
+		http.Error(w, "find city failed", http.StatusInternalServerError)
+		return
+	}
+	if place == nil {
+		http.Error(w, "no place found", http.StatusNotFound)
+		return
+	}
+
+	lang := detectLang(r)
+	displayName := places.LocalizedDisplayName(*place, lang)
+
+	// If it's close enough to one of the “known weather cities” — return its ID.
+	// Otherwise, fall back to a place route key.
+	if known, ok := weather.MatchKnownCityByCoords(place.Lat, place.Lon); ok {
+		resp := apiFindCityResponse{
+			CityName:    known.ID,
+			DisplayName: displayName,
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	pid := place.ID
+	resp := apiFindCityResponse{
+		CityName:    "place:" + strconv.FormatInt(pid, 10),
+		DisplayName: displayName,
+		PlaceID:     &pid,
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
 // --- /place/{id}: weather for arbitrary settlement ---
 
 func (s *Server) Place(w http.ResponseWriter, r *http.Request) {

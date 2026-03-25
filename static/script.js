@@ -201,30 +201,126 @@
         window.addEventListener("weather-theme-change", bootChart);
     }
 
-    // Geo button
+    // Geo/default city (index page only)
+    function safeStorageGet(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function safeStorageSet(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (_) {}
+    }
+
+    var DEFAULT_CITY_ID = "kyiv"; // fallback when nothing is stored / geolocation fails
+
+    function buildUrlFromCityName(cityName) {
+        if (!cityName) return null;
+        var s = String(cityName);
+        var langQ = encodeURIComponent(lang);
+        if (s.indexOf("place:") === 0) {
+            var placeId = s.slice("place:".length);
+            if (!placeId) return null;
+            return "/place/" + encodeURIComponent(placeId) + "?lang=" + langQ;
+        }
+        return "/city/" + encodeURIComponent(s) + "?lang=" + langQ;
+    }
+
+    function applyDefaultCity(cityName) {
+        if (!cityName) return;
+        var url = buildUrlFromCityName(cityName);
+        if (!url) return;
+        safeStorageSet("defaultCity", cityName);
+        window.location.href = url;
+    }
+
+    async function findCityByCoords(lat, lon) {
+        try {
+            var url =
+                "/api/find-city?lat=" +
+                encodeURIComponent(lat) +
+                "&lon=" +
+                encodeURIComponent(lon) +
+                "&lang=" +
+                encodeURIComponent(lang);
+            var res = await fetch(url);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function requestGeoAndApply(disableBtnEl) {
+        if (!navigator.geolocation) return;
+        if (disableBtnEl) {
+            disableBtnEl.disabled = true;
+            disableBtnEl.classList.add("btn--loading");
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async function (pos) {
+                var lat = pos.coords.latitude;
+                var lon = pos.coords.longitude;
+                var data = await findCityByCoords(lat, lon);
+                if (data && data.cityName) {
+                    applyDefaultCity(data.cityName);
+                    return;
+                }
+                // fallback
+                applyDefaultCity(DEFAULT_CITY_ID);
+            },
+            function () {
+                if (disableBtnEl) {
+                    disableBtnEl.disabled = false;
+                    disableBtnEl.classList.remove("btn--loading");
+                }
+                // fallback only for auto-detect; click will just re-enable
+                if (window.location.pathname === "/") {
+                    applyDefaultCity(DEFAULT_CITY_ID);
+                }
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+    }
+
+    // 1) Apply saved defaultCity on index load ("/")
+    var isIndexPage = window.location.pathname === "/";
+    if (isIndexPage) {
+        var saved = safeStorageGet("defaultCity");
+        if (saved) {
+            applyDefaultCity(saved);
+        } else {
+            // 2) If nothing stored — auto-detect once on first visit
+            var autoKey = "weather:geoAutoTried:v1";
+            var alreadyTried = false;
+            try {
+                alreadyTried = window.sessionStorage && window.sessionStorage.getItem(autoKey);
+            } catch (_) {
+                alreadyTried = false;
+            }
+            if (!alreadyTried && navigator.geolocation) {
+                try {
+                    if (window.sessionStorage) window.sessionStorage.setItem(autoKey, "1");
+                } catch (_) {}
+                setTimeout(function () {
+                    requestGeoAndApply(null);
+                }, 300);
+            } else {
+                applyDefaultCity(DEFAULT_CITY_ID);
+            }
+        }
+    }
+
+    // Geo button (click)
     var geoBtn = document.getElementById("js-geo-btn");
     if (geoBtn && navigator.geolocation) {
         geoBtn.addEventListener("click", function () {
-            geoBtn.disabled = true;
-            geoBtn.classList.add("btn--loading");
-            navigator.geolocation.getCurrentPosition(
-                function (pos) {
-                    var lat = pos.coords.latitude;
-                    var lon = pos.coords.longitude;
-                    window.location.href =
-                        "/weather/geo?lat=" +
-                        encodeURIComponent(lat) +
-                        "&lon=" +
-                        encodeURIComponent(lon) +
-                        "&lang=" +
-                        encodeURIComponent(lang);
-                },
-                function () {
-                    geoBtn.disabled = false;
-                    geoBtn.classList.remove("btn--loading");
-                },
-                { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
-            );
+            requestGeoAndApply(geoBtn);
         });
     }
 
