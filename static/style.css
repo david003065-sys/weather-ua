@@ -874,7 +874,7 @@ html[data-theme="light"] .weather-hero__temp-glow {
     line-height: 1;
     letter-spacing: -6px;
     color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .weather-hero__temp strong,
@@ -884,8 +884,8 @@ html[data-theme="light"] .weather-hero__temp-glow {
 }
 
 html[data-theme="light"] .weather-hero__temp {
-    color: #112033;
-    text-shadow: none;
+    color: #ffffff;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 520px) {
@@ -2597,6 +2597,12 @@ html[data-standalone="true"] .site-main {
         min-height: 40px;
         padding: 0.28rem 0.65rem;
     }
+}
+
+/* Light theme: force white typography on saturated background */
+html[data-theme="light"] .weather-app,
+html[data-theme="light"] .weather-app * {
+    color: #ffffff !important;
 }
 
 /* Touch: faster taps, subtle feedback (all modes; stronger feel on phones) */
