@@ -52,6 +52,10 @@
         </div>
 
         <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
+
+        <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
+            <div class="hourly-scroll" id="js-hourly-scroll" aria-hidden="true"></div>
+        </div>
     </div>
 </section>
 

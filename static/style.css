@@ -977,6 +977,73 @@ html[data-theme="light"] .weather-hero__condition {
     padding: 0;
 }
 
+.hourly-forecast {
+    width: 100%;
+    margin-top: 20px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+}
+
+.hourly-scroll {
+    display: flex;
+    overflow-x: auto;
+    padding: 15px;
+    gap: 20px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.hourly-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.hourly-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+    color: #fff;
+}
+
+.hourly-item__time {
+    font-size: 0.8rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    opacity: 0.92;
+    line-height: 1.2;
+}
+
+.hourly-item__icon {
+    margin-top: 6px;
+    font-size: 18px;
+    line-height: 1;
+    filter: brightness(0) invert(1);
+    opacity: 0.95;
+}
+
+.hourly-item__temp {
+    margin-top: 6px;
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.hourly-item--now .hourly-item__time {
+    font-weight: 600;
+    opacity: 1;
+}
+
+.hourly-item--now .hourly-item__time::after {
+    content: " Сейчас";
+    font-weight: 600;
+    opacity: 0.9;
+}
+
 .weather-advice {
     display: flex;
     align-items: center;

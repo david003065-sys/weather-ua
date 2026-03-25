@@ -145,6 +145,43 @@
         }
     }
 
+    var hourlyScrollEl = document.getElementById("js-hourly-scroll");
+
+    function renderHourlyForecast(hourly) {
+        if (!hourlyScrollEl) return;
+        hourlyScrollEl.innerHTML = "";
+        if (!Array.isArray(hourly) || !hourly.length) return;
+
+        for (var i = 0; i < hourly.length; i++) {
+            var h = hourly[i];
+            if (!h) continue;
+
+            var item = document.createElement("div");
+            item.className = "hourly-item" + (i === 0 ? " hourly-item--now" : "");
+
+            var timeEl = document.createElement("div");
+            timeEl.className = "hourly-item__time";
+            timeEl.textContent = h.time || "";
+
+            var iconEl = document.createElement("div");
+            iconEl.className = "hourly-item__icon";
+            iconEl.setAttribute("aria-hidden", "true");
+            iconEl.textContent = h.icon || "";
+
+            var tempEl = document.createElement("div");
+            tempEl.className = "hourly-item__temp";
+            tempEl.textContent =
+                typeof h.temperature === "number" && !Number.isNaN(h.temperature)
+                    ? Math.round(h.temperature) + "°"
+                    : "—";
+
+            item.appendChild(timeEl);
+            item.appendChild(iconEl);
+            item.appendChild(tempEl);
+            hourlyScrollEl.appendChild(item);
+        }
+    }
+
     syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
@@ -387,6 +424,24 @@
         });
     }
 
+    // Index page: render hourly scroller once from API payload.
+    if (isIndexPage && hourlyScrollEl) {
+        setTimeout(function () {
+            (async function () {
+                try {
+                    var res = await fetch(
+                        "/api/weather/" + encodeURIComponent(DEFAULT_CITY_ID) + "?lang=" + encodeURIComponent(lang)
+                    );
+                    if (!res.ok) return;
+                    var json = await res.json();
+                    renderHourlyForecast(json.hourly);
+                } catch (e) {
+                    console.error("hourly forecast failed", e);
+                }
+            })();
+        }, 800);
+    }
+
     // Auto refresh for city page
     if (cityId) {
         var tempEl = document.getElementById("js-current-temp");
@@ -418,6 +473,7 @@
                     isRainWmo(data.current.weatherCode)
                 );
             }
+            renderHourlyForecast(data.hourly);
             if (
                 data.current &&
                 typeof data.current.weatherCode === "number" &&
