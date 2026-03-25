@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -22,6 +23,7 @@ type Server struct {
 	tmpl    *template.Template
 	weather *weather.Client
 	places  *places.Store
+	placesMu sync.RWMutex
 	logger  *log.Logger
 }
 
@@ -32,6 +34,19 @@ func NewServer(tmpl *template.Template, weatherClient *weather.Client, placesSto
 		places:  placesStore,
 		logger:  logger,
 	}
+}
+
+func (s *Server) SetPlacesStore(ps *places.Store) {
+	s.placesMu.Lock()
+	s.places = ps
+	s.placesMu.Unlock()
+}
+
+func (s *Server) getPlacesStore() *places.Store {
+	s.placesMu.RLock()
+	ps := s.places
+	s.placesMu.RUnlock()
+	return ps
 }
 
 type CitySummary struct {
@@ -565,7 +580,8 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if s.places == nil {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
 		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -587,7 +603,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
 
-	place, err := s.places.GetByID(ctx, id)
+	place, err := placesStore.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Printf("api place weather get %d: %v", id, err)
 		http.Error(w, "failed to load place", http.StatusInternalServerError)
@@ -666,10 +682,11 @@ func (s *Server) GeoRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// сначала пробуем найти ближайший населённый пункт в базе places
-	if s.places != nil {
+	placesStore := s.getPlacesStore()
+	if placesStore != nil {
 		ctx, cancel := context.WithTimeout(r.Context(), 600*time.Millisecond)
 		defer cancel()
-		place, err := s.places.Nearest(ctx, lat, lon)
+		place, err := placesStore.Nearest(ctx, lat, lon)
 		if err != nil {
 			s.logger.Printf("nearest place failed: %v", err)
 		} else if place != nil {
@@ -752,7 +769,8 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.Printf("places search q=%q norm=%q limit=%d", q, norm, limit)
 
-	if s.places == nil {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Write([]byte("[]"))
 		return
@@ -761,7 +779,7 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 800*time.Millisecond)
 	defer cancel()
 
-	list, err := s.places.Search(ctx, q, limit)
+	list, err := placesStore.Search(ctx, q, limit)
 	if err != nil {
 		s.logger.Printf("places search %q: %v", q, err)
 		http.Error(w, "search failed", http.StatusInternalServerError)
@@ -817,7 +835,8 @@ func (s *Server) APIFindCity(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if s.places == nil {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
 		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -839,7 +858,7 @@ func (s *Server) APIFindCity(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 600*time.Millisecond)
 	defer cancel()
 
-	place, err := s.places.Nearest(ctx, lat, lon)
+	place, err := placesStore.Nearest(ctx, lat, lon)
 	if err != nil {
 		s.logger.Printf("find city nearest failed: %v", err)
 		http.Error(w, "find city failed", http.StatusInternalServerError)
@@ -882,7 +901,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if s.places == nil {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
 		http.Error(w, "search is not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -904,7 +924,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
 
-	place, err := s.places.GetByID(ctx, id)
+	place, err := placesStore.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Printf("get place %d: %v", id, err)
 		http.Error(w, "failed to load place", http.StatusInternalServerError)
@@ -1411,13 +1431,14 @@ func formatPlaceLocation(p *places.Place, lang string) string {
 }
 
 func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, lang, displayName string) (int, string, string) {
-	if s.places == nil {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
 		return 0, "", ""
 	}
 
 	// Ищем все населённые пункты с таким же названием (в выбранном языке).
 	q := displayName
-	list, err := s.places.Search(ctx, q, 10)
+	list, err := placesStore.Search(ctx, q, 10)
 	if err != nil || len(list) == 0 {
 		return 0, "", ""
 	}

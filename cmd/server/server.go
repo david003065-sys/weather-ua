@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -29,19 +28,24 @@ func Run() error {
 
 	// Готовая БД из репозитория / артефакта сборки (см. cmd/build_db). Рабочая директория — корень проекта (Render: repo root).
 	const placesRelPath = "data/places.db"
-	if _, err := os.Stat(placesRelPath); err != nil {
-		wd, _ := os.Getwd()
-		abs, _ := filepath.Abs(placesRelPath)
-		return fmt.Errorf("places database not found at %s (cwd=%s): %w — build with: go run ./cmd/build_db -input <csv-or-json> -output data/places.db", abs, wd, err)
-	}
-	abs, _ := filepath.Abs(placesRelPath)
-	ps, err := places.NewStore(placesRelPath)
-	if err != nil {
-		return fmt.Errorf("open places store at %s: %w", abs, err)
-	}
-	logger.Printf("places store ready at %s", abs)
+	srv := handlers.NewServer(tmpl, weatherClient, nil, logger)
 
-	srv := handlers.NewServer(tmpl, weatherClient, ps, logger)
+	// Heavy: open SQLite / load FTS indexes.
+	// We do it in a separate goroutine so Render sees the server start immediately.
+	go func() {
+		abs, _ := filepath.Abs(placesRelPath)
+		if _, err := os.Stat(placesRelPath); err != nil {
+			logger.Printf("[places] places.db not found at %s: %v", abs, err)
+			return
+		}
+		ps, err := places.NewStore(placesRelPath)
+		if err != nil {
+			logger.Printf("[places] open places store failed at %s: %v", abs, err)
+			return
+		}
+		logger.Printf("[places] places store ready at %s", abs)
+		srv.SetPlacesStore(ps)
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.Index)
