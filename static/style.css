@@ -1149,6 +1149,35 @@ html[data-theme="light"] .weather-hero__condition {
     white-space: nowrap;
 }
 
+.metrics-sun-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 500px;
+    width: 100%;
+    margin: 10px auto 0;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.metrics-sun-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.metrics-sun-item:last-child {
+    justify-content: flex-end;
+}
+
+.metrics-sun-item__time {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
 .weather-advice {
     display: flex;
     align-items: center;
