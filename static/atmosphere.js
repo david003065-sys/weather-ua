@@ -350,15 +350,14 @@
         if (this._meshLayer) this._meshLayer.innerHTML = "";
     };
 
-    /** Светлая тема + коды 0–3 (WMO) / 800–804 (OW): 4 сферы Apple Weather mesh. */
+    /** Светлая тема + коды 0–3 (WMO) / 800–804 (OW): цветные сферы Apple Weather mesh. */
     Atmosphere.prototype._buildAppleLightMesh = function () {
         if (!this._meshLayer) return;
         this._meshLayer.innerHTML = "";
         var colors = [
-            "rgba(255, 185, 172, 0.7)",
-            "rgba(182, 222, 255, 0.6)",
-            "rgba(255, 248, 220, 0.5)",
-            "rgba(230, 210, 255, 0.4)",
+            "rgba(255, 140, 110, 0.9)",  /* персик */
+            "rgba(100, 180, 255, 0.8)",  /* голубой */
+            "rgba(180, 140, 255, 0.7)",  /* лаванда */
         ];
         var i;
         for (i = 0; i < colors.length; i++) {
