@@ -25,13 +25,13 @@
 
 /* True Apple-like mesh for light theme */
 html[data-theme="light"] #weather-bg {
-    background: #5aa9e6 !important;
+    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
 }
 
 .theme-light #weather-bg.weather-bg--apple-light-mesh,
 body.theme-light #weather-bg.weather-bg--apple-light-mesh,
 html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
-    background: #5aa9e6 !important;
+    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
 }
 
 .weather-bg__mesh {
@@ -58,6 +58,22 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.75'/%3E%3C/svg%3E");
     background-size: 180px 180px;
     animation: mesh-grain 18s steps(6) infinite;
+}
+
+#weather-bg.weather-bg--apple-light-mesh .weather-bg__mesh .mesh-sun,
+.weather-bg__mesh .mesh-sun {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #fff;
+    filter: blur(40px);
+    opacity: 0.8;
+    mix-blend-mode: screen;
+    box-shadow: 0 0 200px 100px rgba(255, 255, 255, 0.2);
+    pointer-events: none;
 }
 
 .weather-bg__mesh .mesh-sphere {
@@ -986,5 +1002,10 @@ html[data-theme="light"] .atmo-chart.chart-card {
     .cities-rail > a.city-card {
         transition: none;
     }
+}
+
+/* Force Cupertino-like saturated blue background (no “dirty” colors) */
+html[data-theme="light"] #weather-bg {
+    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
 }
 

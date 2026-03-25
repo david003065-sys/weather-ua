@@ -354,18 +354,11 @@
     Atmosphere.prototype._buildAppleLightMesh = function () {
         if (!this._meshLayer) return;
         this._meshLayer.innerHTML = "";
-        var colors = [
-            "rgba(74, 144, 226, 0.6)",  /* насыщенный голубой */
-            "rgba(90, 169, 230, 0.5)"  /* чуть светлее */
-        ];
-        var i;
-        for (i = 0; i < colors.length; i++) {
-            var s = document.createElement("div");
-            s.className = "mesh-sphere mesh-sphere--" + (i + 1);
-            s.style.background = colors[i];
-            s.setAttribute("aria-hidden", "true");
-            this._meshLayer.appendChild(s);
-        }
+        // Cupertino-like sun lens effect only (no spheres/patches).
+        var sun = document.createElement("div");
+        sun.className = "mesh-sun";
+        sun.setAttribute("aria-hidden", "true");
+        this._meshLayer.appendChild(sun);
     };
 
     /**

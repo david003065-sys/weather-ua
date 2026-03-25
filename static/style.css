@@ -756,8 +756,8 @@ html[data-theme="light"] .weather-hero,
 html[data-theme="light"] .weather-card {
     background: rgba(255, 255, 255, 0.1);
     border: 0;
-    backdrop-filter: blur(40px) brightness(1.1);
-    -webkit-backdrop-filter: blur(40px) brightness(1.1);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
 }
 
 /* Glass only — без внутренней «подложки» */
@@ -830,6 +830,11 @@ html[data-theme="light"] .weather-hero__subloc {
     color: #4f6680;
 }
 
+html[data-theme="light"] .weather-hero__subloc {
+    opacity: 1 !important;
+    color: #ffffff !important;
+}
+
 /* Temperature block: radial dark center → lighter edges (reads as depth, not a box) */
 .weather-hero__temp-wrap {
     position: relative;
@@ -868,13 +873,14 @@ html[data-theme="light"] .weather-hero__temp-glow {
 
 .weather-hero__temp {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 160px !important;
+    font-size: 150px !important;
     font-weight: 100 !important;
     font-synthesis: none;
     line-height: 1;
     letter-spacing: -6px;
     color: #ffffff;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-shadow: none !important;
+    opacity: 1 !important;
 }
 
 .weather-hero__temp strong,
@@ -885,7 +891,8 @@ html[data-theme="light"] .weather-hero__temp-glow {
 
 html[data-theme="light"] .weather-hero__temp {
     color: #ffffff;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-shadow: none !important;
+    opacity: 1 !important;
 }
 
 @media (max-width: 520px) {
@@ -2603,6 +2610,7 @@ html[data-standalone="true"] .site-main {
 html[data-theme="light"] .weather-app,
 html[data-theme="light"] .weather-app * {
     color: #ffffff !important;
+    text-shadow: none !important;
 }
 
 /* Touch: faster taps, subtle feedback (all modes; stronger feel on phones) */
