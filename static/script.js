@@ -182,34 +182,43 @@
         }
     }
 
-    // Health & environment metrics (UV / humidity / visibility / pressure) on index page
-    var uvIndexEl = document.getElementById("js-metrics-uv");
-    var uvSubEl = document.getElementById("js-metrics-uv-sub");
-    var humidityMetricsEl = document.getElementById("js-metrics-humidity");
-    var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
-    var pressureMetricsEl = document.getElementById("js-metrics-pressure");
-    var metricsLabelUvEl = document.getElementById("js-metrics-label-uv");
-    var metricsLabelHumidityEl = document.getElementById("js-metrics-label-humidity");
-    var metricsLabelVisibilityEl = document.getElementById("js-metrics-label-visibility");
-    var metricsLabelPressureEl = document.getElementById("js-metrics-label-pressure");
-    var metricsUnitPressureEl = document.getElementById("js-metrics-unit-pressure");
+    /**
+     * UV / humidity / visibility / pressure — index + city pages (.metrics-grid).
+     * Clears displayed values first, then applies fresh API payload.
+     */
+    function renderMetrics(data) {
+        if (!document.querySelector(".metrics-grid")) return;
 
-    function updateMetricsGrid(current) {
-        if (!current) return;
+        var uvIndexEl = document.getElementById("js-metrics-uv");
+        var uvSubEl = document.getElementById("js-metrics-uv-sub");
+        var humidityMetricsEl = document.getElementById("js-metrics-humidity");
+        var visibilityMetricsEl = document.getElementById("js-metrics-visibility");
+        var pressureMetricsEl = document.getElementById("js-metrics-pressure");
+        var metricsLabelUvEl = document.getElementById("js-metrics-label-uv");
+        var metricsLabelHumidityEl = document.getElementById("js-metrics-label-humidity");
+        var metricsLabelVisibilityEl = document.getElementById("js-metrics-label-visibility");
+        var metricsLabelPressureEl = document.getElementById("js-metrics-label-pressure");
+        var metricsUnitPressureEl = document.getElementById("js-metrics-unit-pressure");
 
-        // Force Russian labels for this block per product requirement.
         if (metricsLabelUvEl) metricsLabelUvEl.textContent = "УФ-индекс";
         if (metricsLabelHumidityEl) metricsLabelHumidityEl.textContent = "Влажность";
         if (metricsLabelVisibilityEl) metricsLabelVisibilityEl.textContent = "Видимость";
         if (metricsLabelPressureEl) metricsLabelPressureEl.textContent = "Давление";
         if (metricsUnitPressureEl) metricsUnitPressureEl.textContent = "мм рт. ст.";
+        if (uvIndexEl) uvIndexEl.textContent = "—";
+        if (uvSubEl) uvSubEl.textContent = "";
+        if (humidityMetricsEl) humidityMetricsEl.textContent = "—";
+        if (visibilityMetricsEl) visibilityMetricsEl.textContent = "—";
+        if (pressureMetricsEl) pressureMetricsEl.textContent = "—";
+
+        if (!data || !data.current) return;
+
+        var current = data.current;
 
         var uv = current.uv_index;
         if (uvIndexEl) {
             if (typeof uv === "number" && !Number.isNaN(uv)) {
                 uvIndexEl.textContent = String(Math.round(uv));
-            } else {
-                uvIndexEl.textContent = "—";
             }
         }
         if (uvSubEl) {
@@ -217,37 +226,22 @@
                 if (uv <= 2) uvSubEl.textContent = "Низкий";
                 else if (uv <= 5) uvSubEl.textContent = "Средний";
                 else uvSubEl.textContent = "Высокий";
-            } else {
-                uvSubEl.textContent = "";
             }
         }
 
         var hum = current.humidity;
-        if (humidityMetricsEl) {
-            if (typeof hum === "number" && !Number.isNaN(hum)) {
-                humidityMetricsEl.textContent = String(Math.round(hum));
-            } else {
-                humidityMetricsEl.textContent = "—";
-            }
+        if (humidityMetricsEl && typeof hum === "number" && !Number.isNaN(hum)) {
+            humidityMetricsEl.textContent = String(Math.round(hum));
         }
 
         var vis = current.visibility;
-        if (visibilityMetricsEl) {
-            if (typeof vis === "number" && !Number.isNaN(vis) && vis > 0) {
-                var visText = vis < 10 ? vis.toFixed(1) : String(Math.round(vis));
-                visibilityMetricsEl.textContent = visText;
-            } else {
-                visibilityMetricsEl.textContent = "—";
-            }
+        if (visibilityMetricsEl && typeof vis === "number" && !Number.isNaN(vis) && vis > 0) {
+            visibilityMetricsEl.textContent = vis < 10 ? vis.toFixed(1) : String(Math.round(vis));
         }
 
         var p = current.pressure;
-        if (pressureMetricsEl) {
-            if (typeof p === "number" && !Number.isNaN(p)) {
-                pressureMetricsEl.textContent = String(Math.round(p));
-            } else {
-                pressureMetricsEl.textContent = "—";
-            }
+        if (pressureMetricsEl && typeof p === "number" && !Number.isNaN(p)) {
+            pressureMetricsEl.textContent = String(Math.round(p));
         }
     }
 
@@ -294,10 +288,8 @@
     }
 
     async function refreshIndexFromRoute() {
-        if (!hourlyScrollEl) return;
-        // Metrics grid exists only on the index template.
         var hasMetrics = !!document.querySelector(".metrics-grid");
-        if (!hasMetrics) return;
+        if (!hourlyScrollEl && !hasMetrics) return;
 
         var req = getRouteWeatherRequest();
         if (!req || !req.url) return;
@@ -334,11 +326,10 @@
                 );
             }
 
-            // Health metrics grid.
-            updateMetricsGrid(json.current, json.cityName);
-
-            // Hourly scroller.
+            // Hourly scroller (index only).
             renderHourlyForecast(json.hourly);
+
+            renderMetrics(json);
         } catch (e) {
             console.error("refreshIndexFromRoute failed", e);
         }
@@ -587,7 +578,7 @@
     }
 
     // Index page: keep hourly + metrics in sync with the current route.
-    if (hourlyScrollEl) {
+    if (hourlyScrollEl || document.querySelector(".metrics-grid")) {
         // Patch pushState so route changes without full navigation still refresh this UI.
         if (history && history.pushState && !history.__weatherRoutePatched) {
             history.__weatherRoutePatched = true;
@@ -614,7 +605,7 @@
     // Auto refresh for city page
     if (cityId) {
         var tempEl = document.getElementById("js-current-temp");
-        var descEl = document.querySelector(".city-hero__subtitle");
+        var descEl = document.querySelector(".weather-hero__condition");
         var windEl = document.getElementById("js-current-wind");
         var humEl = document.getElementById("js-current-humidity");
 
@@ -656,7 +647,6 @@
             } catch (_) {
                 /* ignore */
             }
-            updateMetricsGrid(data.current, data.cityName);
             renderHourlyForecast(data.hourly);
             if (
                 data.current &&
@@ -672,6 +662,7 @@
                         : data.current.weatherCode;
                 syncWeatherAtmosphere(app, data.current.weatherCode, data.current.isNight, engineId);
             }
+            renderMetrics(data);
         }
 
         function cacheKey(id, l) {

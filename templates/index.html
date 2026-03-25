@@ -60,7 +60,7 @@
         <div class="metrics-grid" aria-label="Health & environment metrics">
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="4"></circle>
                         <path d="M12 2v2"></path>
                         <path d="M12 20v2"></path>
@@ -72,60 +72,56 @@
                         <path d="M17.66 6.34l1.41-1.41"></path>
                     </svg>
                 </span>
-                <div class="metric-card__text">
-                    <div class="metric-label" id="js-metrics-label-uv">УФ-индекс</div>
-                    <div class="metric-uv-sub" id="js-metrics-uv-sub"></div>
-                </div>
-                <div class="metric-card__value-col">
-                    <span class="metric-value" id="js-metrics-uv">—</span>
+                <div class="metric-card__main">
+                    <span class="metric-label" id="js-metrics-label-uv">УФ-индекс</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-metrics-uv">—</span><span class="metric-uv-sub" id="js-metrics-uv-sub"></span>
+                    </span>
                 </div>
             </div>
 
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2s7 8 7 14a7 7 0 0 1-14 0c0-6 7-14 7-14z"></path>
                     </svg>
                 </span>
-                <div class="metric-card__text">
-                    <div class="metric-label" id="js-metrics-label-humidity">Влажность</div>
-                </div>
-                <div class="metric-card__value-col">
-                    <span class="metric-value" id="js-metrics-humidity">—</span>
-                    <span class="metric-unit">%</span>
+                <div class="metric-card__main">
+                    <span class="metric-label" id="js-metrics-label-humidity">Влажность</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-metrics-humidity">—</span><span class="metric-unit">%</span>
+                    </span>
                 </div>
             </div>
 
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                 </span>
-                <div class="metric-card__text">
-                    <div class="metric-label" id="js-metrics-label-visibility">Видимость</div>
-                </div>
-                <div class="metric-card__value-col">
-                    <span class="metric-value" id="js-metrics-visibility">—</span>
-                    <span class="metric-unit">км</span>
+                <div class="metric-card__main">
+                    <span class="metric-label" id="js-metrics-label-visibility">Видимость</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-metrics-visibility">—</span><span class="metric-unit">км</span>
+                    </span>
                 </div>
             </div>
 
             <div class="metric-card">
                 <span class="metric-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12a9 9 0 1 1-18 0"></path>
                         <path d="M12 7v5"></path>
                         <path d="M12 12l4 2"></path>
                     </svg>
                 </span>
-                <div class="metric-card__text">
-                    <div class="metric-label" id="js-metrics-label-pressure">Давление</div>
-                </div>
-                <div class="metric-card__value-col">
-                    <span class="metric-value" id="js-metrics-pressure">—</span>
-                    <span class="metric-unit" id="js-metrics-unit-pressure">мм рт. ст.</span>
+                <div class="metric-card__main">
+                    <span class="metric-label" id="js-metrics-label-pressure">Давление</span>
+                    <span class="metric-card__nums">
+                        <span class="metric-value" id="js-metrics-pressure">—</span><span class="metric-unit" id="js-metrics-unit-pressure">мм рт. ст.</span>
+                    </span>
                 </div>
             </div>
         </div>

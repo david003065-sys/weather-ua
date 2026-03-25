@@ -1049,19 +1049,21 @@ html[data-theme="light"] .weather-hero__condition {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     width: 100%;
-    max-width: none;
-    margin-top: 20px;
+    max-width: 500px;
+    margin: 15px auto;
     justify-items: stretch;
+    box-sizing: border-box;
 }
 
 .metric-card {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 10px;
     width: 100%;
-    min-height: 50px;
-    padding: 10px 15px;
+    height: 45px;
+    padding: 8px 12px;
+    box-sizing: border-box;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
@@ -1073,9 +1075,9 @@ html[data-theme="light"] .weather-hero__condition {
 }
 
 .metric-card__icon {
-    flex: 0 0 16px;
-    width: 16px;
-    height: 16px;
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
     opacity: 0.95;
     pointer-events: none;
     color: #fff;
@@ -1083,17 +1085,17 @@ html[data-theme="light"] .weather-hero__condition {
 
 .metric-card__icon svg {
     display: block;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 }
 
-.metric-card__text {
+.metric-card__main {
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
 }
 
 .metric-label {
@@ -1101,43 +1103,50 @@ html[data-theme="light"] .weather-hero__condition {
     font-weight: 400;
     letter-spacing: -0.02em;
     opacity: 0.6;
-    line-height: 1.2;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.metric-uv-sub {
-    font-size: 0.62rem;
-    font-weight: 400;
-    opacity: 0.55;
-    line-height: 1.2;
-    min-height: 0.9em;
-}
-
-.metric-uv-sub:empty {
-    display: none;
-}
-
-.metric-card__value-col {
-    flex: 0 1 auto;
+.metric-card__nums {
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
     justify-content: flex-end;
-    gap: 4px;
-    max-width: min(52%, 100%);
+    flex-wrap: nowrap;
+    gap: 2px;
+    flex-shrink: 0;
+    max-width: 58%;
     color: #ffffff;
-    text-align: right;
 }
 
 .metric-value {
     font-size: 0.9rem;
     font-weight: 500;
     letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.metric-uv-sub {
+    font-size: 0.62rem;
+    font-weight: 400;
+    opacity: 0.55;
+    line-height: 1.1;
+    margin-left: 3px;
+    white-space: nowrap;
+}
+
+.metric-uv-sub:empty {
+    display: none;
+    margin-left: 0;
 }
 
 .metric-unit {
     font-size: 0.7rem;
     font-weight: 400;
     opacity: 0.65;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .weather-advice {
