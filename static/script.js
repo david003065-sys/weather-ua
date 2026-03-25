@@ -473,6 +473,20 @@
                     isRainWmo(data.current.weatherCode)
                 );
             }
+            // Force sync precipitation/cloud dynamics for the NEW city.
+            // (SyncWeatherAtmosphere below also calls atmosphere.update, but this guarantees it runs even if types mismatch.)
+            try {
+                if (
+                    window.atmosphere &&
+                    typeof window.atmosphere.update === "function" &&
+                    data.current &&
+                    typeof data.current.weatherCode !== "undefined"
+                ) {
+                    window.atmosphere.update(data.current.weatherCode, data.current.isNight);
+                }
+            } catch (_) {
+                /* ignore */
+            }
             renderHourlyForecast(data.hourly);
             if (
                 data.current &&

@@ -410,6 +410,21 @@
         this._stopPrecip();
         this._clearCloudsLayer();
 
+        // Bug-fix: ensure canvas is fully cleared on every update to avoid "stuck" drops.
+        if (this._canvas) {
+            try {
+                var ctxClear = this._canvas.getContext("2d");
+                if (ctxClear) {
+                    ctxClear.save();
+                    ctxClear.setTransform(1, 0, 0, 1, 0, 0);
+                    ctxClear.clearRect(0, 0, this._canvas.width, this._canvas.height);
+                    ctxClear.restore();
+                }
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
         var appleLightMesh = isLightTheme && isFairWeatherForAppleMesh(cNum);
         if (appleLightMesh) {
             el.classList.add("weather-bg--apple-light-mesh");
@@ -421,6 +436,11 @@
         if (prefersReducedMotion()) {
             el.classList.add("weather-bg--fx-none");
             return;
+        }
+
+        // If "cloudy" without explicit fx (resolveState => fx:none), give it gentle movement.
+        if (state.sky === "cloudy" && (state.fx === "none" || !state.fx)) {
+            state.fx = "svg-clouds";
         }
 
         if (state.fx === "rain") {
