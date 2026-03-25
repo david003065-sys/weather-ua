@@ -598,6 +598,8 @@
                 el.className = "search-suggestions__item";
                 el.setAttribute("role", "option");
                 el.dataset.id = String(p.id);
+                el.dataset.lat = String(p.lat);
+                el.dataset.lon = String(p.lon);
 
                 var title = document.createElement("div");
                 title.className = "search-suggestions__title";
@@ -639,7 +641,7 @@
                     if (window.__weatherLists && window.__weatherLists.addRecentFromPlace) {
                         window.__weatherLists.addRecentFromPlace(p, lang);
                     }
-                    goToPlace(p.id);
+                    goToPlace(p);
                 });
 
                 box.appendChild(el);
@@ -659,13 +661,47 @@
             activeIndex = idx;
         }
 
-        function goToPlace(id) {
-            if (!id) return;
-            var url = "/place/" + encodeURIComponent(String(id));
+        async function goToPlace(place) {
+            if (!place || !place.id) return;
+
+            var fallbackUrl = "/place/" + encodeURIComponent(String(place.id));
             if (lang) {
-                url += "?lang=" + encodeURIComponent(lang);
+                fallbackUrl += "?lang=" + encodeURIComponent(lang);
             }
-            window.location.href = url;
+
+            var lat = place.lat;
+            var lon = place.lon;
+            var hasCoords = typeof lat === "number" && typeof lon === "number" && !Number.isNaN(lat) && !Number.isNaN(lon);
+
+            // Try to map the chosen place to a "known weather city" route (/city/<id>).
+            if (hasCoords) {
+                try {
+                    var findUrl =
+                        "/api/find-city?lat=" +
+                        encodeURIComponent(lat) +
+                        "&lon=" +
+                        encodeURIComponent(lon) +
+                        "&lang=" +
+                        encodeURIComponent(lang);
+                    var res = await fetch(findUrl);
+                    if (res && res.ok) {
+                        var data = await res.json();
+                        if (data && data.cityName) {
+                            var mappedUrl = buildUrlFromCityName(data.cityName);
+                            if (mappedUrl) {
+                                window.history.pushState({}, "", mappedUrl);
+                                window.location.reload();
+                                return;
+                            }
+                        }
+                    }
+                } catch (_) {
+                    /* ignore and fallback */
+                }
+            }
+
+            window.history.pushState({}, "", fallbackUrl);
+            window.location.reload();
         }
 
         async function fetchSuggestions(q) {
@@ -745,8 +781,11 @@
             } else if (e.key === "Enter") {
                 if (activeIndex >= 0 && activeIndex < items.length) {
                     e.preventDefault();
-                    var id = items[activeIndex].dataset.id;
-                    goToPlace(id);
+                    var el = items[activeIndex];
+                    var id = el && el.dataset ? el.dataset.id : null;
+                    var lat = el && el.dataset ? parseFloat(el.dataset.lat) : NaN;
+                    var lon = el && el.dataset ? parseFloat(el.dataset.lon) : NaN;
+                    goToPlace({ id: id, lat: lat, lon: lon });
                 }
             } else if (e.key === "Escape") {
                 clearSuggestions();
