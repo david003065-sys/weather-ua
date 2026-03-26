@@ -434,6 +434,16 @@ html[data-theme="light"] .lang-switch__item--active {
     margin: 0 auto;
 }
 
+.search-shell {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-input-wrap {
+    position: relative;
+}
+
 .search-section,
 .cities {
     width: 100%;
@@ -447,6 +457,105 @@ html[data-theme="light"] .lang-switch__item--active {
     background: var(--glass-bg);
     color: var(--text-main);
     padding: 0.72rem 0.9rem;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: rgba(56, 189, 248, 0.65);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.search-input-spinner {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 15px;
+    height: 15px;
+    margin-top: -7.5px;
+    border: 2px solid rgba(148, 163, 184, 0.35);
+    border-top-color: rgba(56, 189, 248, 0.9);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    animation: search-spin 0.8s linear infinite;
+}
+
+@keyframes search-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.search-suggestions {
+    display: none;
+    margin-top: 0.45rem;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow: 0 16px 34px rgba(2, 6, 23, 0.22);
+    overflow: hidden;
+    z-index: 25;
+    position: relative;
+}
+
+.search-suggestions__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+    padding: 0.65rem 2.2rem 0.65rem 0.8rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.search-suggestions__item:last-child {
+    border-bottom: 0;
+}
+
+.search-suggestions__item:hover,
+.search-suggestions__item--active {
+    background: var(--chip-bg);
+}
+
+.search-suggestions__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.search-suggestions__meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.search-suggestions__highlight {
+    background: rgba(56, 189, 248, 0.24);
+    color: inherit;
+    border-radius: 4px;
+    padding: 0 2px;
+}
+
+.search-suggestions__fav {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #f59e0b;
+    font-size: 0.92rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+}
+
+.search-suggestions__empty {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
 
 .site-footer {
