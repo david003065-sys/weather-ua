@@ -80,22 +80,21 @@
                 </div>
             </a>
 
-            {{/* Глобальный поиск в шапке */}}
-            <div class="search-input-wrap header-search">
-                <input
-                    id="js-place-search"
-                    type="text"
-                    class="search-input"
-                    autocomplete="off"
-                    placeholder="{{ .Text.SearchPlaceholder }}"
-                >
-                <div id="js-place-suggestions" class="search-suggestions" role="listbox" aria-label="{{ .Text.SuggestionsAria }}"></div>
-            </div>
-
             <nav class="nav" aria-label="{{ .Text.NavAria }}">
                 <a href="/?lang={{ .Lang }}" class="nav-link {{ if .IsIndex }}nav-link--active{{ end }}">{{ .Text.NavNow }}</a>
                 <a href="/?lang={{ .Lang }}#cities" class="nav-link">{{ .Text.NavCities }}</a>
             </nav>
+
+            {{/* Глобальный поиск в шапке */}}
+            <div class="search-input-wrap header-search">
+                <input
+                    type="text"
+                    id="js-place-search"
+                    class="search-input"
+                    placeholder="Поиск города..."
+                >
+                <div id="js-place-suggestions" class="search-suggestions"></div>
+            </div>
 
             <div class="header-controls">
                 <button
