@@ -3,7 +3,7 @@
 {{ define "description" }}{{ .MetaDescription }}{{ end }}
 
 {{ define "index-content" }}
-{{/* Живая Атмосфера: #weather-bg + class Atmosphere — static/atmosphere.css, static/atmosphere.js (defer, перед script.js в templates/layout.html) */}}
+{{/* Живая Атмосфера: #weather-bg + class Atmosphere — static/atmosphere.css, static/atmosphere.js */}}
 <section class="weather-hero weather-card" aria-labelledby="hero-title">
     <div class="weather-hero__atmo" aria-hidden="true"></div>
     <div class="weather-hero__content">
@@ -148,21 +148,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</section>
-
-<section class="search-section atmo-search" aria-label="{{ .Text.SearchSectionAria }}">
-    <div class="search-shell">
-        <div class="search-input-wrap">
-            <input
-                id="js-place-search"
-                type="text"
-                class="search-input"
-                autocomplete="off"
-                placeholder="{{ .Text.SearchPlaceholder }}"
-            >
-        </div>
-        <div id="js-place-suggestions" class="search-suggestions" role="listbox" aria-label="{{ .Text.SuggestionsAria }}"></div>
     </div>
 </section>
 
