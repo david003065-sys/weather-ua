@@ -554,6 +554,8 @@ type weatherAPIForecastDay struct {
 	Day  struct {
 		MaxtempC  float64 `json:"maxtemp_c"`
 		MintempC  float64 `json:"mintemp_c"`
+		DailyChanceOfRain int `json:"daily_chance_of_rain"`
+		DailyChanceOfSnow int `json:"daily_chance_of_snow"`
 		Condition struct {
 			Code int `json:"code"`
 		} `json:"condition"`
@@ -764,6 +766,16 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	if visKm <= 0 && cur.VisMiles > 0 {
 		visKm = cur.VisMiles * 1.60934
 	}
+	precipChance := -1
+	if len(days) > 0 {
+		precipChance = days[0].Day.DailyChanceOfRain
+		if days[0].Day.DailyChanceOfSnow > precipChance {
+			precipChance = days[0].Day.DailyChanceOfSnow
+		}
+		if precipChance < 0 || precipChance > 100 {
+			precipChance = -1
+		}
+	}
 
 	current := Current{
 		Temperature:  cur.TempC,
@@ -776,6 +788,7 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		UVIndex:      float64(cur.UV),
 		VisibilityKm: visKm,
 		Pressure:     pressureMM,
+		PrecipitationChance: precipChance,
 		IsNight:      isNight,
 	}
 

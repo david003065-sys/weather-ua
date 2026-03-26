@@ -145,6 +145,21 @@
         }
     }
 
+    function updatePrecipChance(chance, isFallback) {
+        var precipEl = document.getElementById("js-precip-chance");
+        if (!precipEl) return;
+        if (isFallback) {
+            precipEl.textContent = "☔ —";
+            return;
+        }
+        var ch = Number(chance);
+        if (Number.isNaN(ch) || ch < 0 || ch > 100) {
+            precipEl.textContent = "☔ —";
+            return;
+        }
+        precipEl.textContent = "☔ " + Math.round(ch) + "%";
+    }
+
     function getHourlyScrollEl() {
         return document.getElementById("js-hourly-scroll");
     }
@@ -351,6 +366,7 @@
             var isFallbackNow = !!json.current.isFallback;
             if (tempElNow) tempElNow.textContent = isFallbackNow ? "—" : Math.round(json.current.temperature);
             if (descElNow) descElNow.textContent = json.current.description || (isFallbackNow ? "—" : "");
+            updatePrecipChance(json.current.precipitation_chance, isFallbackNow);
             if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
 
             // Update atmosphere / precipitation / clouds for the new code.
@@ -650,6 +666,7 @@
             var isFallback = !!data.current.isFallback;
             if (tempEl) tempEl.textContent = isFallback ? "—" : Math.round(data.current.temperature);
             if (descEl) descEl.textContent = data.current.description;
+            updatePrecipChance(data.current.precipitation_chance, isFallback);
             if (windEl) {
                 windEl.textContent = isFallback
                     ? "—"

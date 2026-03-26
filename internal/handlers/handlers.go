@@ -77,6 +77,7 @@ type IndexPageData struct {
 	HeroCityTitle      string
 	CurrentTemp        float64
 	CurrentDescription string
+	CurrentPrecipChance int
 	CurrentWind        float64
 	CurrentHumidity    float64
 	CurrentPressure    float64
@@ -125,6 +126,7 @@ type CityPageData struct {
 	CityLocation       string
 	CurrentTemp        float64
 	CurrentDescription string
+	CurrentPrecipChance int
 	CurrentWind        float64
 	CurrentHumidity    float64
 	CurrentPressure    float64
@@ -292,6 +294,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		HeroCityTitle:      heroCityTitle,
 		CurrentTemp:        heroData.Current.Temperature,
 		CurrentDescription: currentDesc,
+		CurrentPrecipChance: heroData.Current.PrecipitationChance,
 		CurrentWind:        heroData.Current.WindSpeed,
 		CurrentHumidity:    heroData.Current.Humidity,
 		CurrentPressure:    heroData.Current.Pressure,
@@ -441,6 +444,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		CityName:           weather.LocalizedCityName(data.CityID, lang),
 		CurrentTemp:        data.Current.Temperature,
 		CurrentDescription: currentDesc,
+		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:        data.Current.WindSpeed,
 		CurrentHumidity:    data.Current.Humidity,
 		CurrentPressure:    data.Current.Pressure,
@@ -496,6 +500,7 @@ type apiCurrent struct {
 	UVIndex             float64 `json:"uv_index"`
 	Visibility          float64 `json:"visibility"`
 	Pressure            float64 `json:"pressure"`
+	PrecipitationChance int     `json:"precipitation_chance"`
 	WeatherCode         int     `json:"weatherCode"`
 	IsNight             bool    `json:"isNight"`
 }
@@ -614,6 +619,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 			UVIndex:     data.Current.UVIndex,
 			Visibility:  data.Current.VisibilityKm,
 			Pressure:    data.Current.Pressure,
+			PrecipitationChance: data.Current.PrecipitationChance,
 			WeatherCode: data.Current.WeatherCode,
 			IsNight:     data.Current.IsNight,
 		},
@@ -714,6 +720,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			UVIndex:     data.Current.UVIndex,
 			Visibility:  data.Current.VisibilityKm,
 			Pressure:    data.Current.Pressure,
+			PrecipitationChance: data.Current.PrecipitationChance,
 			WeatherCode: data.Current.WeatherCode,
 			IsNight:     data.Current.IsNight,
 		},
@@ -1107,6 +1114,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		CityLocation:       locationSubtitle,
 		CurrentTemp:        data.Current.Temperature,
 		CurrentDescription: currentDesc,
+		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:        data.Current.WindSpeed,
 		CurrentHumidity:    data.Current.Humidity,
 		CurrentPressure:    data.Current.Pressure,

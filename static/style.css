@@ -306,6 +306,14 @@ html[data-theme="light"] .lang-switch__item--active {
     color: var(--text-muted);
 }
 
+.weather-hero__precip {
+    margin: -0.15rem 0 0.1rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    opacity: 0.95;
+}
+
 .weather-advice,
 .hero-forecast {
     width: 100%;

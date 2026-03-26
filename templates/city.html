@@ -22,6 +22,7 @@
         </div>
 
         <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
+        <p class="weather-hero__precip" id="js-precip-chance">☔ {{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</p>
 
         <div class="weather-advice" role="status" aria-live="polite">
             <span class="weather-advice__icon" aria-hidden="true">💡</span>

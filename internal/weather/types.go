@@ -21,6 +21,8 @@ type Current struct {
 	UVIndex      float64
 	VisibilityKm float64
 	Pressure     float64
+	// PrecipitationChance — вероятность осадков на сегодня (%), -1 если недоступно.
+	PrecipitationChance int
 	IsNight      bool
 }
 
