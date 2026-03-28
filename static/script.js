@@ -251,40 +251,42 @@
         if (!hourlyScrollEl) return;
         hourlyScrollEl.innerHTML = "";
         hourlyScrollEl.removeAttribute("aria-hidden");
-        if (!Array.isArray(hourly) || !hourly.length) {
-            renderTempChart();
-            return;
+        if (Array.isArray(hourly) && hourly.length) {
+            for (var i = 0; i < hourly.length; i++) {
+                var h = hourly[i];
+                if (!h) continue;
+
+                var item = document.createElement("div");
+                item.className = "hourly-item" + (i === 0 ? " hourly-item--now" : "");
+
+                var timeEl = document.createElement("div");
+                timeEl.className = "hourly-item__time";
+                timeEl.textContent = h.time || "";
+
+                var iconEl = document.createElement("div");
+                iconEl.className = "hourly-item__icon";
+                iconEl.setAttribute("aria-hidden", "true");
+                iconEl.textContent = h.icon || "";
+
+                var tempEl = document.createElement("div");
+                tempEl.className = "hourly-item__temp";
+                tempEl.textContent =
+                    typeof h.temperature === "number" && !Number.isNaN(h.temperature)
+                        ? Math.round(h.temperature) + "°"
+                        : "—";
+
+                item.appendChild(timeEl);
+                item.appendChild(iconEl);
+                item.appendChild(tempEl);
+                hourlyScrollEl.appendChild(item);
+            }
         }
 
-        for (var i = 0; i < hourly.length; i++) {
-            var h = hourly[i];
-            if (!h) continue;
-
-            var item = document.createElement("div");
-            item.className = "hourly-item" + (i === 0 ? " hourly-item--now" : "");
-
-            var timeEl = document.createElement("div");
-            timeEl.className = "hourly-item__time";
-            timeEl.textContent = h.time || "";
-
-            var iconEl = document.createElement("div");
-            iconEl.className = "hourly-item__icon";
-            iconEl.setAttribute("aria-hidden", "true");
-            iconEl.textContent = h.icon || "";
-
-            var tempEl = document.createElement("div");
-            tempEl.className = "hourly-item__temp";
-            tempEl.textContent =
-                typeof h.temperature === "number" && !Number.isNaN(h.temperature)
-                    ? Math.round(h.temperature) + "°"
-                    : "—";
-
-            item.appendChild(timeEl);
-            item.appendChild(iconEl);
-            item.appendChild(tempEl);
-            hourlyScrollEl.appendChild(item);
+        // Отрисовываем график только после того, как DOM наполнился данными
+        if (typeof renderTempChart === "function") {
+            // Небольшая задержка, чтобы браузер успел отрисовать элементы
+            setTimeout(renderTempChart, 50);
         }
-        renderTempChart();
     }
 
     function numFromJSON(v) {
@@ -1703,14 +1705,6 @@
         loadFavorites();
     }
 
-    function bootHourlyTempChart() {
-        renderTempChart();
-    }
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", bootHourlyTempChart);
-    } else {
-        bootHourlyTempChart();
-    }
     window.addEventListener("weather-theme-change", function () {
         renderTempChart();
     });
