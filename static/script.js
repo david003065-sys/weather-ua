@@ -164,66 +164,71 @@
         return document.getElementById("js-hourly-scroll");
     }
 
-    /** График температуры по часам (Chart.js) — данные снимаются с карточек `.hourly-item` после renderHourlyForecast. */
+    /** Почасовой график температуры (Chart.js) — точки из `.hourly-item` в `#js-hourly-scroll`. */
     function renderTempChart() {
-        var canvas = document.getElementById("js-temp-chart");
-        if (!canvas || typeof Chart === "undefined") return;
+        const canvas = document.getElementById("js-temp-chart");
+        if (!canvas) {
+            console.error("ОШИБКА: Холст #js-temp-chart не найден на странице!");
+            return;
+        }
+        if (typeof Chart === "undefined") {
+            console.error("ОШИБКА: Библиотека Chart.js не загрузилась!");
+            return;
+        }
+        console.log("Canvas найден, Chart.js готов. Собираем данные...");
 
-        var scroll = document.getElementById("js-hourly-scroll");
-        if (!scroll) return;
+        const scroll = document.getElementById("js-hourly-scroll");
+        if (!scroll) {
+            console.error("ОШИБКА: Контейнер #js-hourly-scroll не найден.");
+            return;
+        }
 
-        var items = scroll.querySelectorAll(".hourly-item");
-        var labels = [];
-        var values = [];
-        for (var i = 0; i < items.length; i++) {
-            var timeEl = items[i].querySelector(".hourly-item__time");
-            var tempEl = items[i].querySelector(".hourly-item__temp");
+        const items = scroll.querySelectorAll(".hourly-item");
+        const labels = [];
+        const data = [];
+        for (let i = 0; i < items.length; i++) {
+            const timeEl = items[i].querySelector(".hourly-item__time");
+            const tempEl = items[i].querySelector(".hourly-item__temp");
             if (!timeEl || !tempEl) continue;
-            var lab = String(timeEl.textContent || "").trim();
-            var raw = String(tempEl.textContent || "")
+            const lab = String(timeEl.textContent || "").trim();
+            let raw = String(tempEl.textContent || "")
                 .trim()
                 .replace(/\u2212/g, "-")
                 .replace(/°/g, "")
                 .replace(/−/g, "-")
                 .trim();
             if (!raw || raw === "—" || raw === "-") continue;
-            var n = parseFloat(raw.replace(",", "."));
+            const n = parseFloat(raw.replace(",", "."));
             if (Number.isNaN(n)) continue;
             labels.push(lab);
-            values.push(n);
+            data.push(n);
         }
 
-        var existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+        const existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
         if (existing) {
             existing.destroy();
         }
 
         if (!labels.length) {
+            console.warn("renderTempChart: нет почасовых точек в DOM (ожидается загрузка API).");
             return;
         }
 
-        var host = canvas.closest(".weather-app") || document.documentElement;
-        var css = getComputedStyle(host);
-        var lineColor = (css.getPropertyValue("--link") || "#38bdf8").trim();
-        var fillColor = (css.getPropertyValue("--chart-fill-max") || "rgba(56, 189, 248, 0.22)").trim();
-        var tickColor = (css.getPropertyValue("--text-muted") || "#94a3b8").trim();
-
-        var ctx = canvas.getContext("2d");
-        new Chart(ctx, {
+        new Chart(canvas, {
             type: "line",
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        data: values,
-                        borderColor: lineColor,
-                        backgroundColor: fillColor,
+                        data: data,
+                        borderColor: "rgba(255,255,255,0.8)",
+                        backgroundColor: "rgba(255,255,255,0.08)",
                         borderWidth: 2,
                         tension: 0.4,
                         fill: true,
                         pointRadius: 3,
-                        pointBackgroundColor: lineColor,
-                        pointBorderColor: tickColor
+                        pointBackgroundColor: "rgba(255,255,255,0.9)",
+                        pointBorderColor: "rgba(255,255,255,0.5)"
                     }
                 ]
             },
@@ -231,38 +236,11 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function (ctx) {
-                                var v =
-                                    ctx.parsed && typeof ctx.parsed.y === "number"
-                                        ? ctx.parsed.y
-                                        : ctx.raw;
-                                return (typeof v === "number" ? v : "") + "°";
-                            }
-                        }
-                    }
+                    legend: { display: false }
                 },
                 scales: {
-                    x: {
-                        ticks: {
-                            color: tickColor,
-                            maxRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 8
-                        },
-                        grid: { display: false }
-                    },
-                    y: {
-                        ticks: {
-                            color: tickColor,
-                            callback: function (value) {
-                                return value + "°";
-                            }
-                        },
-                        grid: { display: false }
-                    }
+                    x: { display: false },
+                    y: { display: false }
                 }
             }
         });
