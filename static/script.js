@@ -1501,8 +1501,152 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", initFavoriteState);
-    if (document.readyState !== "loading") {
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initFavoriteState);
+    } else {
         initFavoriteState();
+    }
+
+    function appendFavoriteCardHome(rail, item, lang, windLabel, humLabel) {
+        var a = document.createElement("a");
+        if (item.kind === "place") {
+            a.href = "/place/" + encodeURIComponent(item.id) + "?lang=" + encodeURIComponent(lang);
+        } else {
+            a.href = "/city/" + encodeURIComponent(item.id) + "?lang=" + encodeURIComponent(lang);
+        }
+        a.className = "city-card rail-card";
+        a.setAttribute("data-city-id", item.id);
+
+        var top = document.createElement("div");
+        top.className = "rail-card__top";
+        var nameEl = document.createElement("span");
+        nameEl.className = "rail-card__name";
+        nameEl.textContent = item.name || "";
+        var iconEl = document.createElement("span");
+        iconEl.className = "rail-card__icon";
+        iconEl.setAttribute("aria-hidden", "true");
+        iconEl.textContent = item.icon || "";
+        top.appendChild(nameEl);
+        top.appendChild(iconEl);
+
+        var tempWrap = document.createElement("div");
+        tempWrap.className = "rail-card__temp";
+        var tempVal = document.createElement("span");
+        tempVal.className = "rail-card__temp-val";
+        tempVal.textContent = item.weatherUnavailable ? "—" : String(Math.round(item.temperature));
+        var tempUnit = document.createElement("span");
+        tempUnit.className = "rail-card__temp-unit";
+        tempUnit.textContent = "°";
+        tempWrap.appendChild(tempVal);
+        tempWrap.appendChild(tempUnit);
+
+        var desc = document.createElement("p");
+        desc.className = "rail-card__desc";
+        desc.textContent = item.description || "";
+
+        var footer = document.createElement("div");
+        footer.className = "city-card__footer rail-card__meta";
+        var metaWrap = document.createElement("div");
+        metaWrap.className = "city-card__meta";
+
+        var windPair = document.createElement("span");
+        windPair.className = "meta-pair";
+        var wLab = document.createElement("span");
+        wLab.className = "meta-pair__label";
+        wLab.textContent = windLabel || "";
+        var wVal = document.createElement("span");
+        wVal.className = "meta-pair__value";
+        wVal.textContent = item.weatherUnavailable
+            ? "—"
+            : String(Math.round(item.windSpeed)) + (clientI18n.windSuffix || "");
+        windPair.appendChild(wLab);
+        windPair.appendChild(wVal);
+
+        var humPair = document.createElement("span");
+        humPair.className = "meta-pair";
+        var hLab = document.createElement("span");
+        hLab.className = "meta-pair__label";
+        hLab.textContent = humLabel || "";
+        var hVal = document.createElement("span");
+        hVal.className = "meta-pair__value";
+        hVal.textContent = item.weatherUnavailable
+            ? "—"
+            : String(Math.round(item.humidity)) + (clientI18n.humiditySuffix || "%");
+        humPair.appendChild(hLab);
+        humPair.appendChild(hVal);
+
+        metaWrap.appendChild(windPair);
+        metaWrap.appendChild(humPair);
+        var chev = document.createElement("span");
+        chev.className = "rail-card__chev";
+        chev.setAttribute("aria-hidden", "true");
+        chev.textContent = "→";
+        footer.appendChild(metaWrap);
+        footer.appendChild(chev);
+
+        a.appendChild(top);
+        a.appendChild(tempWrap);
+        a.appendChild(desc);
+        a.appendChild(footer);
+        rail.appendChild(a);
+    }
+
+    function loadFavorites() {
+        var rail = document.getElementById("js-favorites-rail");
+        var emptyEl = document.getElementById("js-no-favorites");
+        var section = document.getElementById("cities");
+        if (!rail || !emptyEl) return;
+
+        var ids;
+        try {
+            ids = JSON.parse(localStorage.getItem("weather_favorites") || "[]");
+        } catch (e) {
+            ids = [];
+        }
+        if (!Array.isArray(ids)) ids = [];
+        ids = ids
+            .map(function (x) {
+                return String(x).trim();
+            })
+            .filter(Boolean);
+
+        if (ids.length === 0) {
+            rail.innerHTML = "";
+            emptyEl.hidden = false;
+            return;
+        }
+
+        emptyEl.hidden = true;
+        rail.innerHTML = "";
+        var lang = document.documentElement.lang || "ru";
+        var qs =
+            "ids=" + encodeURIComponent(ids.join(",")) + "&lang=" + encodeURIComponent(lang);
+
+        fetch("/api/favorites?" + qs)
+            .then(function (res) {
+                if (!res.ok) throw new Error("bad status");
+                return res.json();
+            })
+            .then(function (data) {
+                if (!Array.isArray(data)) data = [];
+                var windLabel = (section && section.dataset.metricWind) || "";
+                var humLabel = (section && section.dataset.metricHumidity) || "";
+                for (var i = 0; i < data.length; i++) {
+                    appendFavoriteCardHome(rail, data[i], lang, windLabel, humLabel);
+                }
+                if (data.length === 0) {
+                    emptyEl.hidden = false;
+                }
+            })
+            .catch(function () {
+                rail.innerHTML = "";
+                emptyEl.hidden = false;
+            });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", loadFavorites);
+    } else {
+        loadFavorites();
     }
 })();

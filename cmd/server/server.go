@@ -51,6 +51,9 @@ func Run() error {
 	mux.HandleFunc("/api/place_weather", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.APIPlaceWeather(w, r)
 	}))
+	mux.HandleFunc("/api/favorites", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.APIFavorites(w, r)
+	}))
 	mux.HandleFunc("/api/places", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.PlacesSuggest(w, r)
 	}))

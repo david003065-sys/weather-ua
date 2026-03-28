@@ -151,59 +151,23 @@
     </div>
 </section>
 
-<section id="cities" class="cities atmo-section" aria-labelledby="cities-title">
-    <header class="atmo-section__head">
-        <span class="atmo-section__label">{{ .Text.CitiesLabel }}</span>
-        <h2 id="cities-title" class="atmo-section__title">{{ .Text.CitiesTitle }}</h2>
-    </header>
+<section
+    id="cities"
+    class="cities atmo-section"
+    aria-labelledby="cities-title"
+    data-metric-wind="{{ .Text.MetricWind }}"
+    data-metric-humidity="{{ .Text.MetricHumidity }}"
+>
+    <div class="cities-header atmo-section__head">
+        <span class="cities-label atmo-section__label">{{ .Text.FavoritesRailLabel }}</span>
+        <h2 id="cities-title" class="cities-title atmo-section__title">{{ .Text.FavoritesRailTitle }}</h2>
+    </div>
 
     <div class="cities-rail-mask cities-rail-mask--home">
-        <div class="cities-rail cities-rail--home" id="js-cities-grid" data-lang="{{ .Lang }}">
-            {{ range .Cities }}
-            <a href="/city/{{ .ID }}?lang={{ $.Lang }}" class="city-card rail-card" data-city-id="{{ .ID }}">
-                <div class="rail-card__top">
-                    <span class="rail-card__name">{{ .Name }}</span>
-                    <span class="rail-card__icon" aria-hidden="true">{{ .Icon }}</span>
-                </div>
-                <div class="rail-card__temp">
-                    <span class="rail-card__temp-val">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Temperature }}{{ end }}</span>
-                    <span class="rail-card__temp-unit">°</span>
-                </div>
-                <p class="rail-card__desc">{{ .Description }}</p>
-                <div class="city-card__footer rail-card__meta">
-                    <div class="city-card__meta">
-                        <span class="meta-pair">
-                            <span class="meta-pair__label">{{ $.Text.MetricWind }}</span>
-                            <span class="meta-pair__value">
-                                {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .WindSpeed }}{{ $.Text.UnitWind }}{{ end }}
-                            </span>
-                        </span>
-                        <span class="meta-pair">
-                            <span class="meta-pair__label">{{ $.Text.MetricHumidity }}</span>
-                            <span class="meta-pair__value">
-                                {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .Humidity }}{{ $.Text.UnitHumidity }}{{ end }}
-                            </span>
-                        </span>
-                    </div>
-                    <span class="rail-card__chev" aria-hidden="true">→</span>
-                </div>
-            </a>
-            {{ end }}
-        </div>
+        <div id="js-favorites-rail" class="cities-rail cities-rail--home" data-lang="{{ .Lang }}"></div>
     </div>
-    <div class="cities-toggle-wrap">
-        <button
-            type="button"
-            id="js-cities-toggle"
-            class="btn btn-outline cities-toggle atmo-toggle"
-            data-pattern-show-more="{{ .Text.CitiesToggleShowMoreN }}"
-            data-label-less="{{ .Text.CitiesToggleLess }}"
-            data-fallback-more="{{ .Text.CitiesToggleMore }}"
-            aria-controls="js-cities-grid"
-            aria-expanded="false"
-        >
-            {{ .Text.CitiesToggleMore }}
-        </button>
+    <div id="js-no-favorites" class="favorites-empty-hint" hidden>
+        {{ .Text.FavoritesRailEmpty }}
     </div>
 </section>
 {{ end }}

@@ -74,27 +74,27 @@ type IndexPageData struct {
 	CityID          string
 	CurrentCityName string
 	// HeroCityTitle is the index hero H1 only (Kyiv uses custom copy per language).
-	HeroCityTitle      string
-	CurrentTemp        float64
-	CurrentDescription string
+	HeroCityTitle       string
+	CurrentTemp         float64
+	CurrentDescription  string
 	CurrentPrecipChance int
-	CurrentWind        float64
-	CurrentHumidity    float64
-	CurrentPressure    float64
-	WeatherUnavailable bool
-	TodayLabel         string
-	TodayMin           float64
-	TodayMax           float64
-	TomorrowLabel      string
-	TomorrowMin        float64
-	TomorrowMax        float64
-	DayAfterLabel      string
-	DayAfterMin        float64
-	DayAfterMax        float64
-	Cities             []CitySummary
-	WeatherJSON        template.JS
-	MetaDescription    string
-	ClientI18n         template.JS
+	CurrentWind         float64
+	CurrentHumidity     float64
+	CurrentPressure     float64
+	WeatherUnavailable  bool
+	TodayLabel          string
+	TodayMin            float64
+	TodayMax            float64
+	TomorrowLabel       string
+	TomorrowMin         float64
+	TomorrowMax         float64
+	DayAfterLabel       string
+	DayAfterMin         float64
+	DayAfterMax         float64
+	Cities              []CitySummary
+	WeatherJSON         template.JS
+	MetaDescription     string
+	ClientI18n          template.JS
 }
 
 type DailyView struct {
@@ -114,40 +114,40 @@ type HourlyView struct {
 }
 
 type CityPageData struct {
-	IsIndex            bool
-	WeatherCode        int
-	IsNight            bool
-	WeatherMood        string
-	Lang               string
-	Path               string
-	Text               TextSet
-	CityID             string
+	IsIndex     bool
+	WeatherCode int
+	IsNight     bool
+	WeatherMood string
+	Lang        string
+	Path        string
+	Text        TextSet
+	CityID      string
 	// FavListID — id для localStorage weather_favorites и data-city-id у звезды (/city/kyiv или numeric place id).
-	FavListID          string
-	CityName           string
-	CityLocation       string
-	CurrentTemp        float64
-	CurrentDescription string
+	FavListID           string
+	CityName            string
+	CityLocation        string
+	CurrentTemp         float64
+	CurrentDescription  string
 	CurrentPrecipChance int
-	CurrentWind        float64
-	CurrentHumidity    float64
-	CurrentPressure    float64
-	WeatherUnavailable bool
-	Forecast           []DailyView
-	TodayLabel         string
-	TodayMin           float64
-	TodayMax           float64
-	TomorrowLabel      string
-	TomorrowMin        float64
-	TomorrowMax        float64
-	TrendText          string
-	Cities             []CitySummary
-	Hourly             []HourlyView
-	WeatherJSON        template.JS
-	DuplicatesCount    int
-	DuplicatesLabel    string
-	DuplicatesURL      string
-	ClientI18n         template.JS
+	CurrentWind         float64
+	CurrentHumidity     float64
+	CurrentPressure     float64
+	WeatherUnavailable  bool
+	Forecast            []DailyView
+	TodayLabel          string
+	TodayMin            float64
+	TodayMax            float64
+	TomorrowLabel       string
+	TomorrowMin         float64
+	TomorrowMax         float64
+	TrendText           string
+	Cities              []CitySummary
+	Hourly              []HourlyView
+	WeatherJSON         template.JS
+	DuplicatesCount     int
+	DuplicatesLabel     string
+	DuplicatesURL       string
+	ClientI18n          template.JS
 }
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -162,46 +162,18 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 	defer cancel()
 
-	cities := weather.AllCities()
-	summaries := make([]CitySummary, 0, len(cities))
-
-	var heroData *weather.WeatherData
-	// Always show Kyiv on the main page by default.
-	// (Some city lists are ordered such that the first item is not Kyiv.)
+	// Герой — только Киев; список карточек на главной заполняется из localStorage + /api/favorites.
 	const heroCityID = "kyiv"
-
-	for _, city := range cities {
-		data, err := s.weather.GetWeather(ctx, city.ID)
-		if err != nil {
-			s.logger.Printf("get weather for %s: %v", city.ID, err)
-			continue
-		}
-
-		// Pick Kyiv as a hero weather; other cities are only for the cards list.
-		if heroData == nil && city.ID == heroCityID {
-			heroData = data
-		}
-
-		desc := strings.TrimSpace(data.Current.Description)
-		if desc == "" {
-			desc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
-		}
-		if data.IsFallback {
-			desc = text.WeatherUnavailableMsg
-		}
-		summaries = append(summaries, CitySummary{
-			ID:                 data.CityID,
-			Name:               weather.LocalizedCityName(data.CityID, lang),
-			Temperature:        data.Current.Temperature,
-			Description:        desc,
-			Icon:               data.Current.Icon,
-			WindSpeed:          data.Current.WindSpeed,
-			Humidity:           data.Current.Humidity,
-			WeatherUnavailable: data.IsFallback,
-		})
+	var heroData *weather.WeatherData
+	data, err := s.weather.GetWeather(ctx, heroCityID)
+	if err != nil {
+		s.logger.Printf("get weather for hero %s: %v", heroCityID, err)
+	} else {
+		heroData = data
 	}
 
 	if heroData == nil {
+		cities := weather.AllCities()
 		// Погода недоступна (ошибка/таймаут Open-Meteo). Страницу рендерим всё равно,
 		// показываем fallback-данные.
 		if len(cities) > 0 {
@@ -284,36 +256,36 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := IndexPageData{
-		IsIndex:            true,
-		WeatherCode:        heroData.Current.WeatherCode,
-		IsNight:            heroData.Current.IsNight,
-		WeatherMood:        weatherMoodClass(heroData.Current.WeatherCode, heroData.Current.IsNight),
-		Lang:               lang,
-		Path:               r.URL.Path,
-		Text:               text,
-		CityID:             "",
-		CurrentCityName:    weather.LocalizedCityName(heroData.CityID, lang),
-		HeroCityTitle:      heroCityTitle,
-		CurrentTemp:        heroData.Current.Temperature,
-		CurrentDescription: currentDesc,
+		IsIndex:             true,
+		WeatherCode:         heroData.Current.WeatherCode,
+		IsNight:             heroData.Current.IsNight,
+		WeatherMood:         weatherMoodClass(heroData.Current.WeatherCode, heroData.Current.IsNight),
+		Lang:                lang,
+		Path:                r.URL.Path,
+		Text:                text,
+		CityID:              "",
+		CurrentCityName:     weather.LocalizedCityName(heroData.CityID, lang),
+		HeroCityTitle:       heroCityTitle,
+		CurrentTemp:         heroData.Current.Temperature,
+		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: heroData.Current.PrecipitationChance,
-		CurrentWind:        heroData.Current.WindSpeed,
-		CurrentHumidity:    heroData.Current.Humidity,
-		CurrentPressure:    heroData.Current.Pressure,
-		WeatherUnavailable: heroData.IsFallback,
-		TodayLabel:         todayLabel,
-		TodayMin:           todayMin,
-		TodayMax:           todayMax,
-		TomorrowLabel:      tomorrowLabel,
-		TomorrowMin:        tomorrowMin,
-		TomorrowMax:        tomorrowMax,
-		DayAfterLabel:      dayAfterLabel,
-		DayAfterMin:        dayAfterMin,
-		DayAfterMax:        dayAfterMax,
-		Cities:             summaries,
-		WeatherJSON:        buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
-		MetaDescription:    metaDesc,
-		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
+		CurrentWind:         heroData.Current.WindSpeed,
+		CurrentHumidity:     heroData.Current.Humidity,
+		CurrentPressure:     heroData.Current.Pressure,
+		WeatherUnavailable:  heroData.IsFallback,
+		TodayLabel:          todayLabel,
+		TodayMin:            todayMin,
+		TodayMax:            todayMax,
+		TomorrowLabel:       tomorrowLabel,
+		TomorrowMin:         tomorrowMin,
+		TomorrowMax:         tomorrowMax,
+		DayAfterLabel:       dayAfterLabel,
+		DayAfterMin:         dayAfterMin,
+		DayAfterMax:         dayAfterMax,
+		Cities:              nil,
+		WeatherJSON:         buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
+		MetaDescription:     metaDesc,
+		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
@@ -435,35 +407,35 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		currentDesc = text.WeatherUnavailableMsg
 	}
 	page := CityPageData{
-		IsIndex:            false,
-		WeatherCode:        data.Current.WeatherCode,
-		IsNight:            data.Current.IsNight,
-		WeatherMood:        weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
-		Lang:               lang,
-		Path:               r.URL.Path,
-		Text:               text,
-		CityID:             data.CityID,
-		FavListID:          data.CityID,
-		CityName:           weather.LocalizedCityName(data.CityID, lang),
-		CurrentTemp:        data.Current.Temperature,
-		CurrentDescription: currentDesc,
+		IsIndex:             false,
+		WeatherCode:         data.Current.WeatherCode,
+		IsNight:             data.Current.IsNight,
+		WeatherMood:         weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
+		Lang:                lang,
+		Path:                r.URL.Path,
+		Text:                text,
+		CityID:              data.CityID,
+		FavListID:           data.CityID,
+		CityName:            weather.LocalizedCityName(data.CityID, lang),
+		CurrentTemp:         data.Current.Temperature,
+		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
-		CurrentWind:        data.Current.WindSpeed,
-		CurrentHumidity:    data.Current.Humidity,
-		CurrentPressure:    data.Current.Pressure,
-		WeatherUnavailable: data.IsFallback,
-		Forecast:           forecast,
-		TodayLabel:         todayLabel,
-		TodayMin:           todayMin,
-		TodayMax:           todayMax,
-		TomorrowLabel:      tomorrowLabel,
-		TomorrowMin:        tomorrowMin,
-		TomorrowMax:        tomorrowMax,
-		TrendText:          trend,
-		Cities:             cityCards,
-		Hourly:             hourly,
-		WeatherJSON:        buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
-		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
+		CurrentWind:         data.Current.WindSpeed,
+		CurrentHumidity:     data.Current.Humidity,
+		CurrentPressure:     data.Current.Pressure,
+		WeatherUnavailable:  data.IsFallback,
+		Forecast:            forecast,
+		TodayLabel:          todayLabel,
+		TodayMin:            todayMin,
+		TodayMax:            todayMax,
+		TomorrowLabel:       tomorrowLabel,
+		TomorrowMin:         tomorrowMin,
+		TomorrowMax:         tomorrowMax,
+		TrendText:           trend,
+		Cities:              cityCards,
+		Hourly:              hourly,
+		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -615,16 +587,16 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 				}
 				return i18n.WeatherDescription(data.Current.WeatherCode, lang)
 			}(),
-			Icon:        data.Current.Icon,
-			IsFallback:  data.IsFallback,
-			Wind:        data.Current.WindSpeed,
-			Humidity:    data.Current.Humidity,
-			UVIndex:     data.Current.UVIndex,
-			Visibility:  data.Current.VisibilityKm,
-			Pressure:    data.Current.Pressure,
+			Icon:                data.Current.Icon,
+			IsFallback:          data.IsFallback,
+			Wind:                data.Current.WindSpeed,
+			Humidity:            data.Current.Humidity,
+			UVIndex:             data.Current.UVIndex,
+			Visibility:          data.Current.VisibilityKm,
+			Pressure:            data.Current.Pressure,
 			PrecipitationChance: data.Current.PrecipitationChance,
-			WeatherCode: data.Current.WeatherCode,
-			IsNight:     data.Current.IsNight,
+			WeatherCode:         data.Current.WeatherCode,
+			IsNight:             data.Current.IsNight,
 		},
 	}
 
@@ -716,16 +688,16 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 				}
 				return i18n.WeatherDescription(data.Current.WeatherCode, lang)
 			}(),
-			Icon:        data.Current.Icon,
-			IsFallback:  data.IsFallback,
-			Wind:        data.Current.WindSpeed,
-			Humidity:    data.Current.Humidity,
-			UVIndex:     data.Current.UVIndex,
-			Visibility:  data.Current.VisibilityKm,
-			Pressure:    data.Current.Pressure,
+			Icon:                data.Current.Icon,
+			IsFallback:          data.IsFallback,
+			Wind:                data.Current.WindSpeed,
+			Humidity:            data.Current.Humidity,
+			UVIndex:             data.Current.UVIndex,
+			Visibility:          data.Current.VisibilityKm,
+			Pressure:            data.Current.Pressure,
 			PrecipitationChance: data.Current.PrecipitationChance,
-			WeatherCode: data.Current.WeatherCode,
-			IsNight:     data.Current.IsNight,
+			WeatherCode:         data.Current.WeatherCode,
+			IsNight:             data.Current.IsNight,
 		},
 	}
 
@@ -734,6 +706,187 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		s.logger.Printf("encode api place weather: %v", err)
+	}
+}
+
+// apiFavoriteItem — карточка для /api/favorites (главная, localStorage weather_favorites).
+type apiFavoriteItem struct {
+	Kind               string  `json:"kind"`
+	ID                 string  `json:"id"`
+	Name               string  `json:"name"`
+	Icon               string  `json:"icon"`
+	Temperature        float64 `json:"temperature"`
+	Description        string  `json:"description"`
+	WindSpeed          float64 `json:"windSpeed"`
+	Humidity           float64 `json:"humidity"`
+	WeatherUnavailable bool    `json:"weatherUnavailable"`
+}
+
+const maxFavoriteIDsParam = 24
+
+func isAllDecimal(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) favoriteFromCityID(ctx context.Context, cityID string, lang string, text i18n.UI) (*apiFavoriteItem, error) {
+	if !weather.IsKnownCity(cityID) {
+		return nil, fmt.Errorf("unknown city %q", cityID)
+	}
+	data, err := s.weather.GetWeather(ctx, cityID)
+	if err != nil {
+		return nil, err
+	}
+	desc := strings.TrimSpace(data.Current.Description)
+	if desc == "" {
+		desc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
+	}
+	if data.IsFallback {
+		desc = text.WeatherUnavailableMsg
+	}
+	return &apiFavoriteItem{
+		Kind:               "city",
+		ID:                 data.CityID,
+		Name:               weather.LocalizedCityName(data.CityID, lang),
+		Icon:               data.Current.Icon,
+		Temperature:        data.Current.Temperature,
+		Description:        desc,
+		WindSpeed:          data.Current.WindSpeed,
+		Humidity:           data.Current.Humidity,
+		WeatherUnavailable: data.IsFallback,
+	}, nil
+}
+
+func (s *Server) favoriteFromPlaceID(ctx context.Context, id int64, lang string, text i18n.UI) (*apiFavoriteItem, error) {
+	placesStore := s.getPlacesStore()
+	if placesStore == nil {
+		return nil, fmt.Errorf("places store off")
+	}
+	place, err := placesStore.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if place == nil {
+		return nil, fmt.Errorf("place %d not found", id)
+	}
+	displayName := places.LocalizedDisplayName(*place, lang)
+	var data *weather.WeatherData
+	if known, ok := weather.MatchKnownCityByCoords(place.Lat, place.Lon); ok {
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else if known, ok := weather.MatchKnownCityByName(displayName); ok {
+		data, err = s.weather.GetWeather(ctx, known.ID)
+	} else {
+		key := "place:" + strconv.FormatInt(place.ID, 10)
+		data, err = s.weather.GetWeatherForLocation(ctx, key, displayName, place.Lat, place.Lon)
+	}
+	if err != nil {
+		return nil, err
+	}
+	desc := strings.TrimSpace(data.Current.Description)
+	if desc == "" {
+		desc = i18n.WeatherDescription(data.Current.WeatherCode, lang)
+	}
+	if data.IsFallback {
+		desc = text.WeatherUnavailableMsg
+	}
+	return &apiFavoriteItem{
+		Kind:               "place",
+		ID:                 strconv.FormatInt(place.ID, 10),
+		Name:               displayName,
+		Icon:               data.Current.Icon,
+		Temperature:        data.Current.Temperature,
+		Description:        desc,
+		WindSpeed:          data.Current.WindSpeed,
+		Humidity:           data.Current.Humidity,
+		WeatherUnavailable: data.IsFallback,
+	}, nil
+}
+
+func (s *Server) favoriteItemForToken(ctx context.Context, tok string, lang string, text i18n.UI) *apiFavoriteItem {
+	tok = strings.TrimSpace(tok)
+	if tok == "" {
+		return nil
+	}
+	if isAllDecimal(tok) {
+		id, err := strconv.ParseInt(tok, 10, 64)
+		if err != nil || id <= 0 {
+			return nil
+		}
+		it, err := s.favoriteFromPlaceID(ctx, id, lang, text)
+		if err != nil {
+			s.logger.Printf("favorites place %d: %v", id, err)
+			return nil
+		}
+		return it
+	}
+	if !weather.IsKnownCity(tok) {
+		return nil
+	}
+	it, err := s.favoriteFromCityID(ctx, tok, lang, text)
+	if err != nil {
+		s.logger.Printf("favorites city %s: %v", tok, err)
+		return nil
+	}
+	return it
+}
+
+// APIFavorites возвращает JSON-массив погоды по query `ids` (через запятую): slug города или числовой place id.
+func (s *Server) APIFavorites(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	raw := strings.TrimSpace(r.URL.Query().Get("ids"))
+	if raw == "" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode([]apiFavoriteItem{})
+		return
+	}
+
+	parts := strings.Split(raw, ",")
+	seen := make(map[string]struct{})
+	var tokens []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if _, dup := seen[p]; dup {
+			continue
+		}
+		seen[p] = struct{}{}
+		tokens = append(tokens, p)
+		if len(tokens) >= maxFavoriteIDsParam {
+			break
+		}
+	}
+
+	lang := detectLang(r)
+	text := i18n.For(lang)
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+
+	results := make([]apiFavoriteItem, 0, len(tokens))
+	for _, tok := range tokens {
+		if it := s.favoriteItemForToken(ctx, tok, lang, text); it != nil {
+			results = append(results, *it)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		s.logger.Printf("encode api favorites: %v", err)
 	}
 }
 
@@ -1105,39 +1258,39 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		currentDesc = text.WeatherUnavailableMsg
 	}
 	page := CityPageData{
-		IsIndex:            false,
-		WeatherCode:        data.Current.WeatherCode,
-		IsNight:            data.Current.IsNight,
-		WeatherMood:        weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
-		Lang:               lang,
-		Path:               r.URL.Path,
-		Text:               text,
-		CityID:             "", // пусто: иначе client дергает /api/weather/{id} вместо /api/place_weather
-		FavListID:          strconv.FormatInt(place.ID, 10),
-		CityName:           displayName,
-		CityLocation:       locationSubtitle,
-		CurrentTemp:        data.Current.Temperature,
-		CurrentDescription: currentDesc,
+		IsIndex:             false,
+		WeatherCode:         data.Current.WeatherCode,
+		IsNight:             data.Current.IsNight,
+		WeatherMood:         weatherMoodClass(data.Current.WeatherCode, data.Current.IsNight),
+		Lang:                lang,
+		Path:                r.URL.Path,
+		Text:                text,
+		CityID:              "", // пусто: иначе client дергает /api/weather/{id} вместо /api/place_weather
+		FavListID:           strconv.FormatInt(place.ID, 10),
+		CityName:            displayName,
+		CityLocation:        locationSubtitle,
+		CurrentTemp:         data.Current.Temperature,
+		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
-		CurrentWind:        data.Current.WindSpeed,
-		CurrentHumidity:    data.Current.Humidity,
-		CurrentPressure:    data.Current.Pressure,
-		WeatherUnavailable: data.IsFallback,
-		Forecast:           forecast,
-		TodayLabel:         todayLabel,
-		TodayMin:           todayMin,
-		TodayMax:           todayMax,
-		TomorrowLabel:      tomorrowLabel,
-		TomorrowMin:        tomorrowMin,
-		TomorrowMax:        tomorrowMax,
-		TrendText:          trend,
-		Cities:             cityCards,
-		Hourly:             hourly,
-		WeatherJSON:        buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
-		DuplicatesCount:    dupCount,
-		DuplicatesLabel:    dupLabel,
-		DuplicatesURL:      dupURL,
-		ClientI18n:         template.JS(i18n.MarshalClientJSON(lang)),
+		CurrentWind:         data.Current.WindSpeed,
+		CurrentHumidity:     data.Current.Humidity,
+		CurrentPressure:     data.Current.Pressure,
+		WeatherUnavailable:  data.IsFallback,
+		Forecast:            forecast,
+		TodayLabel:          todayLabel,
+		TodayMin:            todayMin,
+		TodayMax:            todayMax,
+		TomorrowLabel:       tomorrowLabel,
+		TomorrowMin:         tomorrowMin,
+		TomorrowMax:         tomorrowMax,
+		TrendText:           trend,
+		Cities:              cityCards,
+		Hourly:              hourly,
+		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		DuplicatesCount:     dupCount,
+		DuplicatesLabel:     dupLabel,
+		DuplicatesURL:       dupURL,
+		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {

@@ -502,6 +502,14 @@ html[data-theme="light"] .lang-switch__item--active {
     max-width: 600px;
 }
 
+.favorites-empty-hint {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
 .search-input {
     width: 100%;
     border-radius: 999px;

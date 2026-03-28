@@ -2,37 +2,37 @@ package i18n
 
 // UI is the full SSR string bundle for one language (templates + meta).
 type UI struct {
-	BrandTop                string
-	BrandBottom             string
-	NavNow                  string
-	NavCities               string
-	BadgeNow                string
-	CitiesLabel             string
-	CitiesTitle             string
-	CityBadge               string
-	MetricWind              string
-	MetricHumidity          string
-	MetricPressure          string
-	Today                   string
-	Tomorrow                string
-	DayAfterTomorrow        string
-	RangeFrom               string
-	RangeTo                 string
-	CurrentMetricsAria      string
-	CurrentWeatherAria      string
-	ShortForecastAria       string
-	ForecastLabel           string
-	ForecastTitle           string
-	ForecastAria            string
-	TrendLabel              string
-	ChartTitle              string
-	ChartAria               string
-	OtherCitiesAria         string
-	QuickSwitchTitle        string
-	SearchPlaceholder       string
-	Footer                  string
-	MoreLink                string
-	WeatherUnavailableMsg   string
+	BrandTop              string
+	BrandBottom           string
+	NavNow                string
+	NavCities             string
+	BadgeNow              string
+	CitiesLabel           string
+	CitiesTitle           string
+	CityBadge             string
+	MetricWind            string
+	MetricHumidity        string
+	MetricPressure        string
+	Today                 string
+	Tomorrow              string
+	DayAfterTomorrow      string
+	RangeFrom             string
+	RangeTo               string
+	CurrentMetricsAria    string
+	CurrentWeatherAria    string
+	ShortForecastAria     string
+	ForecastLabel         string
+	ForecastTitle         string
+	ForecastAria          string
+	TrendLabel            string
+	ChartTitle            string
+	ChartAria             string
+	OtherCitiesAria       string
+	QuickSwitchTitle      string
+	SearchPlaceholder     string
+	Footer                string
+	MoreLink              string
+	WeatherUnavailableMsg string
 
 	// Units (value is rendered separately, e.g. "{{.Wind}}{{.Text.UnitWind}}")
 	UnitWind     string
@@ -58,6 +58,9 @@ type UI struct {
 	RecentSectionTitle      string
 	FavoritesSectionLabel   string
 	FavoritesSectionTitle   string
+	FavoritesRailLabel      string // блок избранных на главной
+	FavoritesRailTitle      string
+	FavoritesRailEmpty      string
 	ChooseAnotherDuplicate  string
 	HourlySectionTitle      string
 	MetaDescriptionTemplate string // may contain %s for city list
@@ -120,6 +123,9 @@ func For(lang string) UI {
 			RecentSectionTitle:      "Recent places",
 			FavoritesSectionLabel:   "Places",
 			FavoritesSectionTitle:   "Favourites",
+			FavoritesRailLabel:      "Favourite cities",
+			FavoritesRailTitle:      "Your locations",
+			FavoritesRailEmpty:      "You have not added any places yet. Search for a settlement and tap the star.",
 			ChooseAnotherDuplicate:  "Choose another",
 			HourlySectionTitle:      "Today — hourly",
 			MetaDescriptionTemplate: "Weather in Ukraine: %s.",
@@ -178,6 +184,9 @@ func For(lang string) UI {
 			RecentSectionTitle:      "Недавні місця",
 			FavoritesSectionLabel:   "Місця",
 			FavoritesSectionTitle:   "Обрані",
+			FavoritesRailLabel:      "Обрані міста",
+			FavoritesRailTitle:      "Ваш список локацій",
+			FavoritesRailEmpty:      "Ти ще не додав(ла) міста. Знайди населений пункт через пошук і натисни зірочку.",
 			ChooseAnotherDuplicate:  "Обрати інший",
 			HourlySectionTitle:      "Сьогодні — погодинно",
 			MetaDescriptionTemplate: "Погода в Україні: %s.",
@@ -236,6 +245,9 @@ func For(lang string) UI {
 			RecentSectionTitle:      "Недавние места",
 			FavoritesSectionLabel:   "Места",
 			FavoritesSectionTitle:   "Избранное",
+			FavoritesRailLabel:      "Избранные города",
+			FavoritesRailTitle:      "Ваш список локаций",
+			FavoritesRailEmpty:      "Вы ещё не добавили города. Найдите город через поиск и нажмите на звёздочку.",
 			ChooseAnotherDuplicate:  "Выбрать другой",
 			HourlySectionTitle:      "Сегодня — по часам",
 			MetaDescriptionTemplate: "Погода в Украине: %s.",
