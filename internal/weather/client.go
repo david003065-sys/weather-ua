@@ -534,7 +534,10 @@ type weatherAPIForecastResponse struct {
 		VisMiles   float64 `json:"vis_miles"`
 		PressureMb float64 `json:"pressure_mb"`
 		Humidity   int     `json:"humidity"`
-		Condition  struct {
+		// Осадки «сейчас» (мм за последний интервал наблюдений API). При 0 и коде «дождь» на земле часто сухо.
+		PrecipMM  float64 `json:"precip_mm"`
+		SnowCM    float64 `json:"snow_cm"`
+		Condition struct {
 			Code int    `json:"code"`
 			Text string `json:"text"`
 			Icon string `json:"icon"`
@@ -552,11 +555,11 @@ type weatherAPIForecastResponse struct {
 type weatherAPIForecastDay struct {
 	Date string `json:"date"`
 	Day  struct {
-		MaxtempC  float64 `json:"maxtemp_c"`
-		MintempC  float64 `json:"mintemp_c"`
-		DailyChanceOfRain int `json:"daily_chance_of_rain"`
-		DailyChanceOfSnow int `json:"daily_chance_of_snow"`
-		Condition struct {
+		MaxtempC          float64 `json:"maxtemp_c"`
+		MintempC          float64 `json:"mintemp_c"`
+		DailyChanceOfRain int     `json:"daily_chance_of_rain"`
+		DailyChanceOfSnow int     `json:"daily_chance_of_snow"`
+		Condition         struct {
 			Code int `json:"code"`
 		} `json:"condition"`
 	} `json:"day"`
@@ -610,28 +613,22 @@ func mapWeatherAPICodeToWMO(code int) int {
 	}
 }
 
-// weatherAPIPatchyPrecipCodes — коды WeatherAPI «patchy …» (осадки возможны/локально); при низком дневном шансе
-// часто на месте просто облачно, а не «дождь» в бытовом смысле.
-var weatherAPIPatchyPrecipCodes = map[int]struct{}{
-	1063: {}, 1150: {}, 1153: {}, 1180: {}, 1183: {},
-}
-
-// softenWMOWhenPatchyPrecipLowChance: если API даёт «patchy rain/drizzle», а дневной шанс осадков низкий,
-// показываем облачность (WMO 3), чтобы текст и иконка не расходились с ощущением «на улице сухо».
-func softenWMOWhenPatchyPrecipLowChance(apiCode int, wmo int, precipChance int) int {
-	const maxChanceForSoftening = 20
-	if precipChance < 0 || precipChance > maxChanceForSoftening {
-		return wmo
-	}
-	if _, ok := weatherAPIPatchyPrecipCodes[apiCode]; !ok {
-		return wmo
-	}
+// softenWMOWhenNoObservedPrecip: дождь/морось/ливни и снег показываем только если в ответе API есть
+// измеримые осадки. Иначе условие «rain» у провайдера часто значит облачность/возможность, а не идущий дождь.
+func softenWMOWhenNoObservedPrecip(wmo int, precipMM, snowCM float64) int {
+	const minLiquidMM = 0.05 // мм: ниже — не считаем, что сейчас идёт дождь
+	const minSnowCM = 0.05
 	switch wmo {
-	case 51, 53, 55, 61, 63, 65, 80, 81, 82:
-		return 3
-	default:
-		return wmo
+	case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
+		if precipMM < minLiquidMM {
+			return 3
+		}
+	case 71, 73, 75, 77:
+		if snowCM < minSnowCM && precipMM < minLiquidMM {
+			return 3
+		}
 	}
+	return wmo
 }
 
 func parseWeatherAPILocaltime(s string, loc *time.Location) time.Time {
@@ -777,7 +774,7 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	}
 
 	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
-	wmoNow = softenWMOWhenPatchyPrecipLowChance(cur.Condition.Code, wmoNow, precipChance)
+	wmoNow = softenWMOWhenNoObservedPrecip(wmoNow, cur.PrecipMM, cur.SnowCM)
 
 	nowLocal := parseWeatherAPILocaltime(locInfo.Localtime, loc)
 	if nowLocal.IsZero() && locInfo.LocaltimeEpoch > 0 {
@@ -804,18 +801,18 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	}
 
 	current := Current{
-		Temperature:  cur.TempC,
-		FeelsLike:    cur.FeelslikeC,
-		WeatherCode:  wmoNow,
-		Description:  "",
-		Icon:         i18n.WeatherIcon(wmoNow),
-		WindSpeed:    cur.WindKph,
-		Humidity:     float64(cur.Humidity),
-		UVIndex:      float64(cur.UV),
-		VisibilityKm: visKm,
-		Pressure:     pressureMM,
+		Temperature:         cur.TempC,
+		FeelsLike:           cur.FeelslikeC,
+		WeatherCode:         wmoNow,
+		Description:         "",
+		Icon:                i18n.WeatherIcon(wmoNow),
+		WindSpeed:           cur.WindKph,
+		Humidity:            float64(cur.Humidity),
+		UVIndex:             float64(cur.UV),
+		VisibilityKm:        visKm,
+		Pressure:            pressureMM,
 		PrecipitationChance: precipChance,
-		IsNight:      isNight,
+		IsNight:             isNight,
 	}
 
 	forecast := buildDailySeries(days, loc)
