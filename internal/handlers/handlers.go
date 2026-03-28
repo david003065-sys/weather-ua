@@ -122,6 +122,8 @@ type CityPageData struct {
 	Path               string
 	Text               TextSet
 	CityID             string
+	// FavListID — id для localStorage weather_favorites и data-city-id у звезды (/city/kyiv или numeric place id).
+	FavListID          string
 	CityName           string
 	CityLocation       string
 	CurrentTemp        float64
@@ -441,6 +443,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		Path:               r.URL.Path,
 		Text:               text,
 		CityID:             data.CityID,
+		FavListID:          data.CityID,
 		CityName:           weather.LocalizedCityName(data.CityID, lang),
 		CurrentTemp:        data.Current.Temperature,
 		CurrentDescription: currentDesc,
@@ -1109,7 +1112,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		Lang:               lang,
 		Path:               r.URL.Path,
 		Text:               text,
-		CityID:             "", // нет автообновления через /api/weather
+		CityID:             "", // пусто: иначе client дергает /api/weather/{id} вместо /api/place_weather
+		FavListID:          strconv.FormatInt(place.ID, 10),
 		CityName:           displayName,
 		CityLocation:       locationSubtitle,
 		CurrentTemp:        data.Current.Temperature,

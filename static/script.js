@@ -1450,13 +1450,25 @@
         }
     }
 
+    function resolveFavoriteCityId(btn) {
+        let cityId = btn.getAttribute("data-city-id");
+        if (!cityId || cityId.trim() === "") {
+            const match = window.location.pathname.match(/\/place\/(\d+)/);
+            if (match) cityId = match[1];
+        }
+        return cityId && cityId.trim() !== "" ? cityId.trim() : "";
+    }
+
     document.addEventListener("click", (e) => {
         const btn = e.target.closest("#js-toggle-favorite");
         if (!btn) return;
         e.preventDefault();
 
-        const cityId = btn.getAttribute("data-city-id");
-        if (!cityId) return;
+        const cityId = resolveFavoriteCityId(btn);
+        if (!cityId) {
+            console.error("Не удалось найти ID города ни в кнопке, ни в URL");
+            return;
+        }
 
         let favs = parseWeatherFavoritesArray();
         const sId = String(cityId);
@@ -1479,10 +1491,11 @@
     function initFavoriteState() {
         const btn = document.querySelector("#js-toggle-favorite");
         if (!btn) return;
-        const cityId = btn.getAttribute("data-city-id");
+
+        const cityId = resolveFavoriteCityId(btn);
         if (!cityId) return;
 
-        let favs = parseWeatherFavoritesArray();
+        const favs = parseWeatherFavoritesArray();
         if (favs.includes(String(cityId))) {
             btn.classList.add("fav-btn--active");
         }
