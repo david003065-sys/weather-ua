@@ -164,12 +164,119 @@
         return document.getElementById("js-hourly-scroll");
     }
 
+    /** График температуры по часам (Chart.js) — данные снимаются с карточек `.hourly-item` после renderHourlyForecast. */
+    function renderTempChart() {
+        var canvas = document.getElementById("js-temp-chart");
+        if (!canvas || typeof Chart === "undefined") return;
+
+        var scroll = document.getElementById("js-hourly-scroll");
+        if (!scroll) return;
+
+        var items = scroll.querySelectorAll(".hourly-item");
+        var labels = [];
+        var values = [];
+        for (var i = 0; i < items.length; i++) {
+            var timeEl = items[i].querySelector(".hourly-item__time");
+            var tempEl = items[i].querySelector(".hourly-item__temp");
+            if (!timeEl || !tempEl) continue;
+            var lab = String(timeEl.textContent || "").trim();
+            var raw = String(tempEl.textContent || "")
+                .trim()
+                .replace(/\u2212/g, "-")
+                .replace(/°/g, "")
+                .replace(/−/g, "-")
+                .trim();
+            if (!raw || raw === "—" || raw === "-") continue;
+            var n = parseFloat(raw.replace(",", "."));
+            if (Number.isNaN(n)) continue;
+            labels.push(lab);
+            values.push(n);
+        }
+
+        var existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+        if (existing) {
+            existing.destroy();
+        }
+
+        if (!labels.length) {
+            return;
+        }
+
+        var host = canvas.closest(".weather-app") || document.documentElement;
+        var css = getComputedStyle(host);
+        var lineColor = (css.getPropertyValue("--link") || "#38bdf8").trim();
+        var fillColor = (css.getPropertyValue("--chart-fill-max") || "rgba(56, 189, 248, 0.22)").trim();
+        var tickColor = (css.getPropertyValue("--text-muted") || "#94a3b8").trim();
+
+        var ctx = canvas.getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        data: values,
+                        borderColor: lineColor,
+                        backgroundColor: fillColor,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: lineColor,
+                        pointBorderColor: tickColor
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                var v =
+                                    ctx.parsed && typeof ctx.parsed.y === "number"
+                                        ? ctx.parsed.y
+                                        : ctx.raw;
+                                return (typeof v === "number" ? v : "") + "°";
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: tickColor,
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 8
+                        },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: {
+                            color: tickColor,
+                            callback: function (value) {
+                                return value + "°";
+                            }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
     function renderHourlyForecast(hourly) {
         var hourlyScrollEl = getHourlyScrollEl();
         if (!hourlyScrollEl) return;
         hourlyScrollEl.innerHTML = "";
         hourlyScrollEl.removeAttribute("aria-hidden");
-        if (!Array.isArray(hourly) || !hourly.length) return;
+        if (!Array.isArray(hourly) || !hourly.length) {
+            renderTempChart();
+            return;
+        }
 
         for (var i = 0; i < hourly.length; i++) {
             var h = hourly[i];
@@ -199,6 +306,7 @@
             item.appendChild(tempEl);
             hourlyScrollEl.appendChild(item);
         }
+        renderTempChart();
     }
 
     function numFromJSON(v) {
@@ -1616,4 +1724,16 @@
     } else {
         loadFavorites();
     }
+
+    function bootHourlyTempChart() {
+        renderTempChart();
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootHourlyTempChart);
+    } else {
+        bootHourlyTempChart();
+    }
+    window.addEventListener("weather-theme-change", function () {
+        renderTempChart();
+    });
 })();

@@ -435,6 +435,20 @@ html[data-theme="light"] .lang-switch__item--active {
     background: var(--chip-bg);
 }
 
+.chart-wrapper.hourly-temp-chart-wrap {
+    position: relative;
+    height: 160px;
+    width: 100%;
+    margin: 0.75rem 0 0.35rem;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+}
+
+.chart-wrapper.hourly-temp-chart-wrap canvas {
+    display: block;
+    max-height: 160px;
+}
+
 .hourly-scroll {
     display: flex;
     gap: 0.72rem;
