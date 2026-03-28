@@ -80,9 +80,16 @@
                 </div>
             </a>
 
-            <nav class="nav" aria-label="{{ .Text.NavAria }}">
-                <a href="/?lang={{ .Lang }}" class="nav-link {{ if .IsIndex }}nav-link--active{{ end }}">{{ .Text.NavNow }}</a>
-            </nav>
+            <button
+                type="button"
+                id="pwa-install-btn"
+                class="pwa-install-btn"
+                hidden
+                aria-hidden="true"
+                data-label-uk="Встановити"
+                data-label-en="Install"
+                data-label-ru="Установить"
+            ></button>
 
             {{/* Глобальный поиск в шапке */}}
             <div class="search-input-wrap header-search">
@@ -96,16 +103,6 @@
             </div>
 
             <div class="header-controls">
-                <button
-                    type="button"
-                    id="pwa-install-btn"
-                    class="pwa-install-btn"
-                    hidden
-                    aria-hidden="true"
-                    data-label-uk="Встановити"
-                    data-label-en="Install"
-                    data-label-ru="Установить"
-                ></button>
                 <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
                     <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
                     <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>

@@ -597,13 +597,24 @@ html[data-theme="light"] .lang-switch__item--active {
     font-size: 0.78rem;
 }
 
-.pwa-install-btn {
-    border: 1px solid var(--glass-border);
-    border-radius: 999px;
+#pwa-install-btn {
     background: var(--chip-bg);
-    color: inherit;
-    padding: 0.32rem 0.58rem;
-    font-size: 0.72rem;
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+#pwa-install-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+#pwa-install-btn[hidden] {
+    display: none !important;
 }
 
 html[data-theme="light"] .weather-app,
@@ -638,6 +649,14 @@ html[data-theme="dark"] .weather-app * {
 
     .header-controls {
         order: 4;
+    }
+
+    #pwa-install-btn {
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: min(42vw, 9.5rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
