@@ -105,6 +105,7 @@ html[data-theme="light"] .site-header {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    margin-top: 0;
 }
 
 .brand-link {

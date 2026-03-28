@@ -610,6 +610,30 @@ func mapWeatherAPICodeToWMO(code int) int {
 	}
 }
 
+// weatherAPIPatchyPrecipCodes — коды WeatherAPI «patchy …» (осадки возможны/локально); при низком дневном шансе
+// часто на месте просто облачно, а не «дождь» в бытовом смысле.
+var weatherAPIPatchyPrecipCodes = map[int]struct{}{
+	1063: {}, 1150: {}, 1153: {}, 1180: {}, 1183: {},
+}
+
+// softenWMOWhenPatchyPrecipLowChance: если API даёт «patchy rain/drizzle», а дневной шанс осадков низкий,
+// показываем облачность (WMO 3), чтобы текст и иконка не расходились с ощущением «на улице сухо».
+func softenWMOWhenPatchyPrecipLowChance(apiCode int, wmo int, precipChance int) int {
+	const maxChanceForSoftening = 20
+	if precipChance < 0 || precipChance > maxChanceForSoftening {
+		return wmo
+	}
+	if _, ok := weatherAPIPatchyPrecipCodes[apiCode]; !ok {
+		return wmo
+	}
+	switch wmo {
+	case 51, 53, 55, 61, 63, 65, 80, 81, 82:
+		return 3
+	default:
+		return wmo
+	}
+}
+
 func parseWeatherAPILocaltime(s string, loc *time.Location) time.Time {
 	s = strings.TrimSpace(s)
 	if s == "" || loc == nil {
@@ -741,7 +765,19 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	locInfo := res.Location
 	days := res.Forecast.Forecastday
 
+	precipChance := -1
+	if len(days) > 0 {
+		precipChance = days[0].Day.DailyChanceOfRain
+		if days[0].Day.DailyChanceOfSnow > precipChance {
+			precipChance = days[0].Day.DailyChanceOfSnow
+		}
+		if precipChance < 0 || precipChance > 100 {
+			precipChance = -1
+		}
+	}
+
 	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
+	wmoNow = softenWMOWhenPatchyPrecipLowChance(cur.Condition.Code, wmoNow, precipChance)
 
 	nowLocal := parseWeatherAPILocaltime(locInfo.Localtime, loc)
 	if nowLocal.IsZero() && locInfo.LocaltimeEpoch > 0 {
@@ -765,16 +801,6 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 	visKm := cur.VisKm
 	if visKm <= 0 && cur.VisMiles > 0 {
 		visKm = cur.VisMiles * 1.60934
-	}
-	precipChance := -1
-	if len(days) > 0 {
-		precipChance = days[0].Day.DailyChanceOfRain
-		if days[0].Day.DailyChanceOfSnow > precipChance {
-			precipChance = days[0].Day.DailyChanceOfSnow
-		}
-		if precipChance < 0 || precipChance > 100 {
-			precipChance = -1
-		}
 	}
 
 	current := Current{
