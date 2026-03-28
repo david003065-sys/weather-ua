@@ -575,6 +575,8 @@ type weatherAPIHour struct {
 	Time       string  `json:"time"`
 	TempC      float64 `json:"temp_c"`
 	FeelslikeC float64 `json:"feelslike_c"`
+	PrecipMM   float64 `json:"precip_mm"`
+	SnowCM     float64 `json:"snow_cm"`
 	Condition  struct {
 		Code int `json:"code"`
 	} `json:"condition"`
@@ -613,11 +615,55 @@ func mapWeatherAPICodeToWMO(code int) int {
 	}
 }
 
-// softenWMOWhenNoObservedPrecip: дождь/морось/ливни и снег показываем только если в ответе API есть
-// измеримые осадки. Иначе условие «rain» у провайдера часто значит облачность/возможность, а не идущий дождь.
+// nearestHourPrecipSnow ищет в forecast почасовку, ближайшую к nowLocal (в пределах 90 мин).
+func nearestHourPrecipSnow(days []weatherAPIForecastDay, loc *time.Location, nowLocal time.Time) (precipMM, snowCM float64, ok bool) {
+	if nowLocal.IsZero() || loc == nil {
+		return 0, 0, false
+	}
+	var best *weatherAPIHour
+	var bestAbs time.Duration
+	var have bool
+	for _, fd := range days {
+		for i := range fd.Hour {
+			h := &fd.Hour[i]
+			t := time.Unix(h.TimeEpoch, 0).In(loc)
+			d := nowLocal.Sub(t)
+			if d < 0 {
+				d = -d
+			}
+			if !have || d < bestAbs {
+				bestAbs = d
+				best = h
+				have = true
+			}
+		}
+	}
+	if !have || bestAbs > 90*time.Minute || best == nil {
+		return 0, 0, false
+	}
+	return best.PrecipMM, best.SnowCM, true
+}
+
+// combinedPrecipForCurrentSoftening: current.precip_mm иногда завышен; почасовка за тот же час часто 0 при сухой погоде.
+func combinedPrecipForCurrentSoftening(curPrecip, curSnow float64, days []weatherAPIForecastDay, loc *time.Location, nowLocal time.Time) (liquidMM, snowCM float64) {
+	liquidMM, snowCM = curPrecip, curSnow
+	hp, hs, ok := nearestHourPrecipSnow(days, loc, nowLocal)
+	if !ok {
+		return liquidMM, snowCM
+	}
+	if hp < liquidMM {
+		liquidMM = hp
+	}
+	if hs < snowCM {
+		snowCM = hs
+	}
+	return liquidMM, snowCM
+}
+
+// softenWMOWhenNoObservedPrecip: дождь/морось/ливни и снег — только при заметных осадках по данным API.
 func softenWMOWhenNoObservedPrecip(wmo int, precipMM, snowCM float64) int {
-	const minLiquidMM = 0.05 // мм: ниже — не считаем, что сейчас идёт дождь
-	const minSnowCM = 0.05
+	const minLiquidMM = 0.12 // следы < ~0.1 мм часто шум; на улице при этом «просто облачно»
+	const minSnowCM = 0.08
 	switch wmo {
 	case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
 		if precipMM < minLiquidMM {
@@ -625,6 +671,20 @@ func softenWMOWhenNoObservedPrecip(wmo int, precipMM, snowCM float64) int {
 		}
 	case 71, 73, 75, 77:
 		if snowCM < minSnowCM && precipMM < minLiquidMM {
+			return 3
+		}
+	}
+	return wmo
+}
+
+// softenLiquidPrecipWhenLowDailyChance: если весь день почти без осадков, не держим «дождь» из-за крошечного mm в current.
+func softenLiquidPrecipWhenLowDailyChance(wmo int, precipMM float64, precipChance int) int {
+	if precipChance < 0 || precipChance > 30 {
+		return wmo
+	}
+	switch wmo {
+	case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
+		if precipMM < 0.4 {
 			return 3
 		}
 	}
@@ -773,13 +833,15 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		}
 	}
 
-	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
-	wmoNow = softenWMOWhenNoObservedPrecip(wmoNow, cur.PrecipMM, cur.SnowCM)
-
 	nowLocal := parseWeatherAPILocaltime(locInfo.Localtime, loc)
 	if nowLocal.IsZero() && locInfo.LocaltimeEpoch > 0 {
 		nowLocal = time.Unix(locInfo.LocaltimeEpoch, 0).In(loc)
 	}
+
+	liqMM, snowCM := combinedPrecipForCurrentSoftening(cur.PrecipMM, cur.SnowCM, days, loc, nowLocal)
+	wmoNow := mapWeatherAPICodeToWMO(cur.Condition.Code)
+	wmoNow = softenWMOWhenNoObservedPrecip(wmoNow, liqMM, snowCM)
+	wmoNow = softenLiquidPrecipWhenLowDailyChance(wmoNow, liqMM, precipChance)
 
 	var sunrise, sunset time.Time
 	if len(days) > 0 {
