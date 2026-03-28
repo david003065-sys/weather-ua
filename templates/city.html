@@ -7,7 +7,26 @@
     <div class="weather-hero__atmo" aria-hidden="true"></div>
     <div class="weather-hero__content">
         <div class="weather-hero__place">
-            <h1 id="city-title" class="weather-hero__city">{{ .CityName }}</h1>
+            <div class="weather-hero__title-row">
+                <h1 id="city-title" class="weather-hero__city">{{ .CityName }}</h1>
+                <button
+                    type="button"
+                    id="js-toggle-favorite"
+                    class="fav-btn"
+                    data-city-id="{{ .CityID }}"
+                    aria-pressed="false"
+                >
+                    <svg class="star-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+                        <path
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                            d="M12 3.2l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 15.9l-4.7 2.47.9-5.23-3.8-3.7 5.25-.76L12 3.2z"
+                        />
+                    </svg>
+                </button>
+            </div>
             {{ if .CityLocation }}
             <p class="weather-hero__subloc">{{ .CityLocation }}</p>
             {{ end }}

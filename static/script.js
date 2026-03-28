@@ -1439,4 +1439,72 @@
             updateLabel();
         });
     })();
+
+    // Canonical city pages: favourite city IDs in localStorage (for homepage list — next step).
+    (function initCityFavoritesToggle() {
+        var btn = document.getElementById("js-toggle-favorite");
+        if (!btn) return;
+
+        var STORAGE_KEY = "weather_favorites";
+
+        function readFavoriteCityIds() {
+            try {
+                var raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return [];
+                var parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.map(function (x) {
+                    return String(x).trim();
+                }).filter(Boolean);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function writeFavoriteCityIds(ids) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+            } catch (e) {
+                /* quota / private mode */
+            }
+        }
+
+        var id = String(btn.getAttribute("data-city-id") || "").trim();
+        if (!id) return;
+
+        function setAria() {
+            var on = btn.classList.contains("fav-btn--active");
+            btn.setAttribute("aria-pressed", on ? "true" : "false");
+            btn.setAttribute(
+                "aria-label",
+                on
+                    ? clientI18n.favRemoveTitle || "Remove from favourites"
+                    : clientI18n.favAddAria || "Add to favourites"
+            );
+        }
+
+        function syncFromStorage() {
+            var list = readFavoriteCityIds();
+            if (list.indexOf(id) !== -1) {
+                btn.classList.add("fav-btn--active");
+            } else {
+                btn.classList.remove("fav-btn--active");
+            }
+            setAria();
+        }
+
+        syncFromStorage();
+
+        btn.addEventListener("click", function () {
+            var list = readFavoriteCityIds();
+            var idx = list.indexOf(id);
+            if (idx === -1) {
+                list.push(id);
+            } else {
+                list.splice(idx, 1);
+            }
+            writeFavoriteCityIds(list);
+            syncFromStorage();
+        });
+    })();
 })();

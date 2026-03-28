@@ -293,12 +293,54 @@ html[data-theme="light"] .lang-switch__item--active {
     gap: 0.55rem;
 }
 
+.weather-hero__title-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.5rem;
+}
+
 .weather-hero__city {
     margin: 0;
     font-size: clamp(1.8rem, 5vw, 2.3rem);
     font-weight: 500;
     letter-spacing: -0.02em;
     color: var(--text-main);
+}
+
+.fav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 0;
+    transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.fav-btn:hover {
+    color: var(--text-main);
+    opacity: 1;
+}
+
+.fav-btn:focus-visible {
+    outline: 2px solid var(--text-main);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.fav-btn--active .star-icon path {
+    fill: #fbbf24;
+    stroke: #d97706;
+}
+
+.fav-btn--active {
+    color: #fbbf24;
 }
 
 .weather-hero__temp-wrap {
