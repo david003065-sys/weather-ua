@@ -1440,87 +1440,56 @@
         });
     })();
 
-    // Canonical city pages: favourite city IDs in localStorage (делегирование — сработает и при динамическом контенте).
-    (function initCityFavoritesToggle() {
-        var STORAGE_KEY = "weather_favorites";
-
-        function readFavoriteCityIds() {
-            try {
-                var raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return [];
-                var parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) return [];
-                return parsed.map(function (x) {
-                    return String(x).trim();
-                }).filter(Boolean);
-            } catch (e) {
-                return [];
-            }
+    // Избранные города (canonical city id) — делегирование + восстановление звезды после перезагрузки.
+    function parseWeatherFavoritesArray() {
+        try {
+            var parsed = JSON.parse(localStorage.getItem("weather_favorites") || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
         }
+    }
 
-        function writeFavoriteCityIds(ids) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-            } catch (e) {
-                /* quota / private mode */
-            }
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest("#js-toggle-favorite");
+        if (!btn) return;
+        e.preventDefault();
+
+        const cityId = btn.getAttribute("data-city-id");
+        if (!cityId) return;
+
+        let favs = parseWeatherFavoritesArray();
+        const sId = String(cityId);
+        const index = favs.indexOf(sId);
+
+        if (index === -1) {
+            favs.push(sId);
+            btn.classList.add("fav-btn--active");
+        } else {
+            favs.splice(index, 1);
+            btn.classList.remove("fav-btn--active");
         }
-
-        function setAria(btn) {
-            var on = btn.classList.contains("fav-btn--active");
-            btn.setAttribute("aria-pressed", on ? "true" : "false");
-            btn.setAttribute(
-                "aria-label",
-                on
-                    ? clientI18n.favRemoveTitle || "Remove from favourites"
-                    : clientI18n.favAddAria || "Add to favourites"
-            );
+        try {
+            localStorage.setItem("weather_favorites", JSON.stringify(favs));
+        } catch (err) {
+            /* quota / private mode */
         }
+    });
 
-        function syncButtonFromStorage(btn) {
-            var id = String(btn.getAttribute("data-city-id") || "").trim();
-            if (!id) return;
-            var list = readFavoriteCityIds();
-            if (list.indexOf(id) !== -1) {
-                btn.classList.add("fav-btn--active");
-            } else {
-                btn.classList.remove("fav-btn--active");
-            }
-            setAria(btn);
+    function initFavoriteState() {
+        const btn = document.querySelector("#js-toggle-favorite");
+        if (!btn) return;
+        const cityId = btn.getAttribute("data-city-id");
+        if (!cityId) return;
+
+        let favs = parseWeatherFavoritesArray();
+        if (favs.includes(String(cityId))) {
+            btn.classList.add("fav-btn--active");
         }
+    }
 
-        function syncAllFavButtons() {
-            document.querySelectorAll(".fav-btn[data-city-id]").forEach(function (btn) {
-                syncButtonFromStorage(btn);
-            });
-        }
-
-        syncAllFavButtons();
-
-        document.addEventListener("click", function (e) {
-            var favBtn = e.target.closest("#js-toggle-favorite");
-            if (!favBtn) return;
-
-            e.preventDefault();
-            var cityId = favBtn.getAttribute("data-city-id");
-            if (!cityId) return;
-
-            var sId = String(cityId).trim();
-            if (!sId) return;
-
-            var favorites = readFavoriteCityIds();
-            var index = favorites.indexOf(sId);
-
-            if (index === -1) {
-                favorites.push(sId);
-                favBtn.classList.add("fav-btn--active");
-            } else {
-                favorites.splice(index, 1);
-                favBtn.classList.remove("fav-btn--active");
-            }
-
-            writeFavoriteCityIds(favorites);
-            setAria(favBtn);
-        });
-    })();
+    document.addEventListener("DOMContentLoaded", initFavoriteState);
+    if (document.readyState !== "loading") {
+        initFavoriteState();
+    }
 })();
