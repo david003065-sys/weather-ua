@@ -14,6 +14,8 @@ type ClientPayload struct {
 	FavRemoveTitle    string `json:"favRemoveTitle"`
 	FavAddAria        string `json:"favAddAria"`
 	PlaceTypeFallback string `json:"placeTypeFallback"`
+	GeoNoBrowser      string `json:"geoNoBrowserSupport"`
+	GeoLocationFailed string `json:"geoLocationFailed"`
 }
 
 func clientPayload(lang string) ClientPayload {
@@ -30,6 +32,8 @@ func clientPayload(lang string) ClientPayload {
 			FavRemoveTitle:     "Remove from favourites",
 			FavAddAria:         "Add to favourites",
 			PlaceTypeFallback:  "Settlement",
+			GeoNoBrowser:       "This browser does not support geolocation.",
+			GeoLocationFailed:  "Could not get your position. Check site permissions.",
 		}
 	case "uk":
 		return ClientPayload{
@@ -43,6 +47,8 @@ func clientPayload(lang string) ClientPayload {
 			FavRemoveTitle:     "Прибрати з обраного",
 			FavAddAria:         "Додати до обраного",
 			PlaceTypeFallback:  "населений пункт",
+			GeoNoBrowser:       "Ваш браузер не підтримує геолокацію.",
+			GeoLocationFailed:  "Не вдалося отримати координати. Перевір дозволи сайту.",
 		}
 	default:
 		return ClientPayload{
@@ -56,6 +62,8 @@ func clientPayload(lang string) ClientPayload {
 			FavRemoveTitle:     "Удалить из избранного",
 			FavAddAria:         "В избранное",
 			PlaceTypeFallback:  "населённый пункт",
+			GeoNoBrowser:       "Ваш браузер не поддерживает геолокацию.",
+			GeoLocationFailed:  "Не удалось получить координаты. Проверьте разрешения.",
 		}
 	}
 }

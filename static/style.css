@@ -91,8 +91,59 @@ html[data-theme="light"] .site-header {
 
 .header-search .search-input {
     height: 38px;
-    padding: 6px 14px;
+    padding: 6px 40px 6px 14px;
     font-size: 0.9rem;
+}
+
+.geo-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 8px;
+    transition: color 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.geo-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="light"] .geo-btn:hover {
+    background: rgba(17, 32, 51, 0.06);
+}
+
+.geo-btn:focus-visible {
+    outline: 2px solid var(--text-main);
+    outline-offset: 2px;
+}
+
+.geo-btn--loading {
+    pointer-events: none;
+    animation: geo-btn-pulse 1s ease-in-out infinite;
+}
+
+@keyframes geo-btn-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
 }
 
 .header-search .search-suggestions {
@@ -375,16 +426,6 @@ html[data-theme="light"] .lang-switch__item--active {
     border-radius: 999px;
     background: var(--chip-bg);
     font-size: 0.76rem;
-}
-
-.location-btn {
-    margin-top: 0.3rem;
-    border: 1px solid var(--glass-border);
-    background: var(--chip-bg);
-    color: var(--text-main);
-    border-radius: 999px;
-    padding: 0.5rem 0.82rem;
-    cursor: pointer;
 }
 
 .hourly-forecast {

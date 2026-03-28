@@ -549,66 +549,7 @@
         return "/city/" + encodeURIComponent(s) + "?lang=" + langQ;
     }
 
-    function applyDefaultCity(cityName) {
-        if (!cityName) return;
-        var url = buildUrlFromCityName(cityName);
-        if (!url) return;
-        safeStorageSet("defaultCity", cityName);
-        window.location.href = url;
-    }
-
-    async function findCityByCoords(lat, lon) {
-        try {
-            var url =
-                "/api/find-city?lat=" +
-                encodeURIComponent(lat) +
-                "&lon=" +
-                encodeURIComponent(lon) +
-                "&lang=" +
-                encodeURIComponent(lang);
-            var res = await fetch(url);
-            if (!res.ok) return null;
-            return await res.json();
-        } catch (_) {
-            return null;
-        }
-    }
-
-    function requestGeoAndApply(disableBtnEl) {
-        if (!navigator.geolocation) return;
-        if (disableBtnEl) {
-            disableBtnEl.disabled = true;
-            disableBtnEl.classList.add("btn--loading");
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            async function (pos) {
-                var lat = pos.coords.latitude;
-                var lon = pos.coords.longitude;
-                var data = await findCityByCoords(lat, lon);
-                if (data && data.cityName) {
-                    applyDefaultCity(data.cityName);
-                    return;
-                }
-                // fallback
-                applyDefaultCity(DEFAULT_CITY_ID);
-            },
-            function () {
-                if (disableBtnEl) {
-                    disableBtnEl.disabled = false;
-                    disableBtnEl.classList.remove("btn--loading");
-                }
-                // fallback only for auto-detect; click will just re-enable
-                if (window.location.pathname === "/") {
-                    applyDefaultCity(DEFAULT_CITY_ID);
-                }
-            },
-            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
-        );
-    }
-
-    // On "/" always keep Kyiv (server SSR) unless the user explicitly clicks geo.
-    // (We keep localStorage for the geo result, but we don't auto-redirect on load.)
+    // On "/" keep defaultCity hint in localStorage (Kyiv) until user picks another route.
     var isIndexPage = window.location.pathname === "/";
     if (isIndexPage) {
         var saved = safeStorageGet("defaultCity");
@@ -617,11 +558,37 @@
         }
     }
 
-    // Geo button (click)
+    // Геолокация: координаты → GET /geo → редирект на /place/… или /city/… (см. GeoRedirect).
     var geoBtn = document.getElementById("js-geo-btn");
-    if (geoBtn && navigator.geolocation) {
+    if (geoBtn) {
         geoBtn.addEventListener("click", function () {
-            requestGeoAndApply(geoBtn);
+            if (!navigator.geolocation) {
+                alert(clientI18n.geoNoBrowserSupport || "Geolocation is not supported.");
+                return;
+            }
+            geoBtn.classList.add("geo-btn--loading");
+            var locLang = document.documentElement.lang || "ru";
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    var plat = pos.coords.latitude;
+                    var plon = pos.coords.longitude;
+                    window.location.href =
+                        "/geo?lat=" +
+                        encodeURIComponent(plat) +
+                        "&lon=" +
+                        encodeURIComponent(plon) +
+                        "&lang=" +
+                        encodeURIComponent(locLang);
+                },
+                function (err) {
+                    if (typeof console !== "undefined" && console.error) {
+                        console.error(err);
+                    }
+                    geoBtn.classList.remove("geo-btn--loading");
+                    alert(clientI18n.geoLocationFailed || "Could not get your position.");
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+            );
         });
     }
 

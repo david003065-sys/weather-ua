@@ -31,8 +31,6 @@
                 <div class="forecast-chip">{{ .Text.Tomorrow }} · {{ if or .WeatherUnavailable (not .TomorrowLabel) }}—{{ else }}{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°{{ end }}</div>
                 <div class="forecast-chip">{{ .Text.DayAfterTomorrow }} · {{ if or .WeatherUnavailable (not .DayAfterLabel) }}—{{ else }}{{ printf "%.0f" .DayAfterMin }}°—{{ printf "%.0f" .DayAfterMax }}°{{ end }}</div>
             </div>
-
-            <button type="button" id="js-geo-btn" class="location-btn"><span class="location-btn__pin" aria-hidden="true">📍</span> {{ .Text.GeoDetectButton }}</button>
         </div>
 
         <div class="hourly-forecast-container hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
