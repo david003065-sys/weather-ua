@@ -34,12 +34,20 @@
             </div>
         </div>
 
-        <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
-        <p class="weather-hero__precip" id="js-precip-chance">☔ {{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</p>
+        <div style="display: flex; flex-direction: column; align-items: center; line-height: 1.2; margin-top: -5px;">
+            <div class="weather-hero__condition" style="font-size: 17px; color: var(--text-main); margin-bottom: 2px;">
+                {{ .CurrentDescription }}
+            </div>
 
-        <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
-            <span style="font-size: 16px;" aria-hidden="true">💡</span>
-            <span id="js-weather-advice-text">Советы по одежде</span>
+            <div id="js-precip-chance" style="font-size: 15px; color: var(--text-muted); margin-bottom: 8px;">
+                <span style="font-size: 14px;">☔</span>
+                {{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}
+            </div>
+
+            <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); padding: 0 30px; text-align: center;">
+                <span style="font-size: 16px; flex-shrink: 0;" aria-hidden="true">💡</span>
+                <span id="js-weather-advice-text">Советы по одежде</span>
+            </div>
         </div>
 
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
