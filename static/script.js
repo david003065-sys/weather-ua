@@ -204,6 +204,13 @@
             data.push(n);
         }
 
+        const innerContainer = document.getElementById("js-hourly-inner");
+        if (innerContainer && items.length > 0) {
+            // Задаем точную ширину, чтобы Chart.js и flex-часы совпали
+            innerContainer.style.minWidth = items.length * 55 + "px";
+            innerContainer.style.width = items.length * 55 + "px";
+        }
+
         const existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
         if (existing) {
             existing.destroy();

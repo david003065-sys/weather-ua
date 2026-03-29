@@ -435,6 +435,15 @@ html[data-theme="light"] .lang-switch__item--active {
     background: var(--chip-bg);
 }
 
+#js-hourly-inner {
+    position: relative;
+}
+
+#js-hourly-inner .chart-wrapper,
+#js-hourly-inner .hourly-scroll {
+    background: transparent;
+}
+
 .hourly-forecast,
 .hourly-forecast-container,
 .hourly-scroll {
@@ -444,7 +453,8 @@ html[data-theme="light"] .lang-switch__item--active {
 
 .hourly-scroll {
     display: flex;
-    gap: 0.72rem;
+    width: 100%;
+    justify-content: space-between;
     overflow-x: auto;
     padding: 0.68rem 0.72rem;
     scrollbar-width: none;
@@ -456,7 +466,7 @@ html[data-theme="light"] .lang-switch__item--active {
 }
 
 .hourly-item {
-    min-width: 52px;
+    flex: 1;
     text-align: center;
     color: var(--text-main);
 }

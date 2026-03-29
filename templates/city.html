@@ -43,10 +43,12 @@
         </div>
 
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
-            <div class="chart-wrapper" style="position: relative; height: 140px; width: 100%; margin: 15px 0 5px 0;">
-                <canvas id="js-temp-chart"></canvas>
+            <div id="js-hourly-inner">
+                <div class="chart-wrapper" style="position: relative; height: 140px; width: 100%; margin: 15px 0 5px 0;">
+                    <canvas id="js-temp-chart"></canvas>
+                </div>
+                <div class="hourly-scroll" id="js-hourly-scroll"></div>
             </div>
-            <div class="hourly-scroll" id="js-hourly-scroll"></div>
         </div>
 
         <div class="weather-details-grid" aria-label="{{ .Text.CurrentMetricsAria }}">
