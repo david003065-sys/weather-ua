@@ -113,6 +113,12 @@ type HourlyView struct {
 	Icon        string
 }
 
+// CityWeatherPhysics — поля для #js-weather-physics-data (Canvas, data-атрибуты).
+type CityWeatherPhysics struct {
+	MainCondition string
+	WindSpeed     float64
+}
+
 type CityPageData struct {
 	IsIndex     bool
 	WeatherCode int
@@ -148,6 +154,8 @@ type CityPageData struct {
 	DuplicatesLabel     string
 	DuplicatesURL       string
 	ClientI18n          template.JS
+	// Current — снимок для Canvas-физики (шаблон: .Current.MainCondition, .Current.WindSpeed).
+	Current CityWeatherPhysics
 }
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -280,6 +288,16 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
 		s.logger.Printf("render index: %v", err)
+	}
+}
+
+func cityWeatherPhysicsFrom(data *weather.WeatherData) CityWeatherPhysics {
+	if data == nil || data.IsFallback {
+		return CityWeatherPhysics{MainCondition: "Unknown", WindSpeed: 0}
+	}
+	return CityWeatherPhysics{
+		MainCondition: weather.MainConditionPhysics(data.Current.WeatherCode),
+		WindSpeed:     data.Current.WindSpeed,
 	}
 }
 
@@ -426,6 +444,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		Hourly:              hourly,
 		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
+		Current:             cityWeatherPhysicsFrom(data),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
@@ -1281,6 +1300,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		DuplicatesLabel:     dupLabel,
 		DuplicatesURL:       dupURL,
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
+		Current:             cityWeatherPhysicsFrom(data),
 	}
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {

@@ -474,3 +474,131 @@
     global.Atmosphere = Atmosphere;
     global.atmosphere = new Atmosphere();
 })(typeof window !== "undefined" ? window : this);
+
+/**
+ * Canvas-физика погоды — этап 1: SSR payload из #js-weather-physics-data.
+ * data-wind-speed всегда строка в DOM; parseFloat + запятая как десятичный разделитель.
+ */
+(function (global) {
+    "use strict";
+
+    function parsePhysicsWindSpeed(raw) {
+        if (raw == null || raw === "") {
+            return 0;
+        }
+        var n = parseFloat(String(raw).trim().replace(",", "."));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function readWeatherPhysicsPayload() {
+        var el = document.getElementById("js-weather-physics-data");
+        if (!el || !el.dataset) {
+            return null;
+        }
+        return {
+            main: String(el.dataset.weatherMain || "").trim(),
+            windSpeed: parsePhysicsWindSpeed(el.dataset.windSpeed),
+        };
+    }
+
+    global.__WEATHER_PHYSICS_SSR__ = readWeatherPhysicsPayload();
+
+    function physicsPrefersReducedMotion() {
+        try {
+            return global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const physData = global.__WEATHER_PHYSICS_SSR__;
+    if (
+        physData &&
+        !physicsPrefersReducedMotion() &&
+        ["Rain", "Drizzle", "Snow", "Thunderstorm"].includes(physData.main) &&
+        global.document &&
+        global.document.body
+    ) {
+        const canvas = document.createElement("canvas");
+        canvas.className = "weather-physics-fx-layer";
+        canvas.style.cssText =
+            "position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:0; opacity:0.6;";
+        document.body.prepend(canvas);
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            canvas.remove();
+        } else {
+            let w = (canvas.width = global.innerWidth);
+            let h = (canvas.height = global.innerHeight);
+
+            global.addEventListener("resize", function () {
+                w = canvas.width = global.innerWidth;
+                h = canvas.height = global.innerHeight;
+            });
+
+            const particles = [];
+            const isSnow = physData.main === "Snow";
+            const isStorm = physData.main === "Thunderstorm";
+            const count = isSnow ? 150 : 300;
+            const wind = physData.windSpeed || 0;
+
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    s: Math.random() * (isSnow ? 2.5 : 1.5) + 0.5,
+                    v: Math.random() * (isSnow ? 1 : 15) + (isSnow ? 0.5 : 10),
+                    a: Math.random() * Math.PI * 2,
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, w, h);
+
+                if (isStorm && Math.random() < 0.005) {
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                    ctx.fillRect(0, 0, w, h);
+                }
+
+                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+                ctx.beginPath();
+
+                const windOffset = wind * (isSnow ? 0.3 : 1.2);
+
+                particles.forEach(function (p) {
+                    if (isSnow) {
+                        ctx.moveTo(p.x, p.y);
+                        ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+                        p.y += p.v;
+                        p.x += Math.sin(p.a) * 0.5 + windOffset;
+                        p.a += 0.03;
+                    } else {
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p.x + windOffset, p.y + p.v);
+                        p.y += p.v;
+                        p.x += windOffset;
+                    }
+
+                    if (p.y > h) {
+                        p.y = -10;
+                        p.x = Math.random() * w - windOffset * (h / p.v);
+                    }
+                    if (p.x > w) p.x = -10;
+                    if (p.x < 0) p.x = w + 10;
+                });
+
+                if (isSnow) {
+                    ctx.fill();
+                } else {
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                global.requestAnimationFrame(draw);
+            }
+            draw();
+        }
+    }
+})(typeof window !== "undefined" ? window : this);
