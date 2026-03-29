@@ -882,3 +882,23 @@ html[data-theme="dark"] .weather-app * {
         font-size: 1rem;
     }
 }
+
+/* Синхронизация ширины: 5 дней + график тренда (общая колонка на десктопе) */
+.city-daily-scroll,
+.js-trend-chart-wrap.chart-card.atmo-chart {
+    width: 100% !important;
+    max-width: 850px !important;
+    margin: 0 auto 20px auto !important;
+}
+
+/* Заголовки по левому краю той же колонки (прогноз: .city-daily-section__title; тренд: весь header с подписью + h2) */
+.city-daily-section__title,
+.city-chart-section > .atmo-section__head,
+.city-chart-section h2,
+.city-section-title {
+    max-width: 850px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+    text-align: left;
+}

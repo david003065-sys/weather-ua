@@ -1081,6 +1081,20 @@
                     renderMessage(t("error"));
                     return;
                 }
+                var query = input.value.trim().toLowerCase();
+                json.sort(function (a, b) {
+                    var nameA = pickName(a).toLowerCase();
+                    var nameB = pickName(b).toLowerCase();
+
+                    if (nameA === query) return -1;
+                    if (nameB === query) return 1;
+
+                    if (nameA.length !== nameB.length) {
+                        return nameA.length - nameB.length;
+                    }
+
+                    return nameA.localeCompare(nameB);
+                });
                 renderSuggestions(json);
             } catch (e) {
                 if (e.name === "AbortError") {
