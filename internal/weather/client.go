@@ -401,12 +401,12 @@ func (c *Client) fetchFromAPI(ctx context.Context, city City) (*WeatherData, err
 	q := url.Values{}
 	q.Set("key", apiKey)
 	q.Set("q", fmt.Sprintf("%.4f,%.4f", city.Latitude, city.Longitude))
-	q.Set("days", "3")
+	q.Set("days", "5")
 	// Почасовые ряды берём из forecast.forecastday[].hour (temp + condition) — аналог запроса hourly к Open-Meteo.
 	fullURL := weatherAPIBaseURL() + "/forecast.json?" + q.Encode()
 
 	if c.logger != nil {
-		c.logger.Printf("provider http request url=%s/forecast.json q=%.4f,%.4f days=3", weatherAPIBaseURL(), city.Latitude, city.Longitude)
+		c.logger.Printf("provider http request url=%s/forecast.json q=%.4f,%.4f days=5", weatherAPIBaseURL(), city.Latitude, city.Longitude)
 	}
 
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fullURL, nil)
@@ -783,8 +783,8 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 
 func buildDailySeries(days []weatherAPIForecastDay, loc *time.Location) []Daily {
 	n := len(days)
-	if n > 3 {
-		n = 3
+	if n > 5 {
+		n = 5
 	}
 	out := make([]Daily, 0, n)
 	for i := 0; i < n; i++ {

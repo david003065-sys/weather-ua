@@ -455,6 +455,10 @@ html[data-theme="light"] .lang-switch__item--active {
     height: 0;
 }
 
+#js-daily-scroll::-webkit-scrollbar {
+    display: none;
+}
+
 .hourly-item {
     min-width: 52px;
     text-align: center;

@@ -518,7 +518,7 @@
                 existing.destroy();
             }
             /* Chart reads tokens from chart surface (updates when theme changes) */
-            var host = canvas.closest(".chart-card") || document.body;
+            var host = canvas.closest(".chart-card") || canvas.closest(".atmo-chart") || document.body;
             var css = getComputedStyle(host);
             var textMuted = (css.getPropertyValue("--text-muted") || "#9ca3af").trim();
             var textStrong = (css.getPropertyValue("--text-strong") || "#e5e7eb").trim();
@@ -567,6 +567,9 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { left: 0, right: 0 }
+                    },
                     plugins: {
                         legend: {
                             display: true,
@@ -598,7 +601,7 @@
         }
     }
 
-    const tempCanvas = document.querySelector(".js-temp-chart");
+    var tempCanvas = document.getElementById("js-trend-chart") || document.querySelector(".js-temp-chart");
     if (tempCanvas) {
         function bootChart() {
             initTempChart(tempCanvas);
