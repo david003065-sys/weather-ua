@@ -181,32 +181,31 @@
 </div>
 {{ end }}
 
-<section class="atmo-stack atmo-stack--forecast" aria-label="{{ .Text.ForecastAria }}">
-    <div style="width: 100%; display: flex; flex-direction: column; align-items: start; gap: 10px;">
-        <h2 style="color: var(--text-main);">{{ .Text.ForecastTitle }}</h2>
-        <div id="js-daily-scroll" style="width: 100%; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;">
+<section class="atmo-stack atmo-stack--forecast city-daily-section" aria-label="{{ .Text.ForecastAria }}">
+    <div class="city-daily-section__inner">
+        <h2 class="city-daily-section__title">{{ .Text.ForecastTitle }}</h2>
+        <div id="js-daily-scroll" class="city-daily-scroll">
             {{ range .Forecast }}
-            <div class="daily-item" style="flex-shrink: 0; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; padding: 15px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                <div style="font-size: 14px; color: var(--text-muted);">{{ .Label }}</div>
-                <span class="daily-item__icon" aria-hidden="true" style="font-size: 32px; line-height: 1;">{{ .Icon }}</span>
-                <div style="font-size: 14px; font-weight: bold; color: var(--text-main);">{{ .Description }}</div>
-                <div style="font-size: 14px; color: var(--text-muted);"><span style="color: #60a5fa;">{{ printf "%.0f" .MaxTemp }}°</span> <span style="color: #f97316;">{{ printf "%.0f" .MinTemp }}°</span></div>
+            <div class="daily-item">
+                <div class="daily-item__date">{{ .Label }}</div>
+                <span class="daily-item__icon" aria-hidden="true">{{ .Icon }}</span>
+                <div class="daily-item__desc">{{ .Description }}</div>
+                <div class="daily-item__temps"><span class="daily-item__hi">{{ printf "%.0f" .MaxTemp }}°</span> <span class="daily-item__lo">{{ printf "%.0f" .MinTemp }}°</span></div>
             </div>
             {{ end }}
         </div>
     </div>
 </section>
 
-<section class="chart-section atmo-stack" aria-labelledby="chart-title">
+<section class="chart-section atmo-stack city-chart-section" aria-labelledby="chart-title">
     <header class="atmo-section__head atmo-section__head--tight">
         <span class="atmo-section__label">{{ .Text.TrendLabel }}</span>
         <h2 id="chart-title" class="atmo-section__title">{{ .Text.ChartTitle }}</h2>
     </header>
-    <div class="chart-card atmo-chart" style="width: 100%; height: auto; position: relative; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: none; box-shadow: none; min-height: 220px;">
+    <div class="chart-card atmo-chart js-trend-chart-wrap">
         <canvas
             id="js-trend-chart"
             class="chart-card__canvas js-temp-chart"
-            style="display: block; width: 100%; height: 220px;"
             data-labels='[
                 {{- range $i, $d := .Forecast -}}
                     {{- if $i}}, {{ end -}}
