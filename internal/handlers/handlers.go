@@ -130,6 +130,10 @@ type CityPageData struct {
 	CurrentDescription  string
 	CurrentPrecipChance int
 	CurrentWind         float64
+	// WindFromDeg — метео, откуда дует (0–360), -1 нет данных. WindFlowRotateDeg — поворот стрелки «куда дует» для SVG.
+	WindFromDeg         int
+	WindFlowRotateDeg   float64
+	CurrentWindMs       float64
 	CurrentHumidity     float64
 	CurrentPressure     float64
 	WeatherUnavailable  bool
@@ -200,6 +204,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 					Description: "",
 					Icon:        "❔",
 					WindSpeed:   0,
+					WindFromDeg: -1,
 					Humidity:    0,
 					Pressure:    0,
 					IsNight:     false,
@@ -281,6 +286,14 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	if err := s.tmpl.ExecuteTemplate(w, "index-page", page); err != nil {
 		s.logger.Printf("render index: %v", err)
 	}
+}
+
+// windFlowRotateDegSVG — угол для SVG rotate (° по часовой): куда дует поток; метеоданные задают «откуда» (+180°).
+func windFlowRotateDegSVG(windFromDeg int) float64 {
+	if windFromDeg < 0 || windFromDeg > 360 {
+		return 0
+	}
+	return float64((windFromDeg + 180) % 360)
 }
 
 func (s *Server) City(w http.ResponseWriter, r *http.Request) {
@@ -396,6 +409,8 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
 	}
+	windFlow := windFlowRotateDegSVG(data.Current.WindFromDeg)
+	windMs := data.Current.WindSpeed / 3.6
 	page := CityPageData{
 		IsIndex:             false,
 		WeatherCode:         data.Current.WeatherCode,
@@ -411,6 +426,9 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:         data.Current.WindSpeed,
+		WindFromDeg:         data.Current.WindFromDeg,
+		WindFlowRotateDeg:   windFlow,
+		CurrentWindMs:       windMs,
 		CurrentHumidity:     data.Current.Humidity,
 		CurrentPressure:     data.Current.Pressure,
 		WeatherUnavailable:  data.IsFallback,
@@ -1247,6 +1265,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	if data.IsFallback {
 		currentDesc = text.WeatherUnavailableMsg
 	}
+	windFlowPlace := windFlowRotateDegSVG(data.Current.WindFromDeg)
+	windMsPlace := data.Current.WindSpeed / 3.6
 	page := CityPageData{
 		IsIndex:             false,
 		WeatherCode:         data.Current.WeatherCode,
@@ -1263,6 +1283,9 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:         data.Current.WindSpeed,
+		WindFromDeg:         data.Current.WindFromDeg,
+		WindFlowRotateDeg:   windFlowPlace,
+		CurrentWindMs:       windMsPlace,
 		CurrentHumidity:     data.Current.Humidity,
 		CurrentPressure:     data.Current.Pressure,
 		WeatherUnavailable:  data.IsFallback,

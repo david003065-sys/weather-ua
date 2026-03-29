@@ -526,7 +526,8 @@ type weatherAPIForecastResponse struct {
 		TempC      float64 `json:"temp_c"`
 		FeelslikeC float64 `json:"feelslike_c"`
 		IsDay      int     `json:"is_day"`
-		WindKph    float64 `json:"wind_kph"`
+		WindKph     float64 `json:"wind_kph"`
+		WindDegree  int     `json:"wind_degree"`
 		// UV index (WeatherAPI: current.uv)
 		UV float64 `json:"uv"`
 		// Visibility: km preferred; miles used if km is zero (аналог open-meteo visibility).
@@ -862,6 +863,14 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		visKm = cur.VisMiles * 1.60934
 	}
 
+	windFrom := cur.WindDegree
+	if windFrom == 360 {
+		windFrom = 0
+	}
+	if windFrom < 0 || windFrom > 360 {
+		windFrom = -1
+	}
+
 	current := Current{
 		Temperature:         cur.TempC,
 		FeelsLike:           cur.FeelslikeC,
@@ -869,6 +878,7 @@ func buildWeatherDataFromWeatherAPI(city City, res weatherAPIForecastResponse, l
 		Description:         "",
 		Icon:                i18n.WeatherIcon(wmoNow),
 		WindSpeed:           cur.WindKph,
+		WindFromDeg:         windFrom,
 		Humidity:            float64(cur.Humidity),
 		UVIndex:             float64(cur.UV),
 		VisibilityKm:        visKm,

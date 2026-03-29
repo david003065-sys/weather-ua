@@ -409,6 +409,79 @@ html[data-theme="light"] .lang-switch__item--active {
     color: var(--text-muted);
 }
 
+.weather-hero__precip-wind-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.weather-hero__precip-inline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 15px;
+    color: var(--text-muted);
+}
+
+.weather-hero__precip-icon {
+    font-size: 14px;
+}
+
+.wind-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    animation: wind-widget-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.08s;
+}
+
+@keyframes wind-widget-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wind-widget {
+        animation: none;
+    }
+}
+
+.wind-widget__ring {
+    stroke: var(--text-muted);
+    opacity: 0.3;
+}
+
+.wind-widget__n {
+    fill: var(--text-muted);
+}
+
+.wind-widget__arrow line,
+.wind-widget__arrow path {
+    stroke: var(--temp-color-from);
+}
+
+.wind-widget__hub {
+    fill: var(--text-main);
+}
+
+.wind-widget__speed {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
 .weather-advice,
 .hero-forecast {
     width: 100%;
