@@ -19,7 +19,10 @@
             </div>
 
             <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
-            <p class="weather-hero__precip" id="js-precip-chance">☔ {{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</p>
+            <div class="weather-hero__precip" id="js-precip-chance" style="display: flex; align-items: center; gap: 4px; margin: 0; font-size: 15px; color: var(--text-muted);">
+                <span style="font-size: 14px;" aria-hidden="true">☔</span>
+                <span id="js-precip-value">{{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</span>
+            </div>
 
             <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
                 <span style="font-size: 16px;" aria-hidden="true">💡</span>

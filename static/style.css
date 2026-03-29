@@ -889,8 +889,7 @@ html[data-theme="dark"] .weather-app * {
 /* Заголовки по левому краю той же колонки (прогноз: .city-daily-section__title; тренд: весь header с подписью + h2) */
 .city-daily-section__title,
 .city-chart-section > .atmo-section__head,
-.city-chart-section h2,
-.city-section-title {
+.city-chart-section h2 {
     max-width: 850px !important;
     margin-left: auto !important;
     margin-right: auto !important;

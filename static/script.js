@@ -146,18 +146,25 @@
     }
 
     function updatePrecipChance(chance, isFallback) {
-        var precipEl = document.getElementById("js-precip-chance");
-        if (!precipEl) return;
+        var wrap = document.getElementById("js-precip-chance");
+        if (!wrap) return;
+        var valEl = document.getElementById("js-precip-value");
+        var text;
         if (isFallback) {
-            precipEl.textContent = "☔ —";
-            return;
+            text = "—";
+        } else {
+            var ch = Number(chance);
+            if (Number.isNaN(ch) || ch < 0 || ch > 100) {
+                text = "—";
+            } else {
+                text = Math.round(ch) + "%";
+            }
         }
-        var ch = Number(chance);
-        if (Number.isNaN(ch) || ch < 0 || ch > 100) {
-            precipEl.textContent = "☔ —";
-            return;
+        if (valEl) {
+            valEl.textContent = text;
+        } else {
+            wrap.textContent = "☔ " + text;
         }
-        precipEl.textContent = "☔ " + Math.round(ch) + "%";
     }
 
     function getHourlyScrollEl() {
@@ -842,6 +849,15 @@
             if (key === "empty") return clientI18n.searchEmpty || fb.empty;
             if (key === "error") return clientI18n.searchError || fb.error;
             if (key === "tooShort") return clientI18n.searchTooShort || fb.tooShort;
+            if (key === "favEmpty") {
+                if (lang === "uk") {
+                    return "Ти ще не додав(ла) міста. Знайди населений пункт через пошук і натисни зірочку.";
+                }
+                if (lang === "ru") {
+                    return "Вы ещё не добавили города. Найдите город через поиск и нажмите на звёздочку.";
+                }
+                return "You have not added any places yet. Search for a settlement and tap the star.";
+            }
             return "";
         }
 
@@ -998,6 +1014,65 @@
             box.style.display = "block";
         }
 
+        function mapFavoriteAPIItem(it) {
+            if (!it || it.id === undefined || it.id === null) return null;
+            var nm = it.name || "";
+            return {
+                id: String(it.id),
+                kind: it.kind || "place",
+                lat: NaN,
+                lon: NaN,
+                name_ru: nm,
+                name_uk: nm,
+                name_en: nm
+            };
+        }
+
+        function showFavoritesInSearch() {
+            var ids;
+            try {
+                ids = JSON.parse(localStorage.getItem("weather_favorites") || "[]");
+            } catch (e2) {
+                ids = [];
+            }
+            if (!Array.isArray(ids)) ids = [];
+            ids = ids
+                .map(function (x) {
+                    return String(x).trim();
+                })
+                .filter(Boolean);
+            if (ids.length === 0) {
+                renderMessage(t("favEmpty"));
+                return;
+            }
+            var qs = "ids=" + encodeURIComponent(ids.join(",")) + "&lang=" + encodeURIComponent(lang);
+            fetch("/api/favorites?" + qs)
+                .then(function (res) {
+                    if (!res.ok) throw new Error("bad status");
+                    return res.json();
+                })
+                .then(function (data) {
+                    if (!Array.isArray(data) || data.length === 0) {
+                        renderMessage(t("favEmpty"));
+                        return;
+                    }
+                    var places = [];
+                    for (var fi = 0; fi < data.length; fi++) {
+                        var mp = mapFavoriteAPIItem(data[fi]);
+                        if (mp) places.push(mp);
+                    }
+                    if (!places.length) {
+                        renderMessage(t("favEmpty"));
+                        return;
+                    }
+                    lastQuery = "";
+                    renderSuggestions(places);
+                })
+                .catch(function () {
+                    renderMessage(t("error"));
+                });
+        }
+
         function setActive(idx) {
             if (!items.length) return;
             if (idx < 0) idx = items.length - 1;
@@ -1011,6 +1086,15 @@
 
         async function goToPlace(place) {
             if (!place || !place.id) return;
+
+            if (place.kind === "city") {
+                var cityUrl = "/city/" + encodeURIComponent(String(place.id));
+                if (lang) {
+                    cityUrl += "?lang=" + encodeURIComponent(lang);
+                }
+                window.location.assign(cityUrl);
+                return;
+            }
 
             var fallbackUrl = "/place/" + encodeURIComponent(String(place.id));
             if (lang) {
@@ -1177,6 +1261,11 @@
                 setLoading(false);
             }
         }
+
+        input.addEventListener("focus", function () {
+            if (input.value.trim().length !== 0) return;
+            showFavoritesInSearch();
+        });
 
         input.addEventListener("input", function () {
             var val = input.value.trim();
