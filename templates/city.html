@@ -39,25 +39,9 @@
                 {{ .CurrentDescription }}
             </div>
 
-            <div class="weather-hero__precip-wind-row">
-                <div id="js-precip-chance" class="weather-hero__precip-inline">
-                    <span class="weather-hero__precip-icon" aria-hidden="true">☔</span>
-                    <span id="js-precip-value">{{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</span>
-                </div>
-                <div class="wind-widget">
-                    <svg class="wind-widget__svg" width="80" height="80" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-                        <circle class="wind-widget__ring" cx="50" cy="50" r="45" fill="none" stroke-width="1" stroke-dasharray="2 4" />
-                        <text class="wind-widget__n" x="50" y="12" font-size="10" text-anchor="middle" font-weight="bold">N</text>
-                        <g class="wind-widget__arrow" transform="rotate({{ printf "%.0f" .WindFlowRotateDeg }} 50 50)"{{ if lt .WindFromDeg 0 }} opacity="0.35"{{ end }}>
-                            <line x1="50" y1="50" x2="50" y2="15" stroke-width="3" stroke-linecap="round" />
-                            <path d="M45 25 L50 15 L55 25" fill="none" stroke-width="2" stroke-linejoin="round" />
-                        </g>
-                        <circle class="wind-widget__hub" cx="50" cy="50" r="3" />
-                    </svg>
-                    <div class="wind-widget__speed">
-                        {{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.1f" .CurrentWindMs }} м/с{{ end }}
-                    </div>
-                </div>
+            <div id="js-precip-chance" style="display: flex; align-items: center; gap: 4px; font-size: 15px; color: var(--text-muted); margin-bottom: 8px;">
+                <span style="font-size: 14px;" aria-hidden="true">☔</span>
+                <span id="js-precip-value">{{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</span>
             </div>
 
             <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); padding: 0 30px; text-align: center;">

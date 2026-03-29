@@ -16,9 +16,7 @@ type Current struct {
 	WeatherCode  int
 	Description  string
 	Icon         string
-	WindSpeed float64
-	// WindFromDeg — направление ветра по метеостантарту: азимут 0–360°, откуда дует (0 = с севера). -1 если нет данных.
-	WindFromDeg int
+	WindSpeed    float64
 	Humidity     float64
 	UVIndex      float64
 	VisibilityKm float64
