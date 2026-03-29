@@ -1082,12 +1082,83 @@
                     return;
                 }
                 var query = input.value.trim().toLowerCase();
-                json.sort(function (a, b) {
-                    var nameA = pickName(a).toLowerCase();
-                    var nameB = pickName(b).toLowerCase();
 
-                    if (nameA === query) return -1;
-                    if (nameB === query) return 1;
+                var vipCities = [
+                    "киев",
+                    "харьков",
+                    "одесса",
+                    "днепр",
+                    "донецк",
+                    "запорожье",
+                    "львов",
+                    "кривой рог",
+                    "николаев",
+                    "мариуполь",
+                    "луганск",
+                    "винница",
+                    "макеевка",
+                    "севастополь",
+                    "симферополь",
+                    "херсон",
+                    "полтава",
+                    "чернигов",
+                    "черкассы",
+                    "житомир",
+                    "сумы",
+                    "хмельницкий",
+                    "черновцы",
+                    "ровно",
+                    "каменское",
+                    "кропивницкий",
+                    "ивано-франковск",
+                    "кременчуг",
+                    "тернополь",
+                    "луцк",
+                    "белая церковь",
+                    "краматорск",
+                    "мелитополь",
+                    "ужгород",
+                    "павлоград"
+                ];
+                var vipSet = {};
+                for (var vi = 0; vi < vipCities.length; vi++) {
+                    vipSet[vipCities[vi]] = true;
+                }
+
+                function placeIsVip(p) {
+                    if (!p) return false;
+                    var names = [pickName(p), p.name_ru, p.name_uk, p.name_en];
+                    for (var ni = 0; ni < names.length; ni++) {
+                        var s = names[ni];
+                        if (!s) continue;
+                        if (vipSet[String(s).trim().toLowerCase()]) return true;
+                    }
+                    return false;
+                }
+
+                json.sort(function (a, b) {
+                    var rawA = pickName(a) || "";
+                    var rawB = pickName(b) || "";
+
+                    var nameA = rawA.trim();
+                    var nameB = rawB.trim();
+                    var lowerA = nameA.toLowerCase();
+                    var lowerB = nameB.toLowerCase();
+
+                    if (lowerA === query && lowerB !== query) return -1;
+                    if (lowerB === query && lowerA !== query) return 1;
+
+                    var startsA = lowerA.startsWith(query);
+                    var startsB = lowerB.startsWith(query);
+
+                    if (startsA && !startsB) return -1;
+                    if (!startsA && startsB) return 1;
+
+                    var isVipA = placeIsVip(a);
+                    var isVipB = placeIsVip(b);
+
+                    if (isVipA && !isVipB) return -1;
+                    if (!isVipA && isVipB) return 1;
 
                     if (nameA.length !== nameB.length) {
                         return nameA.length - nameB.length;
