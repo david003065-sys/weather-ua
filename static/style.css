@@ -435,6 +435,13 @@ html[data-theme="light"] .lang-switch__item--active {
     background: var(--chip-bg);
 }
 
+.hourly-forecast,
+.hourly-forecast-container,
+.hourly-scroll {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 .hourly-scroll {
     display: flex;
     gap: 0.72rem;

@@ -287,6 +287,9 @@
             // Небольшая задержка, чтобы браузер успел отрисовать элементы
             setTimeout(renderTempChart, 50);
         }
+        if (typeof initDragToScroll === "function") {
+            initDragToScroll();
+        }
     }
 
     function numFromJSON(v) {
@@ -1709,3 +1712,50 @@
         renderTempChart();
     });
 })();
+
+// --- Drag-to-Scroll для почасового прогноза ---
+function initDragToScroll() {
+    var slider =
+        document.querySelector(".hourly-scroll") ||
+        document.querySelector(".hourly-forecast") ||
+        document.querySelector(".hourly-forecast-container");
+    if (!slider) return;
+    if (slider.getAttribute("data-drag-scroll-init") === "1") return;
+    slider.setAttribute("data-drag-scroll-init", "1");
+
+    var isDown = false;
+    var startX = 0;
+    var startScrollLeft = 0;
+
+    slider.style.cursor = "grab";
+
+    slider.addEventListener("mousedown", function (e) {
+        isDown = true;
+        slider.style.cursor = "grabbing";
+        startX = e.pageX;
+        startScrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("mouseleave", function () {
+        isDown = false;
+        slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mouseup", function () {
+        isDown = false;
+        slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mousemove", function (e) {
+        if (!isDown) return;
+        e.preventDefault();
+        var walk = (e.pageX - startX) * 1.5;
+        slider.scrollLeft = startScrollLeft - walk;
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDragToScroll);
+} else {
+    initDragToScroll();
+}
