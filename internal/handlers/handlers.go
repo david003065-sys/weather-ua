@@ -244,16 +244,6 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	metaDesc := fmt.Sprintf(text.MetaDescriptionTemplate, strings.Join(metaNames, ", "))
 
 	heroCityTitle := weather.LocalizedCityName(heroData.CityID, lang)
-	if heroData.CityID == "kyiv" {
-		switch strings.ToLower(lang) {
-		case "ru":
-			heroCityTitle = "Киев — город Димаса"
-		case "uk":
-			heroCityTitle = "Київ — місто Дімаса"
-		default:
-			heroCityTitle = "Kyiv — Dimas City"
-		}
-	}
 
 	page := IndexPageData{
 		IsIndex:             true,
