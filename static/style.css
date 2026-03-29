@@ -455,10 +455,6 @@ html[data-theme="light"] .lang-switch__item--active {
     height: 0;
 }
 
-#js-daily-scroll::-webkit-scrollbar {
-    display: none;
-}
-
 /* City page: daily forecast row + trend chart */
 .city-daily-section,
 .city-daily-section__inner {
@@ -478,31 +474,46 @@ html[data-theme="light"] .lang-switch__item--active {
     color: var(--text-main);
 }
 
+/* Контейнер 5 дней */
 .city-daily-scroll {
-    width: 100%;
-    max-width: 100%;
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 12px !important;
+    box-sizing: border-box !important;
 }
 
+/* Карточка одного дня */
 .daily-item {
-    flex: 1 1 0 !important;
-    min-width: 80px !important;
-    max-width: 20% !important;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 15px 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 12px 5px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+}
+
+/* Мобильный скролл для 5 дней */
+@media (max-width: 600px) {
+    .city-daily-scroll {
+        display: flex !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .city-daily-scroll::-webkit-scrollbar {
+        display: none !important;
+    }
+    .daily-item {
+        min-width: 80px !important;
+        flex: 0 0 auto !important;
+    }
 }
 
 .daily-item__date {
@@ -549,7 +560,7 @@ html[data-theme="light"] .lang-switch__item--active {
     width: 100% !important;
     max-width: 100% !important;
     display: block !important;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
     height: auto;
     position: relative;
     padding: 15px;
@@ -561,9 +572,9 @@ html[data-theme="light"] .lang-switch__item--active {
 }
 
 .js-trend-chart-wrap #js-trend-chart {
-    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    display: block !important;
     height: 220px;
 }
 
