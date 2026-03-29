@@ -414,11 +414,6 @@ html[data-theme="light"] .lang-switch__item--active {
     width: 100%;
 }
 
-.weather-advice__text {
-    font-size: 0.88rem;
-    color: var(--text-muted);
-}
-
 .forecast-chip {
     display: inline-flex;
     margin: 0.16rem;

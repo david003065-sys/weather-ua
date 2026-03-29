@@ -37,9 +37,9 @@
         <p class="weather-hero__condition">{{ .CurrentDescription }}</p>
         <p class="weather-hero__precip" id="js-precip-chance">☔ {{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</p>
 
-        <div class="weather-advice" role="status" aria-live="polite">
-            <span class="weather-advice__icon" aria-hidden="true">💡</span>
-            <div class="weather-advice__text" id="js-weather-advice-text">Советы по одежде</div>
+        <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
+            <span style="font-size: 16px;" aria-hidden="true">💡</span>
+            <span id="js-weather-advice-text">Советы по одежде</span>
         </div>
 
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">
