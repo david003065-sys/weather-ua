@@ -519,6 +519,12 @@
         global.document &&
         global.document.body
     ) {
+        const existingCanvas = document.getElementById("weather-physics-canvas");
+        if (existingCanvas) {
+            existingCanvas.remove();
+            console.log("🌦 Физика погоды: Старый слой очищен.");
+        }
+
         const canvas = document.createElement("canvas");
         canvas.id = "weather-physics-canvas";
         canvas.style.cssText =
