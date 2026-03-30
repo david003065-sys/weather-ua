@@ -32,6 +32,8 @@ const (
 	// apiCooldownAfter429 — глобальная пауза запросов к API после 429 (5–10 мин).
 	apiCooldownAfter429 = 7 * time.Minute
 	cooldownLogEvery    = 1 * time.Minute
+	// maxCacheSize — предел записей в памяти (уникальные place/loc-ключи без eviction → риск OOM).
+	maxCacheSize = 500
 )
 
 var (
@@ -84,6 +86,30 @@ func (c *Client) SetLogger(l Logger) {
 
 func normalizeCacheKey(key string) string {
 	return strings.ToLower(strings.TrimSpace(key))
+}
+
+// evictCacheLocked освобождает ~15% записей при переполнении. skipKey не удаляется (туда пишется новый ответ).
+// Вызывать только под c.mu.Lock() — итерация и delete в одной критической секции, без гонок с map write.
+func (c *Client) evictCacheLocked(skipKey string) {
+	n := len(c.cache)
+	if n < maxCacheSize {
+		return
+	}
+	target := (n * 15) / 100
+	if target < 1 {
+		target = 1
+	}
+	removed := 0
+	for k := range c.cache {
+		if removed >= target {
+			break
+		}
+		if k == skipKey {
+			continue
+		}
+		delete(c.cache, k)
+		removed++
+	}
 }
 
 // cacheKeyFromLatLon возвращает стабильный ключ по координатам (округление до 3 знаков).
@@ -231,6 +257,9 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 	stored := dupStoreWeather(data)
 	now = time.Now()
 	c.mu.Lock()
+	if len(c.cache) >= maxCacheSize {
+		c.evictCacheLocked(cacheKey)
+	}
 	c.cache[cacheKey] = CachedWeather{
 		Data:      stored,
 		Timestamp: now,
