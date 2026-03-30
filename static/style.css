@@ -83,6 +83,44 @@ html[data-theme="light"] .site-header {
     gap: 1rem;
 }
 
+.shell-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+/* Десктоп: три колонки — бренд+PWA | поиск 600px по центру страницы | контролы (как .weather-hero) */
+@media (min-width: 861px) {
+    .shell--header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 600px) minmax(0, 1fr);
+        align-items: center;
+        column-gap: 1rem;
+        row-gap: 0.5rem;
+    }
+
+    .shell-header__left {
+        justify-self: start;
+    }
+
+    .header-search {
+        justify-self: stretch;
+        width: 100%;
+        max-width: none;
+    }
+
+    .header-search.search-input-wrap {
+        max-width: none;
+        width: 100%;
+    }
+
+    .header-controls {
+        justify-self: end;
+    }
+}
+
 /* Поиск по центру «колонки» как у .weather-card / .weather-hero (max 600px) */
 .header-search {
     flex: 1;
