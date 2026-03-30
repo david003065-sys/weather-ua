@@ -40,7 +40,7 @@
     }
 
     var deferredPrompt = null;
-    var btn = document.getElementById("pwa-install-btn");
+    var btn = document.getElementById("js-pwa-install-btn");
 
     function isStandalone() {
         return (
@@ -55,20 +55,23 @@
         var lang = (document.documentElement.getAttribute("lang") || "ru").toLowerCase();
         var key = "data-label-" + (lang === "uk" || lang === "en" ? lang : "ru");
         var text = btn.getAttribute(key) || btn.getAttribute("data-label-ru") || "Install";
-        btn.textContent = text;
+        var labelEl = btn.querySelector(".pwa-install-btn__label");
+        if (labelEl) {
+            labelEl.textContent = text;
+        }
+        btn.setAttribute("aria-label", text);
     }
 
     function hideInstall() {
-        if (btn) {
-            btn.hidden = true;
-            btn.setAttribute("aria-hidden", "true");
-        }
+        if (!btn) return;
+        btn.style.display = "none";
+        btn.setAttribute("aria-hidden", "true");
     }
 
     function showInstall() {
         if (!btn) return;
         setInstallLabel();
-        btn.hidden = false;
+        btn.style.display = "flex";
         btn.removeAttribute("aria-hidden");
     }
 
@@ -77,6 +80,10 @@
         hideInstall();
     } else {
         hideInstall();
+    }
+
+    if (btn) {
+        setInstallLabel();
     }
 
     window.addEventListener("beforeinstallprompt", function (e) {

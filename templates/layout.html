@@ -63,42 +63,25 @@
 >
     <header class="site-header">
         <div class="shell shell--header">
-            <div class="shell-header__left">
-            <a href="/" class="brand-link" aria-label="{{ .Text.BrandHomeAria }}">
-                <div class="brand">
-                    <div class="brand-mark" aria-hidden="true">
-                        <div class="brand-thermo">
-                            <div class="brand-thermo__bulb"></div>
-                            <div class="brand-thermo__column"></div>
+            <div class="header-brand" style="flex-shrink: 0; display: flex; align-items: center;">
+                <a href="/" class="brand-link" aria-label="{{ .Text.BrandHomeAria }}">
+                    <div class="brand">
+                        <div class="brand-mark" aria-hidden="true">
+                            <div class="brand-thermo">
+                                <div class="brand-thermo__bulb"></div>
+                                <div class="brand-thermo__column"></div>
+                            </div>
+                        </div>
+                        <span class="brand-icon" aria-hidden="true"></span>
+                        <div class="brand-text">
+                            <span class="brand-text__label">{{ .Text.BrandTop }}</span>
+                            <span class="brand-text__title">{{ .Text.BrandBottom }}</span>
                         </div>
                     </div>
-                    <span class="brand-icon" aria-hidden="true"></span>
-                    <div class="brand-text">
-                        <span class="brand-text__label">{{ .Text.BrandTop }}</span>
-                        <span class="brand-text__title">{{ .Text.BrandBottom }}</span>
-                    </div>
-                </div>
-            </a>
-
-            <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
-                <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
-                <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
-                <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
+                </a>
             </div>
 
-            <button
-                type="button"
-                id="pwa-install-btn"
-                class="pwa-install-btn"
-                hidden
-                aria-hidden="true"
-                data-label-uk="Встановити"
-                data-label-en="Install"
-                data-label-ru="Установить"
-            ></button>
-            </div>
-
-            {{/* Глобальный поиск в шапке — колонка 600px по центру экрана как .weather-hero, Ctrl/⌘+K */}}
+            {{/* Поиск: flex-grow + max-width 600px, Ctrl/⌘+K */}}
             <div class="search-input-wrap header-search">
                 <span class="header-search__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -134,7 +117,32 @@
                 <div id="js-place-suggestions" class="search-suggestions"></div>
             </div>
 
-            <div class="header-controls">
+            <div class="header-actions" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                <button
+                    type="button"
+                    id="js-pwa-install-btn"
+                    class="pwa-install-btn"
+                    style="display: none;"
+                    aria-hidden="true"
+                    aria-label="Установить"
+                    data-label-uk="Встановити"
+                    data-label-en="Install"
+                    data-label-ru="Установить"
+                >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="pwa-install-btn__label">Установить</span>
+                </button>
+
+                <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
+                    <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
+                    <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
+                    <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
+                </div>
+
                 <div class="lang-switch" aria-label="{{ .Text.LangSwitchAria }}">
                     <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
                     <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>

@@ -28,6 +28,7 @@ body {
 
 html[data-theme="dark"] {
     --bg-page: rgba(2, 6, 23, 0.5);
+    --bg-main: #020617;
     --text-main: #ffffff;
     --text-muted: rgba(255, 255, 255, 0.72);
     --glass-bg: rgba(255, 255, 255, 0.1);
@@ -37,6 +38,7 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
     --bg-page: rgba(232, 238, 245, 0.52);
+    --bg-main: #e8eef5;
     --text-main: #112033;
     --text-muted: rgba(17, 32, 51, 0.7);
     --glass-bg: rgba(255, 255, 255, 0.78);
@@ -78,70 +80,41 @@ html[data-theme="light"] .site-header {
 .shell--header {
     min-height: 64px;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: nowrap;
 }
 
-.shell-header__left {
+.header-actions {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.45rem 0.65rem;
-    row-gap: 0.35rem;
+    gap: 12px;
     flex-shrink: 0;
-    min-width: 0;
+    margin: 0;
 }
 
-/* Переключатель темы между логотипом и поиском — не сжимать кнопки внутри полоски */
-.shell-header__left .theme-switch {
-    flex: 0 1 auto;
-    min-width: 0;
+.header-actions > .theme-switch,
+.header-actions > .lang-switch,
+.header-actions > .pwa-install-btn {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
-/* Десктоп: три колонки — бренд+PWA | поиск 600px по центру страницы | контролы (как .weather-hero) */
-@media (min-width: 861px) {
-    .shell--header {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 600px) minmax(0, 1fr);
-        align-items: center;
-        column-gap: 1rem;
-        row-gap: 0.5rem;
-    }
-
-    .shell-header__left {
-        justify-self: start;
-    }
-
-    .header-search {
-        justify-self: stretch;
-        width: 100%;
-        max-width: none;
-    }
-
-    .header-search.search-input-wrap {
-        max-width: none;
-        width: 100%;
-    }
-
-    .header-controls {
-        justify-self: end;
-    }
-}
-
-/* Поиск по центру «колонки» как у .weather-card / .weather-hero (max 600px) */
 .header-search {
-    flex: 1;
+    flex-grow: 1;
+    flex-shrink: 1;
     min-width: 0;
+    max-width: 600px;
     display: flex;
     justify-content: center;
+    margin: 0;
     position: relative;
-    max-width: none;
 }
 
 .header-search.search-input-wrap {
-    max-width: min(600px, 100%);
     width: 100%;
+    max-width: 600px;
 }
 
 .header-search__icon {
@@ -317,11 +290,6 @@ html[data-theme="light"] .geo-btn:hover {
     background: var(--chip-bg);
 }
 
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
 
 .theme-switch,
 .lang-switch {
@@ -915,24 +883,39 @@ html[data-theme="light"] .weather-source-badge {
     font-size: 0.78rem;
 }
 
-#pwa-install-btn {
-    background: var(--chip-bg);
-    border: 1px solid var(--glass-border);
-    color: var(--text-main);
+.pwa-install-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 14px;
+    background: rgba(128, 128, 128, 0.15);
+    border: 1px solid rgba(128, 128, 128, 0.2);
     border-radius: 20px;
+    color: var(--text-main);
     font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
     transition: 0.2s;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     white-space: nowrap;
 }
 
-#pwa-install-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+.pwa-install-btn:hover {
+    background: var(--text-main);
+    color: var(--bg-main);
 }
 
-#pwa-install-btn[hidden] {
-    display: none !important;
+@media (max-width: 600px) {
+    .pwa-install-btn span {
+        display: none;
+    }
+
+    .pwa-install-btn {
+        padding: 8px;
+        border-radius: 50%;
+    }
 }
 
 html[data-theme="light"] .weather-app,
@@ -951,11 +934,13 @@ html[data-theme="dark"] .weather-app * {
         justify-content: center;
         padding: 0.6rem 0;
     }
-}
 
-@media (max-width: 768px) {
-    .shell--header {
-        flex-wrap: wrap;
+    .header-brand {
+        order: 1;
+    }
+
+    .header-actions {
+        order: 2;
     }
 
     .header-search {
@@ -964,17 +949,11 @@ html[data-theme="dark"] .weather-app * {
         max-width: 100%;
         margin: 0.1rem 0 0;
     }
+}
 
-    .header-controls {
-        order: 4;
-    }
-
-    #pwa-install-btn {
-        flex-shrink: 1;
-        min-width: 0;
-        max-width: min(42vw, 9.5rem);
-        overflow: hidden;
-        text-overflow: ellipsis;
+@media (max-width: 768px) {
+    .shell--header {
+        flex-wrap: wrap;
     }
 }
 
