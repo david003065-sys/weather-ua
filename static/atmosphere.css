@@ -717,9 +717,38 @@ html[data-theme="light"] .rail-card__temp-unit {
     margin-top: auto;
     padding-top: 0.65rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    align-items: center;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.4rem;
     position: relative;
     z-index: 1;
+}
+
+/* Карточки избранного: мета без переноса «км/ч» между / и ч */
+.city-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.meta-pair {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.meta-pair__label {
+    flex-shrink: 0;
+}
+
+.meta-pair__value {
+    white-space: nowrap;
 }
 
 html[data-theme="light"] .rail-card__meta {
