@@ -360,7 +360,13 @@ func weatherUpdatedText(lang string, data *weather.WeatherData) string {
 	if data == nil || data.LastUpdated.IsZero() {
 		return prefix + " —"
 	}
-	return fmt.Sprintf("%s %s UTC", prefix, data.LastUpdated.UTC().Format("15:04"))
+	local := data.LastUpdated
+	if tz := strings.TrimSpace(data.Timezone); tz != "" {
+		if loc, err := time.LoadLocation(tz); err == nil {
+			local = local.In(loc)
+		}
+	}
+	return fmt.Sprintf("%s %s", prefix, local.Format("15:04"))
 }
 
 func (s *Server) City(w http.ResponseWriter, r *http.Request) {

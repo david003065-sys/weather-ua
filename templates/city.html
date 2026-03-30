@@ -32,10 +32,6 @@
                 <span id="js-current-temp" class="weather-hero__temp" data-temp-current="{{ printf "%.1f" .CurrentTemp }}" data-temp-feels="{{ printf "%.1f" .CurrentFeelsLike }}">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
                 <span class="weather-hero__unit">°C</span>
             </div>
-            <div id="js-temp-toggle" class="temp-toggle">
-                <button type="button" data-mode="current" class="temp-toggle__btn">Сейчас</button>
-                <button type="button" data-mode="feels" class="temp-toggle__btn">Ощущается</button>
-            </div>
             <div class="weather-hero__source-meta">
                 <span id="js-weather-source">{{ .WeatherSourceText }}</span>
                 <span id="js-weather-updated">{{ .WeatherUpdatedText }}</span>

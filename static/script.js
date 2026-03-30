@@ -106,18 +106,16 @@
         return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
     }
 
-    var tempMode = "current";
-
     function formatUpdatedLabel(lastUpdatedISO) {
         if (!lastUpdatedISO) return "Обновлено: —";
         var d = new Date(lastUpdatedISO);
         if (Number.isNaN(d.getTime())) return "Обновлено: —";
-        var hh = String(d.getUTCHours()).padStart(2, "0");
-        var mm = String(d.getUTCMinutes()).padStart(2, "0");
+        var hh = String(d.getHours()).padStart(2, "0");
+        var mm = String(d.getMinutes()).padStart(2, "0");
         var loc = (document.documentElement.lang || "ru").toLowerCase();
-        if (loc === "en") return "Updated: " + hh + ":" + mm + " UTC";
-        if (loc === "uk") return "Оновлено: " + hh + ":" + mm + " UTC";
-        return "Обновлено: " + hh + ":" + mm + " UTC";
+        if (loc === "en") return "Updated: " + hh + ":" + mm;
+        if (loc === "uk") return "Оновлено: " + hh + ":" + mm;
+        return "Обновлено: " + hh + ":" + mm;
     }
 
     function sourceLabel() {
@@ -135,22 +133,10 @@
             return;
         }
         var currentN = numFromJSON(currentTemp);
-        var apparentN = numFromJSON(apparentTemp);
-        var selected = tempMode === "feels" && !Number.isNaN(apparentN) ? apparentN : currentN;
+        var selected = currentN;
         if (!Number.isNaN(selected)) {
             tempEl.textContent = String(Math.round(selected));
         }
-    }
-
-    function refreshTempToggleUI() {
-        var wrap = document.getElementById("js-temp-toggle");
-        if (!wrap) return;
-        var buttons = wrap.querySelectorAll("button[data-mode]");
-        buttons.forEach(function (btn) {
-            var active = btn.getAttribute("data-mode") === tempMode;
-            btn.style.background = active ? "var(--chip-bg)" : "transparent";
-            btn.style.color = active ? "var(--text-main)" : "var(--text-muted)";
-        });
     }
 
     function updateSmartAdvice(tempC, windKph, humidityPct, isRain) {
@@ -556,35 +542,6 @@
     syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
-    try {
-        var storedMode = localStorage.getItem("weather:tempMode");
-        if (storedMode === "feels" || storedMode === "current") {
-            tempMode = storedMode;
-        }
-    } catch (_) {
-        /* ignore */
-    }
-    var toggleWrap = document.getElementById("js-temp-toggle");
-    if (toggleWrap) {
-        toggleWrap.addEventListener("click", function (e) {
-            var btn = e.target && e.target.closest ? e.target.closest("button[data-mode]") : null;
-            if (!btn) return;
-            var mode = btn.getAttribute("data-mode");
-            if (mode !== "current" && mode !== "feels") return;
-            tempMode = mode;
-            try {
-                localStorage.setItem("weather:tempMode", mode);
-            } catch (_) {
-                /* ignore */
-            }
-            var tEl = document.getElementById("js-current-temp");
-            var cur = tEl ? numFromJSON(tEl.dataset.tempCurrent) : NaN;
-            var feel = tEl ? numFromJSON(tEl.dataset.tempFeels) : NaN;
-            applyHeroTemp(cur, feel, false);
-            refreshTempToggleUI();
-        });
-        refreshTempToggleUI();
-    }
     if (initialTempEl) {
         applyHeroTemp(initialTempEl.dataset.tempCurrent, initialTempEl.dataset.tempFeels, false);
         var sourceElInit = document.getElementById("js-weather-source");

@@ -409,24 +409,6 @@ html[data-theme="light"] .lang-switch__item--active {
     color: var(--text-muted);
 }
 
-.temp-toggle {
-    display: inline-flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.temp-toggle__btn {
-    border: 1px solid var(--glass-border);
-    background: transparent;
-    color: var(--text-muted);
-    border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 12px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
 .weather-hero__source-meta {
     display: flex;
     flex-wrap: wrap;
