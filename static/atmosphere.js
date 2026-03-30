@@ -512,18 +512,19 @@
     }
 
     const physData = global.__WEATHER_PHYSICS_SSR__;
+    console.log("🌦 Физика погоды: получены данные ->", physData);
     if (
         physData &&
-        !physicsPrefersReducedMotion() &&
         ["Rain", "Drizzle", "Snow", "Thunderstorm"].includes(physData.main) &&
         global.document &&
         global.document.body
     ) {
         const canvas = document.createElement("canvas");
-        canvas.className = "weather-physics-fx-layer";
+        canvas.id = "weather-physics-canvas";
         canvas.style.cssText =
-            "position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:0; opacity:0.6;";
-        document.body.prepend(canvas);
+            "position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:99999; opacity:0.8; mix-blend-mode: normal;";
+        document.body.appendChild(canvas);
+        console.log("🌦 Физика погоды: Canvas успешно добавлен поверх всех слоев!");
 
         const ctx = canvas.getContext("2d");
         if (!ctx) {
@@ -555,6 +556,10 @@
 
             function draw() {
                 ctx.clearRect(0, 0, w, h);
+                if (!window._weatherPhysicsLogged) {
+                    console.log("🌦 Физика погоды: Рендер первого кадра пошел!");
+                    window._weatherPhysicsLogged = true;
+                }
 
                 if (isStorm && Math.random() < 0.005) {
                     ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
