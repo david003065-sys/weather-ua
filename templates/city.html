@@ -32,11 +32,11 @@
                 <span id="js-current-temp" class="weather-hero__temp" data-temp-current="{{ printf "%.1f" .CurrentTemp }}" data-temp-feels="{{ printf "%.1f" .CurrentFeelsLike }}">{{ if .WeatherUnavailable }}—{{ else }}{{ printf "%.0f" .CurrentTemp }}{{ end }}</span>
                 <span class="weather-hero__unit">°C</span>
             </div>
-            <div id="js-temp-toggle" style="display: inline-flex; gap: 6px; margin-top: 8px;">
-                <button type="button" data-mode="current" style="border: 1px solid var(--glass-border); background: var(--chip-bg); color: var(--text-main); border-radius: 999px; padding: 2px 8px; font-size: 12px; cursor: pointer;">Сейчас</button>
-                <button type="button" data-mode="feels" style="border: 1px solid var(--glass-border); background: transparent; color: var(--text-muted); border-radius: 999px; padding: 2px 8px; font-size: 12px; cursor: pointer;">Ощущается</button>
+            <div id="js-temp-toggle" class="temp-toggle">
+                <button type="button" data-mode="current" class="temp-toggle__btn">Сейчас</button>
+                <button type="button" data-mode="feels" class="temp-toggle__btn">Ощущается</button>
             </div>
-            <div style="display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--text-muted);">
+            <div class="weather-hero__source-meta">
                 <span id="js-weather-source">{{ .WeatherSourceText }}</span>
                 <span id="js-weather-updated">{{ .WeatherUpdatedText }}</span>
             </div>
