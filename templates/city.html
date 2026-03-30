@@ -48,8 +48,8 @@
                 id="js-weather-physics-data"
                 style="display: none;"
                 aria-hidden="true"
-                data-weather-main="Rain"
-                data-wind-speed="15"
+                data-weather-main="{{ .Current.MainCondition }}"
+                data-wind-speed="{{ printf "%g" .Current.WindSpeed }}"
             ></div>
             {{/* atmosphere.js подключается в layout.html (head, defer) */}}
 
