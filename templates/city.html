@@ -38,6 +38,12 @@
             <div class="weather-hero__condition" style="font-size: 17px; color: var(--text-main); margin-bottom: 2px;">
                 {{ .CurrentDescription }}
             </div>
+            {{ if .WeatherStale }}
+            <div style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); color: var(--text-main); font-size: 12px;">
+                <span aria-hidden="true">⚠️</span>
+                <span>{{ .WeatherStaleText }}</span>
+            </div>
+            {{ end }}
 
             <div id="js-precip-chance" style="display: flex; align-items: center; gap: 4px; font-size: 15px; color: var(--text-muted); margin-bottom: 8px;">
                 <span style="font-size: 14px;" aria-hidden="true">☔</span>

@@ -82,6 +82,8 @@ type IndexPageData struct {
 	CurrentHumidity     float64
 	CurrentPressure     float64
 	WeatherUnavailable  bool
+	WeatherStale        bool
+	WeatherStaleText    string
 	TodayLabel          string
 	TodayMin            float64
 	TodayMax            float64
@@ -139,6 +141,8 @@ type CityPageData struct {
 	CurrentHumidity     float64
 	CurrentPressure     float64
 	WeatherUnavailable  bool
+	WeatherStale        bool
+	WeatherStaleText    string
 	Forecast            []DailyView
 	TodayLabel          string
 	TodayMin            float64
@@ -271,6 +275,8 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		CurrentHumidity:     heroData.Current.Humidity,
 		CurrentPressure:     heroData.Current.Pressure,
 		WeatherUnavailable:  heroData.IsFallback,
+		WeatherStale:        heroData.IsStale,
+		WeatherStaleText:    staleWeatherNotice(lang, heroData),
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
 		TodayMax:            todayMax,
@@ -298,6 +304,27 @@ func cityWeatherPhysicsFrom(data *weather.WeatherData) CityWeatherPhysics {
 	return CityWeatherPhysics{
 		MainCondition: weather.MainConditionPhysics(data.Current.WeatherCode),
 		WindSpeed:     data.Current.WindSpeed,
+	}
+}
+
+func staleWeatherNotice(lang string, data *weather.WeatherData) string {
+	if data == nil || !data.IsStale {
+		return ""
+	}
+	ageMin := 0
+	if !data.LastUpdated.IsZero() {
+		ageMin = int(time.Since(data.LastUpdated).Minutes())
+		if ageMin < 0 {
+			ageMin = 0
+		}
+	}
+	switch i18n.Normalize(lang) {
+	case "en":
+		return fmt.Sprintf("Weather data is outdated (~%d min).", ageMin)
+	case "uk":
+		return fmt.Sprintf("Дані погоди застарілі (~%d хв).", ageMin)
+	default:
+		return fmt.Sprintf("Данные погоды устарели (~%d мин).", ageMin)
 	}
 }
 
@@ -432,6 +459,8 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		CurrentHumidity:     data.Current.Humidity,
 		CurrentPressure:     data.Current.Pressure,
 		WeatherUnavailable:  data.IsFallback,
+		WeatherStale:        data.IsStale,
+		WeatherStaleText:    staleWeatherNotice(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
@@ -1285,6 +1314,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		CurrentHumidity:     data.Current.Humidity,
 		CurrentPressure:     data.Current.Pressure,
 		WeatherUnavailable:  data.IsFallback,
+		WeatherStale:        data.IsStale,
+		WeatherStaleText:    staleWeatherNotice(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,

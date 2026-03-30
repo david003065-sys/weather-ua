@@ -27,6 +27,8 @@ type Logger interface {
 const (
 	// cacheTTLDefault — TTL «свежего» кэша (успешный ответ API).
 	cacheTTLDefault = 15 * time.Minute
+	// staleMaxAgeDefault — максимальный возраст stale-кэша, который можно показывать пользователю.
+	staleMaxAgeDefault = 60 * time.Minute
 	// apiCooldownAfter429 — глобальная пауза запросов к API после 429 (5–10 мин).
 	apiCooldownAfter429 = 7 * time.Minute
 	cooldownLogEvery    = 1 * time.Minute
@@ -136,7 +138,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 	// Provider precheck: no key -> no provider flow, use cache/no-data only.
 	if !providerReady(c.logger) {
 		if hasValid {
-			return c.returnStaleFromCache(entry, cacheKey, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, city, false), nil
 		}
 		return emptyNoData(city), nil
 	}
@@ -146,7 +148,7 @@ func (c *Client) getWeatherForCity(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("cooldown active")
 		}
 		if hasValid {
-			return c.returnStaleFromCache(entry, cacheKey, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, city, false), nil
 		}
 		return c.returnNoData(city, cacheKey, "cooldown active, no valid cache"), nil
 	}
@@ -183,7 +185,7 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 	// Provider precheck: no key -> no provider flow, use cache/no-data only.
 	if !providerReady(c.logger) {
 		if hasValid {
-			return c.returnStaleFromCache(entry, cacheKey, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, city, false), nil
 		}
 		return emptyNoData(city), nil
 	}
@@ -193,7 +195,7 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 			c.logger.Printf("cooldown active")
 		}
 		if hasValid {
-			return c.returnStaleFromCache(entry, cacheKey, false), nil
+			return c.returnStaleFromCache(entry, cacheKey, city, false), nil
 		}
 		return c.returnNoData(city, cacheKey, "cooldown active, no valid cache"), nil
 	}
@@ -214,7 +216,7 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 		c.mu.RUnlock()
 		hasValid = entry.Data != nil && entry.IsValid
 		if hasValid {
-			return c.returnStaleFromCache(entry, cacheKey, true), nil
+			return c.returnStaleFromCache(entry, cacheKey, city, true), nil
 		}
 		return c.returnNoData(city, cacheKey, "provider error, no valid cache"), nil
 	}
@@ -271,7 +273,15 @@ func enrichFromCacheEntry(entry CachedWeather, stale, fallback bool) *WeatherDat
 	return out
 }
 
-func (c *Client) returnStaleFromCache(entry CachedWeather, cacheKey string, afterProviderError bool) *WeatherData {
+func (c *Client) returnStaleFromCache(entry CachedWeather, cacheKey string, city City, afterProviderError bool) *WeatherData {
+	age := time.Since(entry.Timestamp)
+	if entry.Timestamp.IsZero() || age < 0 || age > staleMaxAgeDefault {
+		if c.logger != nil {
+			c.logger.Printf("stale cache too old key=%s age=%s max=%s", cacheKey, age.Round(time.Second), staleMaxAgeDefault)
+		}
+		return c.returnNoData(city, cacheKey, "stale cache too old")
+	}
+
 	out := enrichFromCacheEntry(entry, true, false)
 	if c.logger != nil {
 		if afterProviderError {
