@@ -86,8 +86,16 @@ html[data-theme="light"] .site-header {
 .shell-header__left {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.65rem;
+    row-gap: 0.35rem;
     flex-shrink: 0;
+    min-width: 0;
+}
+
+/* Переключатель темы между логотипом и поиском — не сжимать кнопки внутри полоски */
+.shell-header__left .theme-switch {
+    flex: 0 1 auto;
     min-width: 0;
 }
 

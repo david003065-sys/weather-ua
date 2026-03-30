@@ -80,6 +80,12 @@
                 </div>
             </a>
 
+            <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
+                <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
+                <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
+                <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
+            </div>
+
             <button
                 type="button"
                 id="pwa-install-btn"
@@ -129,11 +135,6 @@
             </div>
 
             <div class="header-controls">
-                <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
-                    <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
-                    <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
-                    <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
-                </div>
                 <div class="lang-switch" aria-label="{{ .Text.LangSwitchAria }}">
                     <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
                     <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
