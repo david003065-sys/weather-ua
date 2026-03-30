@@ -64,6 +64,8 @@ type WeatherData struct {
 	IsStale bool
 	// IsFallback: true только если реальных данных нет (кэш пуст и провайдер недоступен).
 	IsFallback bool
+	// DataSource: live_api | server_cache | server_cache_stale | no_data.
+	DataSource string
 }
 
 // CachedWeather хранит ответ погоды и время кэширования.

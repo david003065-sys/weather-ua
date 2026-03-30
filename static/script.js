@@ -118,11 +118,28 @@
         return "Обновлено: " + hh + ":" + mm;
     }
 
-    function sourceLabel() {
+    function sourceLabel(sourceKind) {
         var loc = (document.documentElement.lang || "ru").toLowerCase();
-        if (loc === "en") return "Source: WeatherAPI";
-        if (loc === "uk") return "Джерело: WeatherAPI";
-        return "Источник: WeatherAPI";
+        var kind = String(sourceKind || "live_api").toLowerCase();
+        if (loc === "en") {
+            if (kind === "browser_cache") return "Source: Browser cache";
+            if (kind === "server_cache") return "Source: Server cache";
+            if (kind === "server_cache_stale") return "Source: Server stale cache";
+            if (kind === "no_data") return "Source: No live data";
+            return "Source: Live API";
+        }
+        if (loc === "uk") {
+            if (kind === "browser_cache") return "Джерело: кеш браузера";
+            if (kind === "server_cache") return "Джерело: кеш сервера";
+            if (kind === "server_cache_stale") return "Джерело: застарілий кеш сервера";
+            if (kind === "no_data") return "Джерело: немає live-даних";
+            return "Джерело: live API";
+        }
+        if (kind === "browser_cache") return "Источник: кэш браузера";
+        if (kind === "server_cache") return "Источник: серверный кэш";
+        if (kind === "server_cache_stale") return "Источник: устаревший кэш сервера";
+        if (kind === "no_data") return "Источник: нет live-данных";
+        return "Источник: live API";
     }
 
     function applyHeroTemp(currentTemp, apparentTemp, isFallback) {
@@ -504,7 +521,7 @@
             updatePrecipChance(json.current.precipitation_chance, isFallbackNow);
             if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
             var sourceElNow = document.getElementById("js-weather-source");
-            if (sourceElNow) sourceElNow.textContent = sourceLabel();
+            if (sourceElNow) sourceElNow.textContent = sourceLabel(json.source);
             var updatedElNow = document.getElementById("js-weather-updated");
             if (updatedElNow) updatedElNow.textContent = formatUpdatedLabel(json.lastUpdated);
 
@@ -545,7 +562,7 @@
     if (initialTempEl) {
         applyHeroTemp(initialTempEl.dataset.tempCurrent, initialTempEl.dataset.tempFeels, false);
         var sourceElInit = document.getElementById("js-weather-source");
-        if (sourceElInit && !sourceElInit.textContent.trim()) sourceElInit.textContent = sourceLabel();
+        if (sourceElInit && !sourceElInit.textContent.trim()) sourceElInit.textContent = sourceLabel("live_api");
         var initialTemp = parseFloat(initialTempEl.textContent.replace(",", "."));
         if (!Number.isNaN(initialTemp)) {
             updateBackgroundByTemp(initialTemp);
@@ -784,7 +801,8 @@
             if (descEl) descEl.textContent = data.current.description;
             updatePrecipChance(data.current.precipitation_chance, isFallback);
             var sourceEl = document.getElementById("js-weather-source");
-            if (sourceEl) sourceEl.textContent = sourceLabel();
+            var sourceKind = (data && data.__clientSource) || (data && data.source) || "live_api";
+            if (sourceEl) sourceEl.textContent = sourceLabel(sourceKind);
             var updatedEl = document.getElementById("js-weather-updated");
             if (updatedEl) updatedEl.textContent = formatUpdatedLabel(data.lastUpdated);
             if (windEl) {
@@ -852,6 +870,9 @@
                 if (cachedRaw) {
                     var cached = JSON.parse(cachedRaw);
                     if (cached && cached.ts && Date.now() - cached.ts < 5 * 60 * 1000) {
+                        if (cached.data && typeof cached.data === "object") {
+                            cached.data.__clientSource = "browser_cache";
+                        }
                         applyWeather(cached.data);
                         return;
                     }

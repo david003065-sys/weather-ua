@@ -46,6 +46,13 @@ var (
 	errCooldownActive      = errors.New("api cooldown active")
 )
 
+const (
+	dataSourceLiveAPI          = "live_api"
+	dataSourceServerCache      = "server_cache"
+	dataSourceServerCacheStale = "server_cache_stale"
+	dataSourceNoData           = "no_data"
+)
+
 type Client struct {
 	httpClient *http.Client
 	cacheTTL   time.Duration
@@ -235,7 +242,9 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 	if c.logger != nil {
 		c.logger.Printf("cache store success key=%s", cacheKey)
 	}
-	return dupWeather(stored, false, false), nil
+	out := dupWeather(stored, false, false)
+	out.DataSource = dataSourceLiveAPI
+	return out, nil
 }
 
 func emptyNoData(city City) *WeatherData {
@@ -244,6 +253,7 @@ func emptyNoData(city City) *WeatherData {
 		CityName:   city.Name,
 		IsStale:    false,
 		IsFallback: true,
+		DataSource: dataSourceNoData,
 	}
 }
 
@@ -269,6 +279,11 @@ func enrichFromCacheEntry(entry CachedWeather, stale, fallback bool) *WeatherDat
 	out := dupWeather(entry.Data, stale, fallback)
 	if out.LastUpdated.IsZero() {
 		out.LastUpdated = entry.Timestamp.UTC()
+	}
+	if stale {
+		out.DataSource = dataSourceServerCacheStale
+	} else {
+		out.DataSource = dataSourceServerCache
 	}
 	return out
 }

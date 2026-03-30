@@ -212,6 +212,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 				// CityName не используется напрямую в шаблоне, но пусть будет.
 				CityName:   c0.Name,
 				IsFallback: true,
+				DataSource: "no_data",
 				Current: weather.Current{
 					Temperature: 0,
 					WeatherCode: 3, // neutral cloudy-like background
@@ -226,7 +227,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// На практике cities не пустой (weather.AllCities()),
 			// но на всякий случай вернём empty index.
-			heroData = &weather.WeatherData{IsFallback: true}
+			heroData = &weather.WeatherData{IsFallback: true, DataSource: "no_data"}
 		}
 	}
 
@@ -284,7 +285,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  heroData.IsFallback,
 		WeatherStale:        heroData.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, heroData),
-		WeatherSourceText:   weatherSourceText(lang),
+		WeatherSourceText:   weatherSourceText(lang, heroData),
 		WeatherUpdatedText:  weatherUpdatedText(lang, heroData),
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
@@ -337,14 +338,45 @@ func staleWeatherNotice(lang string, data *weather.WeatherData) string {
 	}
 }
 
-func weatherSourceText(lang string) string {
+func weatherSourceText(lang string, data *weather.WeatherData) string {
+	source := ""
+	if data != nil {
+		source = strings.TrimSpace(data.DataSource)
+	}
 	switch i18n.Normalize(lang) {
 	case "en":
-		return "Source: WeatherAPI"
+		switch source {
+		case "server_cache":
+			return "Source: Server cache"
+		case "server_cache_stale":
+			return "Source: Server stale cache"
+		case "no_data":
+			return "Source: No live data"
+		default:
+			return "Source: Live API"
+		}
 	case "uk":
-		return "Джерело: WeatherAPI"
+		switch source {
+		case "server_cache":
+			return "Джерело: Кеш сервера"
+		case "server_cache_stale":
+			return "Джерело: Застарілий кеш сервера"
+		case "no_data":
+			return "Джерело: Немає live-даних"
+		default:
+			return "Джерело: Live API"
+		}
 	default:
-		return "Источник: WeatherAPI"
+		switch source {
+		case "server_cache":
+			return "Источник: серверный кэш"
+		case "server_cache_stale":
+			return "Источник: устаревший кэш сервера"
+		case "no_data":
+			return "Источник: нет live-данных"
+		default:
+			return "Источник: live API"
+		}
 	}
 }
 
@@ -503,7 +535,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  data.IsFallback,
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
-		WeatherSourceText:   weatherSourceText(lang),
+		WeatherSourceText:   weatherSourceText(lang, data),
 		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
@@ -531,6 +563,7 @@ type apiWeatherResponse struct {
 	CityID   string      `json:"cityId"`
 	CityName string      `json:"cityName"`
 	Lang     string      `json:"lang"`
+	Source   string      `json:"source,omitempty"`
 	LastUpdated string   `json:"lastUpdated,omitempty"`
 	Current  apiCurrent  `json:"current"`
 	Hourly   []apiHourly `json:"hourly,omitempty"`
@@ -655,6 +688,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		CityID:   data.CityID,
 		CityName: weather.LocalizedCityName(data.CityID, lang),
 		Lang:     lang,
+		Source:   strings.TrimSpace(data.DataSource),
 		LastUpdated: func() string {
 			if data.LastUpdated.IsZero() {
 				return ""
@@ -762,6 +796,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		CityID:   cacheKey,
 		CityName: displayName,
 		Lang:     lang,
+		Source:   strings.TrimSpace(data.DataSource),
 		LastUpdated: func() string {
 			if data.LastUpdated.IsZero() {
 				return ""
@@ -1374,7 +1409,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  data.IsFallback,
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
-		WeatherSourceText:   weatherSourceText(lang),
+		WeatherSourceText:   weatherSourceText(lang, data),
 		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
