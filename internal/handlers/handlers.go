@@ -77,6 +77,7 @@ type IndexPageData struct {
 	HeroCityTitle       string
 	CurrentTemp         float64
 	CurrentDescription  string
+	CurrentFeelsLike    float64
 	CurrentPrecipChance int
 	CurrentWind         float64
 	CurrentHumidity     float64
@@ -84,6 +85,8 @@ type IndexPageData struct {
 	WeatherUnavailable  bool
 	WeatherStale        bool
 	WeatherStaleText    string
+	WeatherSourceText   string
+	WeatherUpdatedText  string
 	TodayLabel          string
 	TodayMin            float64
 	TodayMax            float64
@@ -135,6 +138,7 @@ type CityPageData struct {
 	CityName            string
 	CityLocation        string
 	CurrentTemp         float64
+	CurrentFeelsLike    float64
 	CurrentDescription  string
 	CurrentPrecipChance int
 	CurrentWind         float64
@@ -143,6 +147,8 @@ type CityPageData struct {
 	WeatherUnavailable  bool
 	WeatherStale        bool
 	WeatherStaleText    string
+	WeatherSourceText   string
+	WeatherUpdatedText  string
 	Forecast            []DailyView
 	TodayLabel          string
 	TodayMin            float64
@@ -269,6 +275,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		CurrentCityName:     weather.LocalizedCityName(heroData.CityID, lang),
 		HeroCityTitle:       heroCityTitle,
 		CurrentTemp:         heroData.Current.Temperature,
+		CurrentFeelsLike:    heroData.Current.FeelsLike,
 		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: heroData.Current.PrecipitationChance,
 		CurrentWind:         heroData.Current.WindSpeed,
@@ -277,6 +284,8 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  heroData.IsFallback,
 		WeatherStale:        heroData.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, heroData),
+		WeatherSourceText:   weatherSourceText(lang),
+		WeatherUpdatedText:  weatherUpdatedText(lang, heroData),
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
 		TodayMax:            todayMax,
@@ -326,6 +335,32 @@ func staleWeatherNotice(lang string, data *weather.WeatherData) string {
 	default:
 		return fmt.Sprintf("Данные погоды устарели (~%d мин).", ageMin)
 	}
+}
+
+func weatherSourceText(lang string) string {
+	switch i18n.Normalize(lang) {
+	case "en":
+		return "Source: WeatherAPI"
+	case "uk":
+		return "Джерело: WeatherAPI"
+	default:
+		return "Источник: WeatherAPI"
+	}
+}
+
+func weatherUpdatedText(lang string, data *weather.WeatherData) string {
+	prefix := map[string]string{
+		"en": "Updated:",
+		"uk": "Оновлено:",
+		"ru": "Обновлено:",
+	}[i18n.Normalize(lang)]
+	if prefix == "" {
+		prefix = "Обновлено:"
+	}
+	if data == nil || data.LastUpdated.IsZero() {
+		return prefix + " —"
+	}
+	return fmt.Sprintf("%s %s UTC", prefix, data.LastUpdated.UTC().Format("15:04"))
 }
 
 func (s *Server) City(w http.ResponseWriter, r *http.Request) {
@@ -453,6 +488,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		FavListID:           data.CityID,
 		CityName:            weather.LocalizedCityName(data.CityID, lang),
 		CurrentTemp:         data.Current.Temperature,
+		CurrentFeelsLike:    data.Current.FeelsLike,
 		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:         data.Current.WindSpeed,
@@ -461,6 +497,8 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  data.IsFallback,
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
+		WeatherSourceText:   weatherSourceText(lang),
+		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
@@ -487,6 +525,7 @@ type apiWeatherResponse struct {
 	CityID   string      `json:"cityId"`
 	CityName string      `json:"cityName"`
 	Lang     string      `json:"lang"`
+	LastUpdated string   `json:"lastUpdated,omitempty"`
 	Current  apiCurrent  `json:"current"`
 	Hourly   []apiHourly `json:"hourly,omitempty"`
 	// Sunrise/Sunset — сегодня, локальное время "15:04" (из astro первого дня WeatherAPI).
@@ -610,6 +649,12 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 		CityID:   data.CityID,
 		CityName: weather.LocalizedCityName(data.CityID, lang),
 		Lang:     lang,
+		LastUpdated: func() string {
+			if data.LastUpdated.IsZero() {
+				return ""
+			}
+			return data.LastUpdated.UTC().Format(time.RFC3339)
+		}(),
 		Sunrise:  sunriseStr,
 		Sunset:   sunsetStr,
 		Daily:    apiDailyFromForecast(data.Forecast),
@@ -711,6 +756,12 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 		CityID:   cacheKey,
 		CityName: displayName,
 		Lang:     lang,
+		LastUpdated: func() string {
+			if data.LastUpdated.IsZero() {
+				return ""
+			}
+			return data.LastUpdated.UTC().Format(time.RFC3339)
+		}(),
 		Sunrise:  sunriseStr,
 		Sunset:   sunsetStr,
 		Daily:    apiDailyFromForecast(data.Forecast),
@@ -1308,6 +1359,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		CityName:            displayName,
 		CityLocation:        locationSubtitle,
 		CurrentTemp:         data.Current.Temperature,
+		CurrentFeelsLike:    data.Current.FeelsLike,
 		CurrentDescription:  currentDesc,
 		CurrentPrecipChance: data.Current.PrecipitationChance,
 		CurrentWind:         data.Current.WindSpeed,
@@ -1316,6 +1368,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		WeatherUnavailable:  data.IsFallback,
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
+		WeatherSourceText:   weatherSourceText(lang),
+		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,

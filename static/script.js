@@ -106,6 +106,53 @@
         return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
     }
 
+    var tempMode = "current";
+
+    function formatUpdatedLabel(lastUpdatedISO) {
+        if (!lastUpdatedISO) return "Обновлено: —";
+        var d = new Date(lastUpdatedISO);
+        if (Number.isNaN(d.getTime())) return "Обновлено: —";
+        var hh = String(d.getUTCHours()).padStart(2, "0");
+        var mm = String(d.getUTCMinutes()).padStart(2, "0");
+        var loc = (document.documentElement.lang || "ru").toLowerCase();
+        if (loc === "en") return "Updated: " + hh + ":" + mm + " UTC";
+        if (loc === "uk") return "Оновлено: " + hh + ":" + mm + " UTC";
+        return "Обновлено: " + hh + ":" + mm + " UTC";
+    }
+
+    function sourceLabel() {
+        var loc = (document.documentElement.lang || "ru").toLowerCase();
+        if (loc === "en") return "Source: WeatherAPI";
+        if (loc === "uk") return "Джерело: WeatherAPI";
+        return "Источник: WeatherAPI";
+    }
+
+    function applyHeroTemp(currentTemp, apparentTemp, isFallback) {
+        var tempEl = document.getElementById("js-current-temp");
+        if (!tempEl) return;
+        if (isFallback) {
+            tempEl.textContent = "—";
+            return;
+        }
+        var currentN = numFromJSON(currentTemp);
+        var apparentN = numFromJSON(apparentTemp);
+        var selected = tempMode === "feels" && !Number.isNaN(apparentN) ? apparentN : currentN;
+        if (!Number.isNaN(selected)) {
+            tempEl.textContent = String(Math.round(selected));
+        }
+    }
+
+    function refreshTempToggleUI() {
+        var wrap = document.getElementById("js-temp-toggle");
+        if (!wrap) return;
+        var buttons = wrap.querySelectorAll("button[data-mode]");
+        buttons.forEach(function (btn) {
+            var active = btn.getAttribute("data-mode") === tempMode;
+            btn.style.background = active ? "var(--chip-bg)" : "transparent";
+            btn.style.color = active ? "var(--text-main)" : "var(--text-muted)";
+        });
+    }
+
     function updateSmartAdvice(tempC, windKph, humidityPct, isRain) {
         if (!adviceTextEl) return;
         if (typeof tempC !== "number" || Number.isNaN(tempC)) return;
@@ -462,10 +509,18 @@
             var heroTitleEl = document.getElementById("hero-title");
 
             var isFallbackNow = !!json.current.isFallback;
-            if (tempElNow) tempElNow.textContent = isFallbackNow ? "—" : Math.round(json.current.temperature);
+            applyHeroTemp(json.current.temperature, json.current.apparent_temperature, isFallbackNow);
+            if (tempElNow && !isFallbackNow) {
+                tempElNow.dataset.tempCurrent = String(json.current.temperature);
+                tempElNow.dataset.tempFeels = String(json.current.apparent_temperature);
+            }
             if (descElNow) descElNow.textContent = json.current.description || (isFallbackNow ? "—" : "");
             updatePrecipChance(json.current.precipitation_chance, isFallbackNow);
             if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
+            var sourceElNow = document.getElementById("js-weather-source");
+            if (sourceElNow) sourceElNow.textContent = sourceLabel();
+            var updatedElNow = document.getElementById("js-weather-updated");
+            if (updatedElNow) updatedElNow.textContent = formatUpdatedLabel(json.lastUpdated);
 
             // Update atmosphere / precipitation / clouds for the new code.
             if (json.current.weatherCode !== undefined && json.current.isNight !== undefined) {
@@ -501,7 +556,39 @@
     syncWeatherAtmosphere(app, weatherCode, isNight);
 
     var initialTempEl = document.getElementById("js-current-temp");
+    try {
+        var storedMode = localStorage.getItem("weather:tempMode");
+        if (storedMode === "feels" || storedMode === "current") {
+            tempMode = storedMode;
+        }
+    } catch (_) {
+        /* ignore */
+    }
+    var toggleWrap = document.getElementById("js-temp-toggle");
+    if (toggleWrap) {
+        toggleWrap.addEventListener("click", function (e) {
+            var btn = e.target && e.target.closest ? e.target.closest("button[data-mode]") : null;
+            if (!btn) return;
+            var mode = btn.getAttribute("data-mode");
+            if (mode !== "current" && mode !== "feels") return;
+            tempMode = mode;
+            try {
+                localStorage.setItem("weather:tempMode", mode);
+            } catch (_) {
+                /* ignore */
+            }
+            var tEl = document.getElementById("js-current-temp");
+            var cur = tEl ? numFromJSON(tEl.dataset.tempCurrent) : NaN;
+            var feel = tEl ? numFromJSON(tEl.dataset.tempFeels) : NaN;
+            applyHeroTemp(cur, feel, false);
+            refreshTempToggleUI();
+        });
+        refreshTempToggleUI();
+    }
     if (initialTempEl) {
+        applyHeroTemp(initialTempEl.dataset.tempCurrent, initialTempEl.dataset.tempFeels, false);
+        var sourceElInit = document.getElementById("js-weather-source");
+        if (sourceElInit && !sourceElInit.textContent.trim()) sourceElInit.textContent = sourceLabel();
         var initialTemp = parseFloat(initialTempEl.textContent.replace(",", "."));
         if (!Number.isNaN(initialTemp)) {
             updateBackgroundByTemp(initialTemp);
@@ -732,9 +819,17 @@
         function applyWeather(data) {
             if (!data || !data.current) return;
             var isFallback = !!data.current.isFallback;
-            if (tempEl) tempEl.textContent = isFallback ? "—" : Math.round(data.current.temperature);
+            applyHeroTemp(data.current.temperature, data.current.apparent_temperature, isFallback);
+            if (tempEl && !isFallback) {
+                tempEl.dataset.tempCurrent = String(data.current.temperature);
+                tempEl.dataset.tempFeels = String(data.current.apparent_temperature);
+            }
             if (descEl) descEl.textContent = data.current.description;
             updatePrecipChance(data.current.precipitation_chance, isFallback);
+            var sourceEl = document.getElementById("js-weather-source");
+            if (sourceEl) sourceEl.textContent = sourceLabel();
+            var updatedEl = document.getElementById("js-weather-updated");
+            if (updatedEl) updatedEl.textContent = formatUpdatedLabel(data.lastUpdated);
             if (windEl) {
                 windEl.textContent = isFallback
                     ? "—"
