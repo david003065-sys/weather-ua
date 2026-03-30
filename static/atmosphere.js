@@ -561,8 +561,18 @@
                     ctx.fillRect(0, 0, w, h);
                 }
 
-                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+                // Читаем цвет текста темы через CSS-переменную.
+                const textColor = getComputedStyle(document.documentElement).getPropertyValue("--text-main").trim();
+                // Для hex считаем яркость приблизительно: тёмный цвет => светлая тема.
+                const isLightMode = textColor.startsWith("#")
+                    ? parseInt(textColor.replace("#", ""), 16) <= 0xffffff / 2
+                    : textColor === "#212529" || textColor === "black" || textColor === "rgb(17, 32, 51)";
+
+                const particleColorFill = isLightMode ? "rgba(50, 70, 100, 0.6)" : "rgba(255, 255, 255, 0.8)";
+                const particleColorStroke = isLightMode ? "rgba(50, 70, 100, 0.3)" : "rgba(255, 255, 255, 0.5)";
+
+                ctx.fillStyle = particleColorFill;
+                ctx.strokeStyle = particleColorStroke;
                 ctx.beginPath();
 
                 const windOffset = wind * (isSnow ? 0.3 : 1.2);
