@@ -1424,6 +1424,19 @@
                 // ignore
             }
         })();
+
+        document.addEventListener("keydown", function searchHotkey(e) {
+            if (!(e.ctrlKey || e.metaKey) || String(e.key).toLowerCase() !== "k") return;
+            var t = e.target;
+            if (t) {
+                if (t.isContentEditable) return;
+                if (t.tagName === "TEXTAREA") return;
+                if (t.tagName === "INPUT" && t.id !== "js-place-search") return;
+            }
+            e.preventDefault();
+            input.focus();
+            if (typeof input.select === "function") input.select();
+        });
     })();
 
     // Favorites and recent cities blocks on index page

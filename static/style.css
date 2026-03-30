@@ -83,15 +83,38 @@ html[data-theme="light"] .site-header {
     gap: 1rem;
 }
 
+/* Поиск по центру «колонки» как у .weather-card / .weather-hero (max 600px) */
 .header-search {
     flex: 1;
-    max-width: 300px;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
     position: relative;
+    max-width: none;
 }
 
-.header-search .search-input {
+.header-search.search-input-wrap {
+    max-width: min(600px, 100%);
+    width: 100%;
+}
+
+.header-search__icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.header-search .search-input,
+.header-search .header-search__field {
     height: 38px;
-    padding: 6px 40px 6px 14px;
+    padding: 6px 42px 6px 40px;
     font-size: 0.9rem;
 }
 
