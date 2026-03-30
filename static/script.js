@@ -142,6 +142,16 @@
         return "Источник: live API";
     }
 
+    function applySourceBadge(kind) {
+        var row = document.getElementById("js-weather-source-row");
+        if (!row) return;
+        var k = String(kind || "live_api")
+            .toLowerCase()
+            .replace(/[^a-z0-9_]/g, "");
+        if (!k) k = "live_api";
+        row.className = "weather-source-row weather-source-row--" + k;
+    }
+
     function applyHeroTemp(currentTemp, apparentTemp, isFallback) {
         var tempEl = document.getElementById("js-current-temp");
         if (!tempEl) return;
@@ -522,6 +532,7 @@
             if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
             var sourceElNow = document.getElementById("js-weather-source");
             if (sourceElNow) sourceElNow.textContent = sourceLabel(json.source);
+            applySourceBadge(json.source || "live_api");
             var updatedElNow = document.getElementById("js-weather-updated");
             if (updatedElNow) updatedElNow.textContent = formatUpdatedLabel(json.lastUpdated);
 
@@ -803,6 +814,7 @@
             var sourceEl = document.getElementById("js-weather-source");
             var sourceKind = (data && data.__clientSource) || (data && data.source) || "live_api";
             if (sourceEl) sourceEl.textContent = sourceLabel(sourceKind);
+            applySourceBadge(sourceKind);
             var updatedEl = document.getElementById("js-weather-updated");
             if (updatedEl) updatedEl.textContent = formatUpdatedLabel(data.lastUpdated);
             if (windEl) {

@@ -86,6 +86,8 @@ type IndexPageData struct {
 	WeatherStale        bool
 	WeatherStaleText    string
 	WeatherSourceText   string
+	// WeatherSourceKind: live_api | server_cache | server_cache_stale | no_data (SSR; browser_cache только в JS).
+	WeatherSourceKind   string
 	WeatherUpdatedText  string
 	TodayLabel          string
 	TodayMin            float64
@@ -148,6 +150,7 @@ type CityPageData struct {
 	WeatherStale        bool
 	WeatherStaleText    string
 	WeatherSourceText   string
+	WeatherSourceKind   string
 	WeatherUpdatedText  string
 	Forecast            []DailyView
 	TodayLabel          string
@@ -286,6 +289,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		WeatherStale:        heroData.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, heroData),
 		WeatherSourceText:   weatherSourceText(lang, heroData),
+		WeatherSourceKind:   weatherSourceKind(heroData),
 		WeatherUpdatedText:  weatherUpdatedText(lang, heroData),
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
@@ -336,6 +340,17 @@ func staleWeatherNotice(lang string, data *weather.WeatherData) string {
 	default:
 		return fmt.Sprintf("Данные погоды устарели (~%d мин).", ageMin)
 	}
+}
+
+func weatherSourceKind(data *weather.WeatherData) string {
+	if data == nil {
+		return "live_api"
+	}
+	s := strings.TrimSpace(data.DataSource)
+	if s == "" {
+		return "live_api"
+	}
+	return s
 }
 
 func weatherSourceText(lang string, data *weather.WeatherData) string {
@@ -536,6 +551,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
 		WeatherSourceText:   weatherSourceText(lang, data),
+		WeatherSourceKind:   weatherSourceKind(data),
 		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
@@ -1410,6 +1426,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		WeatherStale:        data.IsStale,
 		WeatherStaleText:    staleWeatherNotice(lang, data),
 		WeatherSourceText:   weatherSourceText(lang, data),
+		WeatherSourceKind:   weatherSourceKind(data),
 		WeatherUpdatedText:  weatherUpdatedText(lang, data),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,

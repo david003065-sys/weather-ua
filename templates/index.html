@@ -18,7 +18,10 @@
                 </div>
             </div>
             <div class="weather-hero__source-meta">
-                <span id="js-weather-source">{{ .WeatherSourceText }}</span>
+                <span id="js-weather-source-row" class="weather-source-row weather-source-row--{{ .WeatherSourceKind }}">
+                    <span class="weather-source-badge" aria-hidden="true"></span>
+                    <span id="js-weather-source">{{ .WeatherSourceText }}</span>
+                </span>
                 <span id="js-weather-updated">{{ .WeatherUpdatedText }}</span>
             </div>
 

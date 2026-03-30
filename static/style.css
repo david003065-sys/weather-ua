@@ -421,6 +421,43 @@ html[data-theme="light"] .lang-switch__item--active {
     color: var(--text-muted);
 }
 
+/* Источник данных: цветной бейдж (live / кэш / нет данных) */
+.weather-source-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.weather-source-badge {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="light"] .weather-source-badge {
+    box-shadow: 0 0 0 2px rgba(17, 32, 51, 0.12);
+}
+
+.weather-source-row--live_api .weather-source-badge {
+    background: #22c55e;
+}
+
+.weather-source-row--server_cache .weather-source-badge,
+.weather-source-row--browser_cache .weather-source-badge {
+    background: #eab308;
+}
+
+.weather-source-row--server_cache_stale .weather-source-badge {
+    background: #f97316;
+}
+
+.weather-source-row--no_data .weather-source-badge {
+    background: #ef4444;
+}
+
 .weather-advice,
 .hero-forecast {
     width: 100%;
