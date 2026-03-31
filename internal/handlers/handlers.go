@@ -1024,11 +1024,22 @@ func (s *Server) APIFavorites(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	results := make([]apiFavoriteItem, 0, len(tokens))
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
 	for _, tok := range tokens {
-		if it := s.favoriteItemForToken(ctx, tok, lang, text); it != nil {
-			results = append(results, *it)
-		}
+		tokCopy := tok
+		wg.Add(1)
+		go func(cityID string) {
+			defer wg.Done()
+			if it := s.favoriteItemForToken(ctx, cityID, lang, text); it != nil {
+				mu.Lock()
+				results = append(results, *it)
+				mu.Unlock()
+			}
+		}(tokCopy)
 	}
+	wg.Wait()
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(results); err != nil {
