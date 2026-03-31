@@ -81,6 +81,27 @@
                 </a>
             </div>
 
+            <div class="header-install">
+                <button
+                    type="button"
+                    id="js-pwa-install-btn"
+                    class="pwa-install-btn"
+                    style="display: none;"
+                    aria-hidden="true"
+                    aria-label="Установить"
+                    data-label-uk="Встановити"
+                    data-label-en="Install"
+                    data-label-ru="Установить"
+                >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="pwa-install-btn__label">Установить</span>
+                </button>
+            </div>
+
             {{/* Поиск: flex-grow + max-width 600px, Ctrl/⌘+K */}}
             <div class="search-input-wrap header-search">
                 <span class="header-search__icon" aria-hidden="true">
@@ -118,25 +139,6 @@
             </div>
 
             <div class="header-actions" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                <button
-                    type="button"
-                    id="js-pwa-install-btn"
-                    class="pwa-install-btn"
-                    style="display: none;"
-                    aria-hidden="true"
-                    aria-label="Установить"
-                    data-label-uk="Встановити"
-                    data-label-en="Install"
-                    data-label-ru="Установить"
-                >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <span class="pwa-install-btn__label">Установить</span>
-                </button>
-
                 <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
                     <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
                     <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>

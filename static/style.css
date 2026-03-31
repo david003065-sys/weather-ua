@@ -94,9 +94,15 @@ html[data-theme="light"] .site-header {
     margin: 0;
 }
 
+.header-install {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin: 0;
+}
+
 .header-actions > .theme-switch,
-.header-actions > .lang-switch,
-.header-actions > .pwa-install-btn {
+.header-actions > .lang-switch {
     margin-top: 0;
     margin-bottom: 0;
 }
@@ -939,12 +945,16 @@ html[data-theme="dark"] .weather-app * {
         order: 1;
     }
 
-    .header-actions {
+    .header-install {
         order: 2;
     }
 
-    .header-search {
+    .header-actions {
         order: 3;
+    }
+
+    .header-search {
+        order: 4;
         flex: 1 0 100%;
         max-width: 100%;
         margin: 0.1rem 0 0;
