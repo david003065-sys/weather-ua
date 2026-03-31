@@ -167,8 +167,19 @@ type CityPageData struct {
 	DuplicatesLabel     string
 	DuplicatesURL       string
 	ClientI18n          template.JS
+	RadarLat            float64
+	RadarLon            float64
 	// Current — снимок для Canvas-физики (шаблон: .Current.MainCondition, .Current.WindSpeed).
 	Current CityWeatherPhysics
+}
+
+func cityCoordsByID(cityID string) (float64, float64) {
+	for _, c := range weather.AllCities() {
+		if c.ID == cityID {
+			return c.Latitude, c.Longitude
+		}
+	}
+	return 0, 0
 }
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -565,8 +576,11 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		Hourly:              hourly,
 		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
+		RadarLat:            0,
+		RadarLon:            0,
 		Current:             cityWeatherPhysicsFrom(data),
 	}
+	page.RadarLat, page.RadarLon = cityCoordsByID(data.CityID)
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
 		s.logger.Printf("render city: %v", err)
@@ -1454,6 +1468,8 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		DuplicatesLabel:     dupLabel,
 		DuplicatesURL:       dupURL,
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
+		RadarLat:            place.Lat,
+		RadarLon:            place.Lon,
 		Current:             cityWeatherPhysicsFrom(data),
 	}
 
