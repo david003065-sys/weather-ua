@@ -67,6 +67,18 @@ function isWeatherAPIRequest(pathname) {
   return pathname.startsWith("/api/weather/") || pathname.startsWith("/api/place_weather");
 }
 
+async function notifyClientsAPIUpdated(requestUrl) {
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const payload = {
+    type: "weather-api-cache-updated",
+    url: requestUrl,
+    at: Date.now(),
+  };
+  for (const client of clients) {
+    client.postMessage(payload);
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -114,6 +126,7 @@ self.addEventListener("fetch", (event) => {
           .then(async (response) => {
             if (cacheableAPIResponse(response)) {
               await apiCache.put(request, response.clone());
+              event.waitUntil(notifyClientsAPIUpdated(request.url));
             }
             return response;
           })

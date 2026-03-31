@@ -875,6 +875,35 @@
             return "weatherCache:v2:" + id + ":" + l;
         }
 
+        var swUpdateToastTimer = null;
+        function swUpdateToastText() {
+            if (clientI18n && clientI18n.swDataUpdated) return clientI18n.swDataUpdated;
+            if (lang === "uk") return "Дані оновлено";
+            if (lang === "en") return "Data updated";
+            return "Данные обновлены";
+        }
+
+        function showSWDataUpdatedToast() {
+            var id = "js-sw-update-toast";
+            var el = document.getElementById(id);
+            if (!el) {
+                el = document.createElement("div");
+                el.id = id;
+                el.className = "sw-update-toast";
+                el.setAttribute("role", "status");
+                el.setAttribute("aria-live", "polite");
+                document.body.appendChild(el);
+            }
+            el.textContent = swUpdateToastText();
+            el.classList.add("sw-update-toast--visible");
+            if (swUpdateToastTimer) {
+                clearTimeout(swUpdateToastTimer);
+            }
+            swUpdateToastTimer = setTimeout(function () {
+                el.classList.remove("sw-update-toast--visible");
+            }, 2200);
+        }
+
         async function fetchWeather() {
             try {
                 var key = cacheKey(cityId, lang);
@@ -902,6 +931,28 @@
             } catch (e) {
                 console.error("refresh weather failed", e);
             }
+        }
+
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener("message", function (event) {
+                var data = event && event.data ? event.data : null;
+                if (!data || data.type !== "weather-api-cache-updated" || !data.url) return;
+                try {
+                    var u = new URL(String(data.url), window.location.origin);
+                    var path = u.pathname || "";
+                    var search = u.search || "";
+                    var cityMatch = path.indexOf("/api/weather/") === 0 && path.indexOf(encodeURIComponent(cityId)) >= 0;
+                    var placeMatch =
+                        path.indexOf("/api/place_weather") === 0 &&
+                        search.indexOf("id=" + encodeURIComponent(cityId)) >= 0;
+                    if (cityMatch || placeMatch) {
+                        showSWDataUpdatedToast();
+                        fetchWeather();
+                    }
+                } catch (_) {
+                    /* ignore malformed URL */
+                }
+            });
         }
 
         // initial refresh in background
