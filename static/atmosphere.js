@@ -519,6 +519,10 @@
         global.document &&
         global.document.body
     ) {
+        if (typeof global.__weatherPhysicsRafId === "number" && global.__weatherPhysicsRafId) {
+            global.cancelAnimationFrame(global.__weatherPhysicsRafId);
+            global.__weatherPhysicsRafId = 0;
+        }
         const existingCanvas = document.getElementById("weather-physics-canvas");
         if (existingCanvas) {
             existingCanvas.remove();
@@ -544,11 +548,19 @@
                 h = canvas.height = global.innerHeight;
             });
 
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue("--text-main").trim();
+            const isLightMode = textColor.startsWith("#")
+                ? parseInt(textColor.replace("#", ""), 16) <= 0xffffff / 2
+                : textColor === "#212529" || textColor === "black" || textColor === "rgb(17, 32, 51)";
+            const particleColorFill = isLightMode ? "rgba(50, 70, 100, 0.6)" : "rgba(255, 255, 255, 0.8)";
+            const particleColorStroke = isLightMode ? "rgba(50, 70, 100, 0.3)" : "rgba(255, 255, 255, 0.5)";
+
             const particles = [];
             const isSnow = physData.main === "Snow";
             const isStorm = physData.main === "Thunderstorm";
             const count = isSnow ? 150 : 300;
             const wind = physData.windSpeed || 0;
+            let physicsRafId = 0;
 
             for (let i = 0; i < count; i++) {
                 particles.push({
@@ -571,16 +583,6 @@
                     ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
                     ctx.fillRect(0, 0, w, h);
                 }
-
-                // Читаем цвет текста темы через CSS-переменную.
-                const textColor = getComputedStyle(document.documentElement).getPropertyValue("--text-main").trim();
-                // Для hex считаем яркость приблизительно: тёмный цвет => светлая тема.
-                const isLightMode = textColor.startsWith("#")
-                    ? parseInt(textColor.replace("#", ""), 16) <= 0xffffff / 2
-                    : textColor === "#212529" || textColor === "black" || textColor === "rgb(17, 32, 51)";
-
-                const particleColorFill = isLightMode ? "rgba(50, 70, 100, 0.6)" : "rgba(255, 255, 255, 0.8)";
-                const particleColorStroke = isLightMode ? "rgba(50, 70, 100, 0.3)" : "rgba(255, 255, 255, 0.5)";
 
                 ctx.fillStyle = particleColorFill;
                 ctx.strokeStyle = particleColorStroke;
@@ -617,9 +619,18 @@
                     ctx.stroke();
                 }
 
-                global.requestAnimationFrame(draw);
+                physicsRafId = global.requestAnimationFrame(draw);
+                global.__weatherPhysicsRafId = physicsRafId;
             }
-            draw();
+            physicsRafId = global.requestAnimationFrame(draw);
+            global.__weatherPhysicsRafId = physicsRafId;
+            global.addEventListener("beforeunload", function () {
+                if (physicsRafId) {
+                    global.cancelAnimationFrame(physicsRafId);
+                    physicsRafId = 0;
+                    global.__weatherPhysicsRafId = 0;
+                }
+            });
         }
     }
 })(typeof window !== "undefined" ? window : this);
