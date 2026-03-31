@@ -7,6 +7,7 @@ type ClientPayload struct {
 	SearchEmpty       string `json:"searchEmpty"`
 	SearchError       string `json:"searchError"`
 	SearchTooShort    string `json:"searchTooShort"`
+	SWDataUpdated     string `json:"swDataUpdated"`
 	WindSuffix        string `json:"windSuffix"`
 	HumiditySuffix    string `json:"humiditySuffix"`
 	ChartMax          string `json:"chartMax"`
@@ -25,6 +26,7 @@ func clientPayload(lang string) ClientPayload {
 			SearchEmpty:        "No results",
 			SearchError:        "Search failed",
 			SearchTooShort:     "Type at least 2 characters",
+			SWDataUpdated:      "Data updated",
 			WindSuffix:         " km/h",
 			HumiditySuffix:     "%",
 			ChartMax:           "High",
@@ -40,6 +42,7 @@ func clientPayload(lang string) ClientPayload {
 			SearchEmpty:        "Нічого не знайдено",
 			SearchError:        "Помилка пошуку",
 			SearchTooShort:     "Введи мінімум 2 символи",
+			SWDataUpdated:      "Дані оновлено",
 			WindSuffix:         " км/год",
 			HumiditySuffix:     "%",
 			ChartMax:           "Макс",
@@ -55,6 +58,7 @@ func clientPayload(lang string) ClientPayload {
 			SearchEmpty:        "Ничего не найдено",
 			SearchError:        "Ошибка поиска",
 			SearchTooShort:     "Введите минимум 2 символа",
+			SWDataUpdated:      "Данные обновлены",
 			WindSuffix:         " км/ч",
 			HumiditySuffix:     "%",
 			ChartMax:           "Макс",
