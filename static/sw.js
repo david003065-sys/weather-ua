@@ -1,5 +1,7 @@
 /* Weather UA — service worker (scope must be site root; registered as /sw.js) */
-const CACHE_NAME = "weather-ua-pwa-v16";
+const CACHE_NAME = "weather-ua-precache-v17";
+const DYNAMIC_CACHE = "weather-ua-pages-v17";
+const API_CACHE = "weather-ua-api-v17";
 const OFFLINE_URL = "/static/offline.html";
 
 const PRECACHE_URLS = [
@@ -9,6 +11,7 @@ const PRECACHE_URLS = [
   "/static/atmosphere.js",
   "/static/script.js",
   "/static/theme.js",
+  "/static/pwa.js",
   "/static/manifest.json",
   "/static/favicon.svg",
   OFFLINE_URL,
@@ -38,9 +41,10 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      const allowList = new Set([CACHE_NAME, DYNAMIC_CACHE, API_CACHE]);
       const keys = await caches.keys();
       await Promise.all(
-        keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : Promise.resolve()))
+        keys.map((key) => (!allowList.has(key) ? caches.delete(key) : Promise.resolve()))
       );
       await self.clients.claim();
     })()
@@ -53,14 +57,22 @@ function cacheableStaticResponse(response) {
   return true;
 }
 
+function cacheableAPIResponse(response) {
+  if (!response || !response.ok) return false;
+  if (response.type !== "basic" && response.type !== "cors") return false;
+  return true;
+}
+
+function isWeatherAPIRequest(pathname) {
+  return pathname.startsWith("/api/weather/") || pathname.startsWith("/api/place_weather");
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-
-  if (url.pathname.startsWith("/api/")) return;
 
   const accept = request.headers.get("accept") || "";
   const isDocument =
@@ -70,13 +82,56 @@ self.addEventListener("fetch", (event) => {
 
   if (isDocument) {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        const offline = await caches.match(OFFLINE_URL);
-        if (offline) return offline;
-        return new Response("", { status: 503, statusText: "Offline" });
-      })
+      (async () => {
+        const pageCache = await caches.open(DYNAMIC_CACHE);
+        try {
+          const network = await fetch(request);
+          if (cacheableStaticResponse(network)) {
+            await pageCache.put(request, network.clone());
+          }
+          return network;
+        } catch (_) {
+          const cached = await pageCache.match(request);
+          if (cached) return cached;
+          const precached = await caches.open(CACHE_NAME);
+          const sameUrlCached = await precached.match(request);
+          if (sameUrlCached) return sameUrlCached;
+          const offline = await precached.match(OFFLINE_URL);
+          if (offline) return offline;
+          return new Response("", { status: 503, statusText: "Offline" });
+        }
+      })()
+    );
+    return;
+  }
+
+  if (isWeatherAPIRequest(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        const apiCache = await caches.open(API_CACHE);
+        const cached = await apiCache.match(request);
+        const networkPromise = fetch(request)
+          .then(async (response) => {
+            if (cacheableAPIResponse(response)) {
+              await apiCache.put(request, response.clone());
+            }
+            return response;
+          })
+          .catch(() => null);
+
+        if (cached) {
+          event.waitUntil(networkPromise);
+          return cached;
+        }
+
+        const network = await networkPromise;
+        if (network) return network;
+        return new Response('{"error":"offline"}', {
+          status: 503,
+          statusText: "Offline",
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      })()
     );
     return;
   }
