@@ -30,24 +30,52 @@
         return out;
     }
 
+    function hideRadarContainer(mapEl) {
+        if (!mapEl) return;
+        var wrap = mapEl.closest(".radar-container");
+        if (wrap) {
+            wrap.style.display = "none";
+        }
+    }
+
     function initRadar() {
         var mapEl = document.getElementById("weather-radar-map");
         if (!mapEl) return;
-        if (typeof window.L === "undefined") return;
+        if (typeof window.L === "undefined") return false;
+        if (mapEl.dataset.radarInit === "1") return true;
 
         var lat = parseCoord(mapEl.getAttribute("data-lat"));
         var lon = parseCoord(mapEl.getAttribute("data-lon"));
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            hideRadarContainer(mapEl);
+            return false;
+        }
 
         var map = L.map("weather-radar-map", {
             zoomControl: true,
             attributionControl: true,
         }).setView([lat, lon], 7);
+        mapEl.dataset.radarInit = "1";
+        setTimeout(function () {
+            map.invalidateSize();
+        }, 0);
+        window.addEventListener("resize", function () {
+            map.invalidateSize();
+        });
 
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        var darkBase = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
             maxZoom: 18,
             attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
         }).addTo(map);
+        var fallbackBaseAdded = false;
+        darkBase.on("tileerror", function () {
+            if (fallbackBaseAdded) return;
+            fallbackBaseAdded = true;
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 18,
+                attribution: "&copy; OpenStreetMap contributors",
+            }).addTo(map);
+        });
 
         var toggleBtn = document.getElementById("js-radar-toggle");
         var radarLayer = null;
@@ -129,11 +157,29 @@
                     toggleBtn.style.display = "none";
                 }
             });
+        return true;
+    }
+
+    function bootRadarWithRetry() {
+        var tries = 0;
+        var maxTries = 20;
+        function tryInit() {
+            tries++;
+            var mapEl = document.getElementById("weather-radar-map");
+            if (!mapEl) return;
+            if (initRadar()) return;
+            if (tries >= maxTries) {
+                hideRadarContainer(mapEl);
+                return;
+            }
+            setTimeout(tryInit, 250);
+        }
+        tryInit();
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initRadar);
+        document.addEventListener("DOMContentLoaded", bootRadarWithRetry);
     } else {
-        initRadar();
+        bootRadarWithRetry();
     }
 })();
