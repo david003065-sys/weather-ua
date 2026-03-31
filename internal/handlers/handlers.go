@@ -1037,26 +1037,36 @@ func (s *Server) APIFavorites(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 	defer cancel()
 
-	results := make([]apiFavoriteItem, 0, len(tokens))
+	results := make([]apiFavoriteItem, len(tokens))
+	filled := make([]bool, len(tokens))
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	for _, tok := range tokens {
+	for i, tok := range tokens {
+		idx := i
 		tokCopy := tok
 		wg.Add(1)
 		go func(cityID string) {
 			defer wg.Done()
 			if it := s.favoriteItemForToken(ctx, cityID, lang, text); it != nil {
 				mu.Lock()
-				results = append(results, *it)
+				results[idx] = *it
+				filled[idx] = true
 				mu.Unlock()
 			}
 		}(tokCopy)
 	}
 	wg.Wait()
 
+	clean := make([]apiFavoriteItem, 0, len(results))
+	for i := range results {
+		if filled[i] {
+			clean = append(clean, results[i])
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if err := json.NewEncoder(w).Encode(results); err != nil {
+	if err := json.NewEncoder(w).Encode(clean); err != nil {
 		s.logger.Printf("encode api favorites: %v", err)
 	}
 }
