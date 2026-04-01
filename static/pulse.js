@@ -1,0 +1,157 @@
+(function () {
+    "use strict";
+
+    var MAX_GAP_MS = 400;
+    var REQUIRED_KNOCKS = 5;
+    var knockCount = 0;
+    var lastKnockAt = 0;
+
+    var overlayEl = null;
+    var outputEl = null;
+    var pollTimer = null;
+
+    function resetKnockState() {
+        knockCount = 0;
+        lastKnockAt = 0;
+    }
+
+    function renderPulse(data) {
+        if (!outputEl) return;
+        var lines = [];
+        lines.push("> PULSE STREAM ONLINE");
+        lines.push("> ------------------------------");
+        lines.push("> goroutines : " + (data && data.goroutines != null ? data.goroutines : "n/a"));
+        lines.push("> memory     : " + (data && data.memory != null ? data.memory : "n/a"));
+        lines.push("> gc         : " + (data && data.gc != null ? data.gc : "n/a"));
+        lines.push("> uptime     : " + (data && data.uptime != null ? data.uptime : "n/a"));
+        outputEl.textContent = lines.join("\n");
+    }
+
+    function renderError(errText) {
+        if (!outputEl) return;
+        outputEl.textContent = [
+            "> PULSE STREAM ERROR",
+            "> ------------------------------",
+            "> " + errText,
+        ].join("\n");
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    function closeDashboard() {
+        stopPolling();
+        if (overlayEl && overlayEl.parentNode) {
+            overlayEl.parentNode.removeChild(overlayEl);
+        }
+        overlayEl = null;
+        outputEl = null;
+    }
+
+    function fetchPulse() {
+        fetch("/api/pulse", { method: "GET" })
+            .then(function (res) {
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return res.json();
+            })
+            .then(function (json) {
+                renderPulse(json);
+            })
+            .catch(function (err) {
+                renderError(String((err && err.message) || err || "unknown error"));
+            });
+    }
+
+    function openDashboard() {
+        if (overlayEl) return;
+
+        overlayEl = document.createElement("div");
+        overlayEl.style.position = "fixed";
+        overlayEl.style.top = "0";
+        overlayEl.style.left = "0";
+        overlayEl.style.width = "100vw";
+        overlayEl.style.height = "100vh";
+        overlayEl.style.background = "rgba(0,0,0,0.95)";
+        overlayEl.style.color = "#00ff00";
+        overlayEl.style.fontFamily = "monospace";
+        overlayEl.style.zIndex = "99999";
+        overlayEl.style.padding = "20px";
+        overlayEl.style.boxSizing = "border-box";
+
+        var header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.justifyContent = "space-between";
+        header.style.marginBottom = "14px";
+
+        var title = document.createElement("div");
+        title.textContent = "SYSTEM PULSE [///]";
+        title.style.fontSize = "18px";
+        title.style.fontWeight = "700";
+
+        var closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.textContent = "[X] CLOSE";
+        closeBtn.style.background = "transparent";
+        closeBtn.style.border = "1px solid #00ff00";
+        closeBtn.style.color = "#00ff00";
+        closeBtn.style.fontFamily = "monospace";
+        closeBtn.style.padding = "6px 10px";
+        closeBtn.style.cursor = "pointer";
+        closeBtn.addEventListener("click", closeDashboard);
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+
+        outputEl = document.createElement("pre");
+        outputEl.style.margin = "0";
+        outputEl.style.whiteSpace = "pre-wrap";
+        outputEl.style.lineHeight = "1.5";
+        outputEl.textContent = "> BOOTSTRAP...";
+
+        overlayEl.appendChild(header);
+        overlayEl.appendChild(outputEl);
+        document.body.appendChild(overlayEl);
+
+        fetchPulse();
+        pollTimer = setInterval(fetchPulse, 1000);
+    }
+
+    function togglePulseDashboard() {
+        if (overlayEl) {
+            closeDashboard();
+        } else {
+            openDashboard();
+        }
+    }
+
+    function onBrandClick() {
+        var now = Date.now();
+        if (lastKnockAt > 0 && now - lastKnockAt > MAX_GAP_MS) {
+            knockCount = 0;
+        }
+        knockCount += 1;
+        lastKnockAt = now;
+
+        if (knockCount >= REQUIRED_KNOCKS) {
+            resetKnockState();
+            togglePulseDashboard();
+        }
+    }
+
+    function initPulseSecretKnock() {
+        var brand = document.querySelector(".header-brand");
+        if (!brand) return;
+        brand.addEventListener("click", onBrandClick);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initPulseSecretKnock);
+    } else {
+        initPulseSecretKnock();
+    }
+})();
