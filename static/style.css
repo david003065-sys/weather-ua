@@ -937,6 +937,22 @@ html[data-theme="light"] .weather-source-badge {
     transform: translate(-50%, 0);
 }
 
+.radar-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+    height: 300px;
+    border-radius: 16px;
+    overflow: hidden;
+    display: block;
+}
+
+#weather-radar-map {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+}
+
 @media (max-width: 600px) {
     .pwa-install-btn span {
         display: none;

@@ -1,44 +1,51 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('weather-radar-map');
+document.addEventListener("DOMContentLoaded", function () {
+    var container = document.getElementById("weather-radar-map");
     if (!container) return;
+    if (typeof window.L === "undefined") return;
 
-    // Жестко задаем стили для диагностического экрана
     container.style.minHeight = "300px";
-    container.style.display = "flex";
-    container.style.alignItems = "center";
-    container.style.justifyContent = "center";
-    container.style.background = "#1a1a1a";
-    container.style.border = "1px solid #333";
-    container.style.color = "#fff";
-    container.style.padding = "20px";
-    container.style.fontFamily = "monospace";
-    container.style.textAlign = "center";
+    container.style.display = "block";
+    container.style.width = "100%";
 
-    try {
-        // 1. Проверка загрузки библиотеки
-        if (typeof L === 'undefined') {
-            throw new Error("Библиотека Leaflet (L) не найдена! Проверь, есть ли <script src='...leaflet.js'> в HTML (layout.html или city.html).");
-        }
+    var lat = parseFloat(container.dataset.lat) || 48.3794;
+    var lon = parseFloat(container.dataset.lon) || 31.1656;
 
-        // 2. Проверка координат
-        const lat = parseFloat(container.dataset.lat);
-        const lon = parseFloat(container.dataset.lon);
-        if (isNaN(lat) || isNaN(lon)) {
-            throw new Error(`Неверные координаты от Go-бэкенда: lat=${container.dataset.lat}, lon=${container.dataset.lon}`);
-        }
+    var map = L.map("weather-radar-map", {
+        zoomControl: true,
+        attributionControl: true,
+    }).setView([lat, lon], 6);
 
-        // Если дошли сюда — всё ок, пробуем запустить базовую карту
-        container.innerHTML = ""; // очищаем текст
-        container.style.display = "block"; // возвращаем блочный вид для карты
-        
-        const map = L.map('weather-radar-map').setView([lat, lon], 6);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-        
-        setTimeout(() => { map.invalidateSize(); }, 500);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+    }).addTo(map);
 
-    } catch (e) {
-        // ВЫВОДИМ ОШИБКУ НА ЭКРАН
-        container.innerHTML = `<div style="color: #ff4444; font-size: 16px;"><b>КРИТИЧЕСКАЯ ОШИБКА РАДАРА:</b><br><br>${e.message}</div>`;
-        console.error(e);
-    }
+    fetch("https://api.rainviewer.com/public/weather-maps.json")
+        .then(function (res) {
+            if (!res.ok) throw new Error("rainviewer status " + res.status);
+            return res.json();
+        })
+        .then(function (json) {
+            var radar = json && json.radar && Array.isArray(json.radar.past) ? json.radar.past : [];
+            if (!radar.length) return;
+            var last = radar[radar.length - 1];
+            var ts = last && typeof last.time === "number" ? last.time : null;
+            if (!ts) return;
+            L.tileLayer(
+                "https://tilecache.rainviewer.com/v2/radar/" + ts + "/256/{z}/{x}/{y}/2/1_1.png",
+                {
+                    opacity: 0.7,
+                    tileSize: 256,
+                    zIndex: 10,
+                    attribution: "&copy; RainViewer",
+                }
+            ).addTo(map);
+        })
+        .catch(function () {
+            /* ignore RainViewer errors; base map stays visible */
+        });
+
+    setTimeout(function () {
+        map.invalidateSize();
+    }, 500);
 });
