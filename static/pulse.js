@@ -4,7 +4,7 @@
     var MAX_GAP_MS = 400;
     var REQUIRED_KNOCKS = 5;
     var knockCount = 0;
-    var lastKnockAt = 0;
+    var clickResetTimer = null;
 
     var overlayEl = null;
     var outputEl = null;
@@ -12,7 +12,10 @@
 
     function resetKnockState() {
         knockCount = 0;
-        lastKnockAt = 0;
+        if (clickResetTimer) {
+            clearTimeout(clickResetTimer);
+            clickResetTimer = null;
+        }
     }
 
     function renderPulse(data) {
@@ -70,6 +73,7 @@
         if (overlayEl) return;
 
         overlayEl = document.createElement("div");
+        overlayEl.id = "pulse-dashboard";
         overlayEl.style.position = "fixed";
         overlayEl.style.top = "0";
         overlayEl.style.left = "0";
@@ -122,29 +126,33 @@
     }
 
     function togglePulseDashboard() {
-        if (overlayEl) {
-            closeDashboard();
-        } else {
-            openDashboard();
-        }
+        if (document.getElementById("pulse-dashboard")) return;
+        openDashboard();
     }
 
-    function onBrandClick() {
-        var now = Date.now();
-        if (lastKnockAt > 0 && now - lastKnockAt > MAX_GAP_MS) {
-            knockCount = 0;
-        }
+    function onBrandClick(e) {
+        e.preventDefault();
         knockCount += 1;
-        lastKnockAt = now;
+        if (clickResetTimer) {
+            clearTimeout(clickResetTimer);
+            clickResetTimer = null;
+        }
 
         if (knockCount >= REQUIRED_KNOCKS) {
             resetKnockState();
             togglePulseDashboard();
+            return;
         }
+
+        clickResetTimer = setTimeout(function () {
+            knockCount = 0;
+            clickResetTimer = null;
+            window.location.href = e.currentTarget.href || "/";
+        }, MAX_GAP_MS);
     }
 
     function initPulseSecretKnock() {
-        var brand = document.querySelector(".header-brand");
+        var brand = document.querySelector(".header-brand a.brand-link");
         if (!brand) return;
         brand.addEventListener("click", onBrandClick);
     }
