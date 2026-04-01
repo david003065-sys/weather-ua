@@ -40,16 +40,16 @@
 
     function initRadar() {
         var mapEl = document.getElementById("weather-radar-map");
-        if (!mapEl) return;
+        if (!mapEl) return false;
         if (typeof window.L === "undefined") return false;
         if (mapEl.dataset.radarInit === "1") return true;
 
-        var lat = parseCoord(mapEl.getAttribute("data-lat"));
-        var lon = parseCoord(mapEl.getAttribute("data-lon"));
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            hideRadarContainer(mapEl);
-            return false;
-        }
+        mapEl.style.minHeight = "300px";
+        mapEl.style.display = "block";
+        mapEl.style.width = "100%";
+
+        var lat = parseCoord(mapEl.getAttribute("data-lat")) || 48.3794;
+        var lon = parseCoord(mapEl.getAttribute("data-lon")) || 31.1656;
 
         var map = L.map("weather-radar-map", {
             zoomControl: true,
@@ -67,6 +67,9 @@
             maxZoom: 18,
             attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
         }).addTo(map);
+        setTimeout(function () {
+            map.invalidateSize();
+        }, 500);
         var fallbackBaseAdded = false;
         darkBase.on("tileerror", function () {
             if (fallbackBaseAdded) return;
@@ -177,9 +180,5 @@
         tryInit();
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", bootRadarWithRetry);
-    } else {
-        bootRadarWithRetry();
-    }
+    document.addEventListener("DOMContentLoaded", bootRadarWithRetry);
 })();
