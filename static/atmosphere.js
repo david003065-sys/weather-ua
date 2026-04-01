@@ -205,12 +205,11 @@
             var i;
             for (i = 0; i < n; i++) {
                 if (kind === "rain") {
-                    /* Спокойный дождь: 4–8 px/кадр; ливень 502/503: 8–12 */
-                    var spdLo = self._rainHeavy ? 8 : 4;
-                    var spdSpan = self._rainHeavy ? 4 : 4;
-                    /* Длиннее и тоньше — «стекло» */
-                    var lenLo = 22;
-                    var lenSpan = 18;
+                    /* Умеренный дождь сверху вниз: ниже скорость, почти без ветрового сноса. */
+                    var spdLo = self._rainHeavy ? 3.2 : 2.2;
+                    var spdSpan = self._rainHeavy ? 1.8 : 1.4;
+                    var lenLo = 14;
+                    var lenSpan = 10;
                     drops.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
@@ -246,15 +245,15 @@
             var d;
             if (kind === "rain") {
                 var heavy = self._rainHeavy;
-                ctx.globalAlpha = heavy ? 0.36 : 0.3;
+                ctx.globalAlpha = heavy ? 0.33 : 0.28;
                 ctx.strokeStyle = "rgba(200, 230, 255, 0.55)";
-                ctx.lineWidth = heavy ? 0.68 : 0.52;
-                var wind = heavy ? 0.38 : 0.22;
+                ctx.lineWidth = heavy ? 0.62 : 0.48;
+                var wind = heavy ? 0.05 : 0;
                 for (i = 0; i < drops.length; i++) {
                     d = drops[i];
                     ctx.beginPath();
                     ctx.moveTo(d.x, d.y);
-                    ctx.lineTo(d.x - 0.55, d.y + d.len);
+                    ctx.lineTo(d.x, d.y + d.len);
                     ctx.stroke();
                     d.y += d.speed;
                     d.x -= wind;
@@ -473,164 +472,4 @@
 
     global.Atmosphere = Atmosphere;
     global.atmosphere = new Atmosphere();
-})(typeof window !== "undefined" ? window : this);
-
-/**
- * Canvas-физика погоды — этап 1: SSR payload из #js-weather-physics-data.
- * data-wind-speed всегда строка в DOM; parseFloat + запятая как десятичный разделитель.
- */
-(function (global) {
-    "use strict";
-
-    function parsePhysicsWindSpeed(raw) {
-        if (raw == null || raw === "") {
-            return 0;
-        }
-        var n = parseFloat(String(raw).trim().replace(",", "."));
-        return Number.isFinite(n) ? n : 0;
-    }
-
-    function readWeatherPhysicsPayload() {
-        var el = document.getElementById("js-weather-physics-data");
-        if (!el || !el.dataset) {
-            return null;
-        }
-        return {
-            main: String(el.dataset.weatherMain || "").trim(),
-            windSpeed: parsePhysicsWindSpeed(el.dataset.windSpeed),
-        };
-    }
-
-    global.__WEATHER_PHYSICS_SSR__ = readWeatherPhysicsPayload();
-
-    function physicsPrefersReducedMotion() {
-        try {
-            return global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    const physData = global.__WEATHER_PHYSICS_SSR__;
-    console.log("🌦 Физика погоды: получены данные ->", physData);
-    if (
-        physData &&
-        ["Rain", "Drizzle", "Snow", "Thunderstorm"].includes(physData.main) &&
-        global.document &&
-        global.document.body
-    ) {
-        if (typeof global.__weatherPhysicsRafId === "number" && global.__weatherPhysicsRafId) {
-            global.cancelAnimationFrame(global.__weatherPhysicsRafId);
-            global.__weatherPhysicsRafId = 0;
-        }
-        const existingCanvas = document.getElementById("weather-physics-canvas");
-        if (existingCanvas) {
-            existingCanvas.remove();
-            console.log("🌦 Физика погоды: Старый слой очищен.");
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.id = "weather-physics-canvas";
-        canvas.style.cssText =
-            "position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:99999; opacity:0.8; mix-blend-mode: normal;";
-        document.body.appendChild(canvas);
-        console.log("🌦 Физика погоды: Canvas успешно добавлен поверх всех слоев!");
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            canvas.remove();
-        } else {
-            let w = (canvas.width = global.innerWidth);
-            let h = (canvas.height = global.innerHeight);
-
-            global.addEventListener("resize", function () {
-                w = canvas.width = global.innerWidth;
-                h = canvas.height = global.innerHeight;
-            });
-
-            const textColor = getComputedStyle(document.documentElement).getPropertyValue("--text-main").trim();
-            const isLightMode = textColor.startsWith("#")
-                ? parseInt(textColor.replace("#", ""), 16) <= 0xffffff / 2
-                : textColor === "#212529" || textColor === "black" || textColor === "rgb(17, 32, 51)";
-            const particleColorFill = isLightMode ? "rgba(50, 70, 100, 0.6)" : "rgba(255, 255, 255, 0.8)";
-            const particleColorStroke = isLightMode ? "rgba(50, 70, 100, 0.3)" : "rgba(255, 255, 255, 0.5)";
-
-            const particles = [];
-            const isSnow = physData.main === "Snow";
-            const isStorm = physData.main === "Thunderstorm";
-            const count = isSnow ? 150 : 300;
-            const wind = physData.windSpeed || 0;
-            let physicsRafId = 0;
-
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    s: Math.random() * (isSnow ? 2.5 : 1.5) + 0.5,
-                    v: Math.random() * (isSnow ? 1 : 15) + (isSnow ? 0.5 : 10),
-                    a: Math.random() * Math.PI * 2,
-                });
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                if (!window._weatherPhysicsLogged) {
-                    console.log("🌦 Физика погоды: Рендер первого кадра пошел!");
-                    window._weatherPhysicsLogged = true;
-                }
-
-                if (isStorm && Math.random() < 0.005) {
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                    ctx.fillRect(0, 0, w, h);
-                }
-
-                ctx.fillStyle = particleColorFill;
-                ctx.strokeStyle = particleColorStroke;
-                ctx.beginPath();
-
-                const windOffset = wind * (isSnow ? 0.3 : 1.2);
-
-                particles.forEach(function (p) {
-                    if (isSnow) {
-                        ctx.moveTo(p.x, p.y);
-                        ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
-                        p.y += p.v;
-                        p.x += Math.sin(p.a) * 0.5 + windOffset;
-                        p.a += 0.03;
-                    } else {
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p.x + windOffset, p.y + p.v);
-                        p.y += p.v;
-                        p.x += windOffset;
-                    }
-
-                    if (p.y > h) {
-                        p.y = -10;
-                        p.x = Math.random() * w - windOffset * (h / p.v);
-                    }
-                    if (p.x > w) p.x = -10;
-                    if (p.x < 0) p.x = w + 10;
-                });
-
-                if (isSnow) {
-                    ctx.fill();
-                } else {
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
-
-                physicsRafId = global.requestAnimationFrame(draw);
-                global.__weatherPhysicsRafId = physicsRafId;
-            }
-            physicsRafId = global.requestAnimationFrame(draw);
-            global.__weatherPhysicsRafId = physicsRafId;
-            global.addEventListener("beforeunload", function () {
-                if (physicsRafId) {
-                    global.cancelAnimationFrame(physicsRafId);
-                    physicsRafId = 0;
-                    global.__weatherPhysicsRafId = 0;
-                }
-            });
-        }
-    }
 })(typeof window !== "undefined" ? window : this);
