@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var lon = parseFloat(container.dataset.lon) || 31.1656;
 
     var map = L.map("weather-radar-map", {
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: true,
     }).setView([lat, lon], 6);
 

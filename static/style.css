@@ -1043,3 +1043,5 @@ html[data-theme="dark"] .weather-app * {
     width: 100% !important;
     text-align: left;
 }
+.leaflet-container img { filter: none !important; max-width: none !important; background: transparent !important; }
+.leaflet-control-attribution { background: rgba(0, 0, 0, 0.5) !important; color: #aaa !important; }
