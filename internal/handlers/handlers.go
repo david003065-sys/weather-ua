@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,6 +28,8 @@ type Server struct {
 	logger   *log.Logger
 }
 
+var serverStartTime = time.Now()
+
 func NewServer(tmpl *template.Template, weatherClient *weather.Client, placesStore *places.Store, logger *log.Logger) *Server {
 	return &Server{
 		tmpl:    tmpl,
@@ -40,6 +43,28 @@ func (s *Server) SetPlacesStore(ps *places.Store) {
 	s.placesMu.Lock()
 	s.places = ps
 	s.placesMu.Unlock()
+}
+
+func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	resp := map[string]interface{}{
+		"goroutines":      runtime.NumGoroutine(),
+		"memory_alloc_mb": float64(m.Alloc) / 1024.0 / 1024.0,
+		"memory_sys_mb":   float64(m.Sys) / 1024.0 / 1024.0,
+		"gc_cycles":       m.NumGC,
+		"uptime":          time.Since(serverStartTime).String(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) getPlacesStore() *places.Store {

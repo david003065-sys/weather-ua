@@ -60,6 +60,9 @@ func Run() error {
 	mux.HandleFunc("/api/find-city", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.APIFindCity(w, r)
 	}))
+	mux.HandleFunc("/api/pulse", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.HandlePulse(w, r)
+	}))
 	mux.HandleFunc("/geo", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.GeoRedirect(w, r)
 	}))
