@@ -20,13 +20,30 @@
 
     function renderPulse(data) {
         if (!outputEl) return;
+        var goroutines = data && data.goroutines != null ? data.goroutines : "n/a";
+        var memAlloc =
+            data && typeof data.memory_alloc_mb === "number"
+                ? data.memory_alloc_mb.toFixed(1) + " MB"
+                : "n/a";
+        var memSys =
+            data && typeof data.memory_sys_mb === "number"
+                ? data.memory_sys_mb.toFixed(1) + " MB"
+                : "n/a";
+        var memory = memAlloc === "n/a" ? "n/a" : memAlloc + " (Sys: " + memSys + ")";
+        var gcCycles = data && data.gc_cycles != null ? data.gc_cycles : "n/a";
+        var uptime = "n/a";
+        if (data && typeof data.uptime === "string" && data.uptime) {
+            var parts = data.uptime.split(".");
+            uptime = (parts[0] || data.uptime) + "s";
+        }
+
         var lines = [];
         lines.push("> PULSE STREAM ONLINE");
         lines.push("> ------------------------------");
-        lines.push("> goroutines : " + (data && data.goroutines != null ? data.goroutines : "n/a"));
-        lines.push("> memory     : " + (data && data.memory != null ? data.memory : "n/a"));
-        lines.push("> gc         : " + (data && data.gc != null ? data.gc : "n/a"));
-        lines.push("> uptime     : " + (data && data.uptime != null ? data.uptime : "n/a"));
+        lines.push("> goroutines : " + goroutines);
+        lines.push("> memory     : " + memory);
+        lines.push("> gc         : " + gcCycles);
+        lines.push("> uptime     : " + uptime);
         outputEl.textContent = lines.join("\n");
     }
 
