@@ -42,6 +42,9 @@
     var deferredPrompt = null;
     var btn = document.getElementById("js-pwa-install-btn");
 
+    /**
+     * @returns {boolean} True if the app runs as an installed PWA (standalone / WCO / iOS).
+     */
     function isStandalone() {
         return (
             window.matchMedia("(display-mode: standalone)").matches ||
@@ -50,6 +53,10 @@
         );
     }
 
+    /**
+     * Localizes the install button label from `data-label-*` attributes to match `<html lang>`.
+     * @returns {void}
+     */
     function setInstallLabel() {
         if (!btn) return;
         var lang = (document.documentElement.getAttribute("lang") || "ru").toLowerCase();
@@ -62,12 +69,14 @@
         btn.setAttribute("aria-label", text);
     }
 
+    /** Hides the install CTA and marks it aria-hidden. */
     function hideInstall() {
         if (!btn) return;
         btn.style.display = "none";
         btn.setAttribute("aria-hidden", "true");
     }
 
+    /** Shows the install CTA and refreshes its localized label. */
     function showInstall() {
         if (!btn) return;
         setInstallLabel();

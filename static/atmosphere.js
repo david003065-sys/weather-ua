@@ -9,6 +9,9 @@
     var CLOUD_PATH =
         "M28 48h64c10 0 18-8 18-18 0-8-5-15-13-17 2-11-11-20-22-17-4-14-25-16-34-3-9-2-15 5-15 14v1c-8 2-14 9-14 17 0 10 8 18 18 18z";
 
+    /**
+     * @returns {boolean} True if user prefers reduced motion (skips canvas precipitation loop).
+     */
     function prefersReducedMotion() {
         try {
             return global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -17,7 +20,11 @@
         }
     }
 
-    /** Светлая тема: Apple-style mesh для «хорошей» погоды (WMO 0–3 / OW 800–804). */
+    /**
+     * Light theme: Apple-style sun mesh for «fair» codes (WMO 0–3 / OpenWeather 800–804).
+     * @param {number|string} code
+     * @returns {boolean}
+     */
     function isFairWeatherForAppleMesh(code) {
         var c = typeof code === "number" ? code : parseInt(code, 10);
         if (Number.isNaN(c)) return false;
@@ -66,6 +73,10 @@
         return { sky: "cloudy", fx: "none" };
     }
 
+    /**
+     * Background atmosphere controller: DOM layers + canvas for rain/snow particles.
+     * @class
+     */
     function Atmosphere() {
         this._raf = null;
         this._precip = null;
@@ -199,6 +210,14 @@
         var container = this._root;
         if (!canvas || !container || prefersReducedMotion()) return;
 
+        /**
+         * Seeds particle array: rain uses vertical streaks (length + speed); snow uses small circles with drift.
+         * Coordinates are in **CSS pixel space** of the container — `_resizeCanvas` sets ctx transform to DPR,
+         * so drawing uses logical pixels while the backing store is high-DPI.
+         * @param {number} w
+         * @param {number} h
+         * @returns {void}
+         */
         function initDrops(w, h) {
             var n = kind === "snow" ? 80 : 120;
             var drops = [];
@@ -232,6 +251,11 @@
             self._drops = drops;
         }
 
+        /**
+         * rAF loop: clears full logical viewport, draws streaks (rain) or arcs (snow), advances `y`/`x` each frame.
+         * Particles wrap from bottom (`y > h`) back to top with randomized `x` for continuous effect.
+         * @returns {void}
+         */
         function frame() {
             if (!canvas.isConnected || self._precip !== kind) return;
             var w = container.clientWidth || global.innerWidth;
@@ -310,6 +334,7 @@
         }
     };
 
+    /** Positions several animated SVG cloud puffs (OpenWeather-style broken clouds 801–804). */
     Atmosphere.prototype._buildSvgClouds = function () {
         if (!this._cloudsLayer) return;
         this._cloudsLayer.innerHTML = "";
@@ -341,10 +366,12 @@
         }
     };
 
+    /** @returns {void} */
     Atmosphere.prototype._clearCloudsLayer = function () {
         if (this._cloudsLayer) this._cloudsLayer.innerHTML = "";
     };
 
+    /** @returns {void} */
     Atmosphere.prototype._clearMeshLayer = function () {
         if (this._meshLayer) this._meshLayer.innerHTML = "";
     };

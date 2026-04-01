@@ -1,4 +1,7 @@
-/* Weather UA — service worker (scope must be site root; registered as /sw.js) */
+/**
+ * @file Weather UA — service worker (scope must be site root; registered as `/sw.js`).
+ * Precaches static assets, caches HTML navigations and weather API GET responses with size caps.
+ */
 const CACHE_NAME = "weather-ua-precache-v17";
 const DYNAMIC_CACHE = "weather-ua-pages-v17";
 const API_CACHE = "weather-ua-api-v17";
@@ -52,22 +55,58 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/**
+ * Whether a fetched response is safe to store in the page/dynamic cache.
+ * @param {Response|null|undefined} response
+ * @returns {boolean}
+ */
 function cacheableStaticResponse(response) {
   if (!response || !response.ok) return false;
   if (response.type !== "basic" && response.type !== "cors") return false;
   return true;
 }
 
+/**
+ * Whether a weather API response is OK to persist in the API cache.
+ * @param {Response|null|undefined} response
+ * @returns {boolean}
+ */
 function cacheableAPIResponse(response) {
   if (!response || !response.ok) return false;
   if (response.type !== "basic" && response.type !== "cors") return false;
   return true;
 }
 
+/**
+ * @param {string} pathname URL pathname (e.g. `/api/weather/kyiv`).
+ * @returns {boolean} True if this request should use the API cache strategy.
+ */
 function isWeatherAPIRequest(pathname) {
   return pathname.startsWith("/api/weather/") || pathname.startsWith("/api/place_weather");
 }
 
+/**
+ * Enforces an upper bound on the number of entries in a named Cache Storage bucket (eviction).
+ *
+ * **Algorithm (FIFO-style eviction via Cache API ordering)**:
+ * 1. Open the cache by `cacheName` and call `cache.keys()`, which returns `Request` objects in
+ *    **insertion order** (oldest entries first, per Cache Storage specification).
+ * 2. If `keys.length <= maxItems`, do nothing — the bucket is within budget.
+ * 3. Otherwise compute `toDelete = keys.length - maxItems` (exactly how many entries exceed the cap).
+ * 4. Delete the first `toDelete` keys in that ordered list: `keys[0] … keys[toDelete-1]`.
+ *    Those correspond to the **oldest** cached responses (first inserted), i.e. a **FIFO** eviction
+ *    policy: new writes happen after `put()`, then `trimCache` removes surplus from the **front**
+ *    of the queue. This is a simple bounded cache — not LRU by URL recency of *use*, only by
+ *    insertion order into this specific Cache object.
+ * 5. Each deletion is awaited sequentially to avoid overwhelming the storage backend; order is preserved.
+ *
+ * Called after a successful `cache.put` for navigations (`DYNAMIC_CACHE`) and weather API
+ * (`API_CACHE`) so the cache does not grow without bound (`MAX_CACHE_ITEMS`).
+ *
+ * @param {string} cacheName CacheStorage name (e.g. `DYNAMIC_CACHE`, `API_CACHE`).
+ * @param {number} maxItems Maximum number of entries to retain after trimming.
+ * @returns {Promise<void>}
+ */
 async function trimCache(cacheName, maxItems) {
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
@@ -78,6 +117,11 @@ async function trimCache(cacheName, maxItems) {
   }
 }
 
+/**
+ * Notifies all window clients that a fresh weather API response was written to the API cache.
+ * @param {string} requestUrl Absolute URL that was cached.
+ * @returns {Promise<void>}
+ */
 async function notifyClientsAPIUpdated(requestUrl) {
   const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   const payload = {

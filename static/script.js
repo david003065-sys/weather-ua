@@ -1,4 +1,7 @@
-
+/**
+ * @file Client-side weather UI: Chart.js hourly temperature, `/api/weather` refresh, favorites rail, place search,
+ * service-worker cache toast, and atmosphere sync. Runs only when `.weather-app` is present.
+ */
 (function () {
     const app = document.querySelector(".weather-app");
     if (!app) return;
@@ -8,6 +11,9 @@
     const cityId = app.dataset.cityId || "";
     const lang = document.documentElement.lang || "ru";
 
+    /**
+     * @returns {Record<string, string>} Parsed `__CLIENT_I18N__` JSON or `{}`.
+     */
     function readClientI18n() {
         var el = document.getElementById("__CLIENT_I18N__");
         if (!el || !el.textContent) return {};
@@ -21,6 +27,12 @@
 
     var MOOD_CLASSES = ["weather-clear", "weather-cloudy", "weather-rain", "weather-snow", "weather-night"];
 
+    /**
+     * Maps WMO-like code to a simple visual class for legacy CSS (sunny/cloudy/rain/snow/night).
+     * @param {number} code
+     * @param {boolean} night
+     * @returns {string}
+     */
     function mapCodeToClass(code, night) {
         if (night) return "night";
         if (code === 0) return "sunny";
@@ -31,7 +43,12 @@
         return "cloudy";
     }
 
-    /* Ambient mood (CSS variables / gradients); night wins over condition */
+    /**
+     * Ambient mood classes (`weather-clear`, `weather-rain`, …); night wins over condition code.
+     * @param {number} code
+     * @param {boolean} night
+     * @returns {string}
+     */
     function mapCodeToMoodClass(code, night) {
         if (night) return "weather-night";
         if (code === 0) return "weather-clear";
@@ -42,7 +59,12 @@
     }
 
     /**
-     * @param engineCode опционально: OpenWeather id (data.weather[0].id) для Atmosphere; иначе тот же WMO
+     * Syncs dataset/classes on the hero element and forwards codes to `atmosphere.update` when loaded.
+     * @param {HTMLElement|null} el Target element (e.g. `.weather-app`).
+     * @param {number|string} wmoCode WMO-style condition code for CSS/mood.
+     * @param {boolean|string} night Night flag from SSR.
+     * @param {number|string|undefined|null} [engineCode] OpenWeather-style id for Atmosphere when different from WMO.
+     * @returns {void}
      */
     function syncWeatherAtmosphere(el, wmoCode, night, engineCode) {
         if (!el) return;
@@ -66,6 +88,11 @@
         }
     }
 
+    /**
+     * Sets `--temp-color-from` / `--temp-color-to` on `:root` from temperature buckets (°C).
+     * @param {number} temp
+     * @returns {void}
+     */
     function updateBackgroundByTemp(temp) {
         var from = "#1d4ed8";
         var to = "#f97316";
@@ -93,6 +120,10 @@
     var adviceTextEl = document.getElementById("js-weather-advice-text");
     var adviceElement = adviceTextEl ? adviceTextEl.closest(".weather-advice") : null;
 
+    /**
+     * @param {unknown} text
+     * @returns {number} First number found or `NaN`.
+     */
     function parseFirstNumber(text) {
         if (text == null) return NaN;
         var s = String(text).trim().replace(",", ".");
@@ -101,11 +132,19 @@
         return parseFloat(m[0]);
     }
 
+    /**
+     * @param {number} code WMO-like code.
+     * @returns {boolean}
+     */
     function isRainWmo(code) {
         if (typeof code !== "number" || Number.isNaN(code)) return false;
         return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
     }
 
+    /**
+     * @param {string} [lastUpdatedISO] RFC3339 from API.
+     * @returns {string} Localized "Updated: HH:MM" line.
+     */
     function formatUpdatedLabel(lastUpdatedISO) {
         if (!lastUpdatedISO) return "Обновлено: —";
         var d = new Date(lastUpdatedISO);
@@ -118,6 +157,10 @@
         return "Обновлено: " + hh + ":" + mm;
     }
 
+    /**
+     * @param {string} [sourceKind] e.g. `live_api`, `server_cache`, `no_data`.
+     * @returns {string} Localized source line for current `<html lang>`.
+     */
     function sourceLabel(sourceKind) {
         var loc = (document.documentElement.lang || "ru").toLowerCase();
         var kind = String(sourceKind || "live_api").toLowerCase();
@@ -142,6 +185,11 @@
         return "Источник: live API";
     }
 
+    /**
+     * Sets `#js-weather-source-row` modifier class from normalized `kind`.
+     * @param {string} [kind]
+     * @returns {void}
+     */
     function applySourceBadge(kind) {
         var row = document.getElementById("js-weather-source-row");
         if (!row) return;
@@ -152,6 +200,12 @@
         row.className = "weather-source-row weather-source-row--" + k;
     }
 
+    /**
+     * @param {unknown} currentTemp
+     * @param {unknown} apparentTemp Reserved for future "feels like" toggle.
+     * @param {boolean} isFallback When true, shows em dash.
+     * @returns {void}
+     */
     function applyHeroTemp(currentTemp, apparentTemp, isFallback) {
         var tempEl = document.getElementById("js-current-temp");
         if (!tempEl) return;
@@ -166,6 +220,14 @@
         }
     }
 
+    /**
+     * Updates the index "clothes tips" block from temperature, wind, humidity, and rain flag.
+     * @param {number} tempC
+     * @param {number} windKph
+     * @param {number} humidityPct
+     * @param {boolean} isRain
+     * @returns {void}
+     */
     function updateSmartAdvice(tempC, windKph, humidityPct, isRain) {
         if (!adviceTextEl) return;
         if (typeof tempC !== "number" || Number.isNaN(tempC)) return;
@@ -205,6 +267,11 @@
         }
     }
 
+    /**
+     * @param {number} chance Precipitation probability 0–100.
+     * @param {boolean} isFallback
+     * @returns {void}
+     */
     function updatePrecipChance(chance, isFallback) {
         var wrap = document.getElementById("js-precip-chance");
         if (!wrap) return;
@@ -227,11 +294,15 @@
         }
     }
 
+    /** @returns {HTMLElement|null} */
     function getHourlyScrollEl() {
         return document.getElementById("js-hourly-scroll");
     }
 
-    /** Почасовой график температуры (Chart.js) — точки из `.hourly-item` в `#js-hourly-scroll`. */
+    /**
+     * Hourly temperature sparkline (Chart.js) built from `.hourly-item` nodes under `#js-hourly-scroll`.
+     * @returns {void}
+     */
     function renderTempChart() {
         const canvas = document.getElementById("js-temp-chart");
         if (!canvas) {
@@ -313,6 +384,11 @@
         });
     }
 
+    /**
+     * Rebuilds hourly strip DOM from API `hourly` array and triggers chart + drag-scroll init.
+     * @param {Array<{time?: string, icon?: string, temperature?: number}>} [hourly]
+     * @returns {void}
+     */
     function renderHourlyForecast(hourly) {
         var hourlyScrollEl = getHourlyScrollEl();
         if (!hourlyScrollEl) return;
@@ -359,6 +435,10 @@
         }
     }
 
+    /**
+     * @param {unknown} v
+     * @returns {number}
+     */
     function numFromJSON(v) {
         if (typeof v === "number" && !Number.isNaN(v)) return v;
         if (typeof v === "string" && v.trim() !== "") {
@@ -369,8 +449,9 @@
     }
 
     /**
-     * УФ, видимость, ощущается как, давление + рассвет/закат (index + city).
-     * Сначала сброс, затем данные из свежего JSON /api/weather (WeatherAPI на бэкенде).
+     * UV, visibility, feels-like, pressure, sunrise/sunset, wind/humidity tiles from `/api/weather` payload.
+     * @param {{ current?: object, sunrise?: string, sunset?: string, daily?: Array<{sunrise?: string, sunset?: string}> }} [data]
+     * @returns {void}
      */
     function renderMetrics(data) {
         if (!document.querySelector(".weather-details-grid") && !document.querySelector(".metrics-grid")) return;
@@ -460,6 +541,10 @@
         if (sunsetEl && set) sunsetEl.textContent = set;
     }
 
+    /**
+     * Derives which weather API URL matches the current path (city slug, place id, or default hero).
+     * @returns {{ kind: string, url: string }}
+     */
     function getRouteWeatherRequest() {
         var path = (window.location && window.location.pathname) || "/";
         // strip trailing slash (except root)
@@ -502,6 +587,10 @@
         };
     }
 
+    /**
+     * Fetches weather for the current route and updates hero, hourly chart, metrics, and atmosphere.
+     * @returns {Promise<void>}
+     */
     async function refreshIndexFromRoute() {
         var hasMetrics =
             !!document.querySelector(".weather-details-grid") || !!document.querySelector(".metrics-grid");
@@ -588,6 +677,11 @@
         }
     }
 
+    /**
+     * City page min/max Chart.js line chart from `data-labels`, `data-min`, `data-max` on the canvas.
+     * @param {HTMLCanvasElement} canvas
+     * @returns {void}
+     */
     function initTempChart(canvas) {
         if (!window.Chart || !canvas) return;
 
@@ -682,6 +776,7 @@
 
     var tempCanvas = document.getElementById("js-trend-chart") || document.querySelector(".js-temp-chart");
     if (tempCanvas) {
+        /** Rebuilds trend chart after load or theme change. */
         function bootChart() {
             initTempChart(tempCanvas);
         }
@@ -694,6 +789,10 @@
     }
 
     // Geo/default city (index page only)
+    /**
+     * @param {string} key
+     * @returns {string|null}
+     */
     function safeStorageGet(key) {
         try {
             return localStorage.getItem(key);
@@ -702,6 +801,11 @@
         }
     }
 
+    /**
+     * @param {string} key
+     * @param {string} value
+     * @returns {void}
+     */
     function safeStorageSet(key, value) {
         try {
             localStorage.setItem(key, value);
@@ -710,6 +814,10 @@
 
     var DEFAULT_CITY_ID = "kyiv"; // fallback when nothing is stored / geolocation fails
 
+    /**
+     * @param {string} cityName City slug or `place:<id>`.
+     * @returns {string|null} Relative URL with `lang` query.
+     */
     function buildUrlFromCityName(cityName) {
         if (!cityName) return null;
         var s = String(cityName);
@@ -801,6 +909,11 @@
         var windEl = document.getElementById("js-current-wind");
         var humEl = document.getElementById("js-current-humidity");
 
+        /**
+         * Applies `/api/weather` JSON to the city page DOM (hero, hourly, metrics, atmosphere).
+         * @param {object} data
+         * @returns {void}
+         */
         function applyWeather(data) {
             if (!data || !data.current) return;
             var isFallback = !!data.current.isFallback;
@@ -871,11 +984,17 @@
             renderMetrics(data);
         }
 
+        /**
+         * @param {string} id City id slug.
+         * @param {string} l Language tag.
+         * @returns {string} localStorage key for browser-side weather cache.
+         */
         function cacheKey(id, l) {
             return "weatherCache:v2:" + id + ":" + l;
         }
 
         var swUpdateToastTimer = null;
+        /** @returns {string} Localized toast when SW reports API cache refresh. */
         function swUpdateToastText() {
             if (clientI18n && clientI18n.swDataUpdated) return clientI18n.swDataUpdated;
             if (lang === "uk") return "Дані оновлено";
@@ -883,6 +1002,7 @@
             return "Данные обновлены";
         }
 
+        /** Shows ephemeral status toast after service worker `weather-api-cache-updated`. */
         function showSWDataUpdatedToast() {
             var id = "js-sw-update-toast";
             var el = document.getElementById(id);
@@ -904,6 +1024,10 @@
             }, 2200);
         }
 
+        /**
+         * Loads weather from 5-minute localStorage cache or `/api/weather/:cityId`.
+         * @returns {Promise<void>}
+         */
         async function fetchWeather() {
             try {
                 var key = cacheKey(cityId, lang);
@@ -972,12 +1096,20 @@
     // PWA: service worker + install UI live in /static/pwa.js (loads first, independent of this bundle).
 
     // Place search autocomplete on index page
+    /**
+     * Index search: `/api/places` debounced fetch, keyboard nav, favorites integration.
+     */
     (function initPlaceSearch() {
         var input = document.getElementById("js-place-search");
         var box = document.getElementById("js-place-suggestions");
         if (!input || !box) return;
 
         var lang = document.documentElement.lang || "ru";
+        /**
+         * Localized UI string for search empty states.
+         * @param {string} key
+         * @returns {string}
+         */
         function t(key) {
             var fb = { empty: "No results", error: "Search error", tooShort: "Type at least 2 characters" };
             if (lang === "uk") fb = { empty: "Нічого не знайдено", error: "Помилка пошуку", tooShort: "Введи мінімум 2 символи" };
@@ -1012,11 +1144,13 @@
         if (input.parentNode) {
             input.parentNode.appendChild(spinner);
         }
+        /** @param {boolean} v Toggles input spinner visibility. */
         function setLoading(v) {
             isLoading = v;
             spinner.style.opacity = v ? "1" : "0";
         }
 
+        /** Clears suggestion list and hides the dropdown. */
         function clearSuggestions() {
             box.innerHTML = "";
             box.style.display = "none";
@@ -1024,6 +1158,10 @@
             activeIndex = -1;
         }
 
+        /**
+         * @param {string} text
+         * @returns {void}
+         */
         function renderMessage(text) {
             box.innerHTML = "";
             var el = document.createElement("div");
@@ -1035,6 +1173,10 @@
             box.style.display = "block";
         }
 
+        /**
+         * @param {Record<string, string>} place API place row.
+         * @returns {string}
+         */
         function pickName(place) {
             if (!place) return "";
             if (lang === "uk") {
@@ -1047,6 +1189,10 @@
             return place.name_en || place.name_uk || place.name_ru || "";
         }
 
+        /**
+         * @param {Record<string, string>} place
+         * @returns {string}
+         */
         function pickOblast(place) {
             if (!place) return "";
             if (lang === "uk") return place.oblast_uk || place.oblast_ru || place.oblast_en || "";
@@ -1054,6 +1200,10 @@
             return place.oblast_en || place.oblast_uk || place.oblast_ru || "";
         }
 
+        /**
+         * @param {Record<string, string>} place
+         * @returns {string}
+         */
         function pickType(place) {
             if (!place) return "";
             var t = "";
@@ -1065,6 +1215,13 @@
             return clientI18n.placeTypeFallback || (lang === "en" ? "settlement" : lang === "uk" ? "населений пункт" : "населённый пункт");
         }
 
+        /**
+         * Renders `text` into `el` with `<mark>` around first case-insensitive `query` match.
+         * @param {HTMLElement} el
+         * @param {string} text
+         * @param {string} query
+         * @returns {void}
+         */
         function highlightMatch(el, text, query) {
             el.textContent = "";
             if (!text) return;
@@ -1087,6 +1244,10 @@
             el.appendChild(document.createTextNode(text.slice(idx + query.length)));
         }
 
+        /**
+         * @param {Array<Record<string, unknown>>} list Places from API.
+         * @returns {void}
+         */
         function renderSuggestions(list) {
             if (!list || !list.length) {
                 renderMessage(t("empty"));
@@ -1150,6 +1311,11 @@
             box.style.display = "block";
         }
 
+        /**
+         * Normalizes `/api/favorites` row into internal list shape.
+         * @param {Record<string, unknown>} it
+         * @returns {object|null}
+         */
         function mapFavoriteAPIItem(it) {
             if (!it || it.id === undefined || it.id === null) return null;
             var nm = it.name || "";
@@ -1164,6 +1330,7 @@
             };
         }
 
+        /** Loads `weather_favorites` ids and renders `/api/favorites` results as suggestions. */
         function showFavoritesInSearch() {
             var ids;
             try {
@@ -1209,6 +1376,11 @@
                 });
         }
 
+        /**
+         * Keyboard highlight for suggestion row `idx` (wraps around).
+         * @param {number} idx
+         * @returns {void}
+         */
         function setActive(idx) {
             if (!items.length) return;
             if (idx < 0) idx = items.length - 1;
@@ -1220,6 +1392,11 @@
             activeIndex = idx;
         }
 
+        /**
+         * Navigates to `/city/…` for known city rows or resolves coords via `/api/find-city`, else `/place/…`.
+         * @param {{ id?: string|number, kind?: string, lat?: number, lon?: number }} place
+         * @returns {Promise<void>}
+         */
         async function goToPlace(place) {
             if (!place || !place.id) return;
 
@@ -1272,6 +1449,11 @@
             window.location.reload();
         }
 
+        /**
+         * Debounced `/api/places` search with abort, VIP boosting, and relevance sort.
+         * @param {string} q
+         * @returns {Promise<void>}
+         */
         async function fetchSuggestions(q) {
             var requestId = ++lastRequestId;
 
@@ -1345,6 +1527,10 @@
                     vipSet[vipCities[vi]] = true;
                 }
 
+                /**
+                 * @param {Record<string, unknown>} p
+                 * @returns {boolean}
+                 */
                 function placeIsVip(p) {
                     if (!p) return false;
                     var names = [pickName(p), p.name_ru, p.name_uk, p.name_en];
@@ -1491,6 +1677,9 @@
     })();
 
     // Favorites and recent cities blocks on index page
+    /**
+     * Persists structured favorites/recent in `localStorage` and renders rails on the index page.
+     */
     (function initFavoritesAndRecent() {
         var favRoot = document.getElementById("js-favorites-list");
         var recentRoot = document.getElementById("js-recent-list");
@@ -1500,6 +1689,10 @@
         var FAVORITES_KEY = "weather:favorites:v1";
         var RECENT_KEY = "weather:recent:v1";
 
+        /**
+         * @param {string} key
+         * @returns {Array<{id: number}>}
+         */
         function readList(key) {
             try {
                 var raw = localStorage.getItem(key);
@@ -1512,6 +1705,11 @@
             }
         }
 
+        /**
+         * @param {string} key
+         * @param {unknown[]} items
+         * @returns {void}
+         */
         function saveList(key, items) {
             try {
                 localStorage.setItem(key, JSON.stringify(items));
@@ -1520,6 +1718,12 @@
             }
         }
 
+        /**
+         * Pushes `place` to the front of the list by numeric id (deduped).
+         * @param {Array<{id: number}>} items
+         * @param {{ id: string|number, name_uk?: string, name_ru?: string, name_en?: string, oblast_uk?: string, oblast_ru?: string, oblast_en?: string }} place
+         * @returns {Array<{id: number}>}
+         */
         function upsert(items, place) {
             if (!place || !place.id) return items;
             var id = Number(place.id);
@@ -1536,11 +1740,21 @@
             return next;
         }
 
+        /**
+         * @param {Array<{id: number}>} items
+         * @param {string|number} id
+         * @returns {Array<{id: number}>}
+         */
         function removeById(items, id) {
             var num = Number(id);
             return items.filter(function (p) { return p.id !== num; });
         }
 
+        /**
+         * @param {{ name_uk?: string, name_ru?: string, name_en?: string }} p
+         * @param {string} l
+         * @returns {string}
+         */
         function chooseName(p, l) {
             if (!p) return "";
             if (l === "uk") return p.name_uk || p.name_ru || p.name_en || "";
@@ -1548,6 +1762,11 @@
             return p.name_en || p.name_uk || p.name_ru || "";
         }
 
+        /**
+         * @param {string|number} id Place id.
+         * @param {string} l Lang query.
+         * @returns {Promise<object|null>}
+         */
         async function fetchPlaceWeather(id, l) {
             try {
                 var url = "/api/place_weather?id=" + encodeURIComponent(String(id));
@@ -1560,6 +1779,7 @@
             }
         }
 
+        /** Renders favorite place cards with live `/api/place_weather` data. */
         async function renderFavorites() {
             if (!favRoot) return;
             var items = readList(FAVORITES_KEY);
@@ -1632,6 +1852,7 @@
             favRoot.appendChild(cards);
         }
 
+        /** Renders up to 8 recent place cards (same layout as favorites). */
         async function renderRecent() {
             if (!recentRoot) return;
             var items = readList(RECENT_KEY);
@@ -1682,6 +1903,7 @@
             recentRoot.appendChild(cards);
         }
 
+        /** Seeds default favorites via `/api/places` when the list is empty (first visit). */
         async function bootstrapFavorites() {
             var items = readList(FAVORITES_KEY);
             if (items.length) return;
@@ -1741,6 +1963,9 @@
     })();
 
     // Homepage: load more / collapse city cards (4 initial, +8 per click)
+    /**
+     * Progressive disclosure for static city grid on marketing/home sections.
+     */
     (function initCitiesListExpand() {
         var grid = document.getElementById("js-cities-grid");
         var btn = document.getElementById("js-cities-toggle");
@@ -1765,6 +1990,7 @@
             typeof window.matchMedia === "function" &&
             window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+        /** Applies `city-card--list-hidden` based on `visible` count. */
         function syncVisibility() {
             for (var i = 0; i < total; i++) {
                 if (i < visible) {
@@ -1776,6 +2002,7 @@
             }
         }
 
+        /** Sets toggle button text and `aria-expanded` for show-more / show-less. */
         function updateLabel() {
             if (visible >= total) {
                 btn.textContent = labelLess;
@@ -1825,6 +2052,10 @@
     })();
 
     // Избранные города (canonical city id) — делегирование + восстановление звезды после перезагрузки.
+    /**
+     * Reads legacy `weather_favorites` localStorage (string ids for `/api/favorites`).
+     * @returns {string[]}
+     */
     function parseWeatherFavoritesArray() {
         try {
             var parsed = JSON.parse(localStorage.getItem("weather_favorites") || "[]");
@@ -1834,6 +2065,10 @@
         }
     }
 
+    /**
+     * @param {Element} btn Favorite toggle element.
+     * @returns {string} City slug or numeric place id.
+     */
     function resolveFavoriteCityId(btn) {
         let cityId = btn.getAttribute("data-city-id");
         if (!cityId || cityId.trim() === "") {
@@ -1872,6 +2107,7 @@
         }
     });
 
+    /** Restores star UI from `weather_favorites` on city/place pages. */
     function initFavoriteState() {
         const btn = document.querySelector("#js-toggle-favorite");
         if (!btn) return;
@@ -1891,6 +2127,15 @@
         initFavoriteState();
     }
 
+    /**
+     * Appends one favorite/recent card to the index horizontal rail.
+     * @param {HTMLElement} rail
+     * @param {{ kind?: string, id: string, name?: string, icon?: string, temperature?: number, description?: string, windSpeed?: number, humidity?: number, weatherUnavailable?: boolean }} item
+     * @param {string} lang
+     * @param {string} windLabel
+     * @param {string} humLabel
+     * @returns {void}
+     */
     function appendFavoriteCardHome(rail, item, lang, windLabel, humLabel) {
         var a = document.createElement("a");
         if (item.kind === "place") {
@@ -1975,6 +2220,10 @@
         rail.appendChild(a);
     }
 
+    /**
+     * Fills `#js-favorites-rail` from `weather_favorites` + `/api/favorites` on the index hero rail.
+     * @returns {void}
+     */
     function loadFavorites() {
         var rail = document.getElementById("js-favorites-rail");
         var emptyEl = document.getElementById("js-no-favorites");
@@ -2040,6 +2289,10 @@
 })();
 
 // --- Drag-to-Scroll для почасового прогноза ---
+/**
+ * Enables mouse-drag horizontal scroll on the hourly forecast strip (`.hourly-scroll` or fallbacks).
+ * @returns {void}
+ */
 function initDragToScroll() {
     var slider =
         document.querySelector(".hourly-scroll") ||

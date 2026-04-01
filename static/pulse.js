@@ -1,3 +1,7 @@
+/**
+ * @file Secret "knock" UI: five quick clicks on the header brand open a monospace overlay that polls `/api/pulse`.
+ * @module pulse
+ */
 (function () {
     "use strict";
 
@@ -10,6 +14,7 @@
     var outputEl = null;
     var pollTimer = null;
 
+    /** Clears knock counter and pending navigation timeout. */
     function resetKnockState() {
         knockCount = 0;
         if (clickResetTimer) {
@@ -18,6 +23,11 @@
         }
     }
 
+    /**
+     * Renders Go runtime stats from `/api/pulse` into the overlay `<pre>`.
+     * @param {Record<string, unknown>|null|undefined} data Parsed JSON body.
+     * @returns {void}
+     */
     function renderPulse(data) {
         if (!outputEl) return;
         var goroutines = data && data.goroutines != null ? data.goroutines : "n/a";
@@ -47,6 +57,10 @@
         outputEl.textContent = lines.join("\n");
     }
 
+    /**
+     * @param {string} errText Human-readable error message.
+     * @returns {void}
+     */
     function renderError(errText) {
         if (!outputEl) return;
         outputEl.textContent = [
@@ -56,6 +70,7 @@
         ].join("\n");
     }
 
+    /** Stops the 1s `setInterval` used to poll `/api/pulse`. */
     function stopPolling() {
         if (pollTimer) {
             clearInterval(pollTimer);
@@ -63,6 +78,7 @@
         }
     }
 
+    /** Removes overlay DOM and stops polling. */
     function closeDashboard() {
         stopPolling();
         if (overlayEl && overlayEl.parentNode) {
@@ -72,6 +88,10 @@
         outputEl = null;
     }
 
+    /**
+     * Fetches `/api/pulse` and updates the overlay; non-OK responses become `renderError`.
+     * @returns {void}
+     */
     function fetchPulse() {
         fetch("/api/pulse", { method: "GET" })
             .then(function (res) {
@@ -86,6 +106,10 @@
             });
     }
 
+    /**
+     * Builds the full-screen terminal-style overlay and starts polling.
+     * @returns {void}
+     */
     function openDashboard() {
         if (overlayEl) return;
 
@@ -142,11 +166,17 @@
         pollTimer = setInterval(fetchPulse, 1000);
     }
 
+    /** Opens the dashboard if not already open (idempotent). */
     function togglePulseDashboard() {
         if (document.getElementById("pulse-dashboard")) return;
         openDashboard();
     }
 
+    /**
+     * Intercepts brand link: counts rapid clicks; on 5th opens pulse, else after gap follows the real `href`.
+     * @param {MouseEvent} e Click event from `.header-brand a.brand-link`.
+     * @returns {void}
+     */
     function onBrandClick(e) {
         e.preventDefault();
         knockCount += 1;
@@ -168,6 +198,7 @@
         }, MAX_GAP_MS);
     }
 
+    /** Attaches `onBrandClick` to the header brand anchor if present. */
     function initPulseSecretKnock() {
         var brand = document.querySelector(".header-brand a.brand-link");
         if (!brand) return;

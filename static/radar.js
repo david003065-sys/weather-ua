@@ -1,4 +1,8 @@
-document.addEventListener("DOMContentLoaded", function () {
+/**
+ * @file Leaflet + Carto dark basemap with optional RainViewer radar overlay (last past frame).
+ * Expects `#weather-radar-map` with optional `data-lat` / `data-lon` and global `L` from Leaflet.
+ */
+document.addEventListener("DOMContentLoaded", function initWeatherRadarMap() {
     var container = document.getElementById("weather-radar-map");
     if (!container) return;
     if (typeof window.L === "undefined") return;

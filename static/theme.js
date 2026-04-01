@@ -1,3 +1,7 @@
+/**
+ * @file Light/dark/auto theme from `localStorage`, SSR payload (`#__WEATHER__`), and sun times for auto mode.
+ * Exposes `window.__theme` for imperative updates.
+ */
 (function () {
     var NIGHT_FALLBACK_START = 20; // 20:00
     var NIGHT_FALLBACK_END = 6;    // 06:00
@@ -31,6 +35,10 @@
         }
     } catch (_) {}
 
+    /**
+     * Parses embedded JSON from `#__WEATHER__` once; returns `{}` on missing/invalid data.
+     * @returns {Record<string, unknown>}
+     */
     function readPayload() {
         if (payload !== null) return payload;
         var el = document.getElementById("__WEATHER__");
@@ -47,6 +55,9 @@
         return payload;
     }
 
+    /**
+     * @returns {"light"|"dark"|"auto"} Persisted mode or default `"dark"` on first visit.
+     */
     function getThemeMode() {
         try {
             var v = localStorage.getItem(THEME_KEY);
@@ -56,12 +67,21 @@
         return "dark";
     }
 
+    /**
+     * @param {string} mode One of `light`, `dark`, `auto`.
+     * @returns {void}
+     */
     function saveThemeMode(mode) {
         try {
             localStorage.setItem(THEME_KEY, mode);
         } catch (_) {}
     }
 
+    /**
+     * Applies `data-theme`, body classes, theme-color meta, and dispatches `weather-theme-change`.
+     * @param {"light"|"dark"} theme Resolved visual theme (not `auto`).
+     * @returns {void}
+     */
     function setBodyThemeClass(theme) {
         var body = document.body;
         var root = document.documentElement;
@@ -82,6 +102,11 @@
         body.classList.add(isDark ? "theme-dark" : "theme-light");
     }
 
+    /**
+     * Local "now" for the current city using UTC offset from payload meta when available.
+     * @param {{ offsetSeconds?: number }} [meta]
+     * @returns {Date}
+     */
     function computeCityNow(meta) {
         var now = new Date();
         var offsetSeconds = meta && typeof meta.offsetSeconds === "number" ? meta.offsetSeconds : null;
@@ -94,6 +119,10 @@
         return new Date(cityMs);
     }
 
+    /**
+     * Sets light/dark from sun times in payload or clock fallback (20:00–06:00), then schedules next switch.
+     * @returns {void}
+     */
     function applyAutoTheme() {
         var data = readPayload();
         var sun = data && data.sun ? data.sun : {};
@@ -120,6 +149,13 @@
         scheduleNextAutoSwitch(cityNow, sunriseMinutes, sunsetMinutes);
     }
 
+    /**
+     * Schedules `applyAutoTheme` at the next sunrise/sunset boundary (or every 30 min if times missing).
+     * @param {Date} cityNow
+     * @param {number|null} sunriseMinutes Minutes from midnight for sunrise.
+     * @param {number|null} sunsetMinutes Minutes from midnight for sunset.
+     * @returns {void}
+     */
     function scheduleNextAutoSwitch(cityNow, sunriseMinutes, sunsetMinutes) {
         if (autoTimerId) {
             clearTimeout(autoTimerId);
@@ -152,6 +188,10 @@
         autoTimerId = setTimeout(applyAutoTheme, diffMinutes * 60 * 1000);
     }
 
+    /**
+     * @param {"light"|"dark"|"auto"} mode
+     * @returns {void}
+     */
     function applyThemeMode(mode) {
         if (mode === "light") {
             if (autoTimerId) {
@@ -171,6 +211,11 @@
         syncThemeControls(mode);
     }
 
+    /**
+     * Highlights the active `.theme-switch__item` matching `data-theme-mode`.
+     * @param {string} mode
+     * @returns {void}
+     */
     function syncThemeControls(mode) {
         var items = document.querySelectorAll(".theme-switch__item");
         if (!items) return;
@@ -183,6 +228,7 @@
         });
     }
 
+    /** Binds theme switch buttons and applies stored mode on load. */
     function initThemeControls() {
         var items = document.querySelectorAll(".theme-switch__item");
         if (items && items.length) {
@@ -198,9 +244,13 @@
         applyThemeMode(mode);
     }
 
-    // expose small API if нужно вызывать извне
+    /**
+     * Imperative theme API for other scripts.
+     * @type {{ getMode: typeof getThemeMode, setMode: function(string): void, applyAuto: typeof applyAutoTheme }}
+     */
     window.__theme = {
         getMode: getThemeMode,
+        /** @param {string} mode */
         setMode: function (mode) {
             saveThemeMode(mode);
             applyThemeMode(mode);
