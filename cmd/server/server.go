@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"html/template"
 	"log"
 	"net/http"
@@ -118,6 +119,8 @@ func Run() error {
 		srv := handlers.NewServer(tmpl, weatherClient, nil, logger)
 		srvPtr.Store(srv)
 		logger.Printf("core server dependencies are ready")
+
+		go weatherClient.WarmCache(context.Background())
 
 		// Heavy: open SQLite / load FTS indexes.
 		const placesRelPath = "data/places.db"
