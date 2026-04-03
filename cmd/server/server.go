@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"bss/internal/handlers"
+	"bss/internal/middleware"
 	"bss/internal/places"
 	"bss/internal/weather"
+
+	"golang.org/x/time/rate"
 )
 
 func Run() error {
@@ -36,6 +39,16 @@ func Run() error {
 		}
 	}
 
+	// Per-IP: 10 req/min (burst 10), global: 60 req/min (burst 60).
+	apiRL := middleware.NewRateLimiter(rate.Every(time.Minute/10), 10, rate.Every(time.Minute/60), 60, 5*time.Minute)
+	apiRL.StartCleanup(5*time.Minute, make(chan struct{}))
+	logger.Printf("api rate limiter: per-ip 10/min, global 60/min")
+
+	apiRoute := func(h func(*handlers.Server, http.ResponseWriter, *http.Request)) http.Handler {
+		return apiRL.WrapFunc(readyOr503(h))
+	}
+
+	// SSR pages — no rate limit.
 	mux.HandleFunc("/", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.Index(w, r)
 	}))
@@ -45,29 +58,31 @@ func Run() error {
 	mux.HandleFunc("/place/", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.Place(w, r)
 	}))
-	mux.HandleFunc("/api/weather/", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.APIWeather(w, r)
-	}))
-	mux.HandleFunc("/api/place_weather", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.APIPlaceWeather(w, r)
-	}))
-	mux.HandleFunc("/api/favorites", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.APIFavorites(w, r)
-	}))
-	mux.HandleFunc("/api/places", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.PlacesSuggest(w, r)
-	}))
-	mux.HandleFunc("/api/find-city", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.APIFindCity(w, r)
-	}))
-	mux.HandleFunc("/api/pulse", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
-		s.HandlePulse(w, r)
-	}))
 	mux.HandleFunc("/geo", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.GeoRedirect(w, r)
 	}))
 	mux.HandleFunc("/weather/geo", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.GeoRedirect(w, r)
+	}))
+
+	// API routes — rate limited.
+	mux.Handle("/api/weather/", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.APIWeather(w, r)
+	}))
+	mux.Handle("/api/place_weather", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.APIPlaceWeather(w, r)
+	}))
+	mux.Handle("/api/favorites", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.APIFavorites(w, r)
+	}))
+	mux.Handle("/api/places", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.PlacesSuggest(w, r)
+	}))
+	mux.Handle("/api/find-city", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.APIFindCity(w, r)
+	}))
+	mux.Handle("/api/pulse", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.HandlePulse(w, r)
 	}))
 
 	fileServer := http.FileServer(http.Dir("static"))
