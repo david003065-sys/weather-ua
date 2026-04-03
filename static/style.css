@@ -561,7 +561,7 @@ html[data-theme="light"] .weather-source-badge {
     color: var(--text-main);
 }
 
-/* Контейнер 5 дней */
+/* Контейнер дневного прогноза (3 дня) */
 .city-daily-scroll {
     width: 100% !important;
     max-width: 100% !important;
@@ -586,7 +586,7 @@ html[data-theme="light"] .weather-source-badge {
     box-sizing: border-box !important;
 }
 
-/* Мобильный скролл для 5 дней */
+/* Мобильный скролл для дневных карточек */
 @media (max-width: 600px) {
     .city-daily-scroll {
         display: flex !important;
@@ -1025,7 +1025,7 @@ html[data-theme="dark"] .weather-app * {
     }
 }
 
-/* Синхронизация ширины: 5 дней + график тренда (общая колонка на десктопе) */
+/* Синхронизация ширины: дневной прогноз + график тренда (общая колонка на десктопе) */
 .city-daily-scroll,
 .js-trend-chart-wrap.chart-card.atmo-chart {
     width: 100% !important;
