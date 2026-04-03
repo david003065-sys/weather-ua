@@ -547,7 +547,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// hourly view (first 12 hours)
+	// hourly view (next 24 hours)
 	hourly := make([]HourlyView, 0, len(data.Hourly))
 	for _, h := range data.Hourly {
 		hourly = append(hourly, HourlyView{
@@ -685,6 +685,7 @@ type apiHourly struct {
 	ApparentTemperature float64 `json:"apparent_temperature"`
 	Description         string  `json:"description"`
 	Icon                string  `json:"icon"`
+	PrecipChance        int     `json:"precip_chance"`
 }
 
 // fillAPIHourlyPayload заполняет hourly для JSON (/api/weather и /api/place_weather).
@@ -698,6 +699,7 @@ func fillAPIHourlyPayload(resp *apiWeatherResponse, data *weather.WeatherData, l
 			ApparentTemperature: h.FeelsLike,
 			Description:         i18n.WeatherDescription(h.WeatherCode, lang),
 			Icon:                h.Icon,
+			PrecipChance:        h.PrecipChance,
 		})
 	}
 }

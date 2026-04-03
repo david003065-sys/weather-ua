@@ -46,6 +46,8 @@ type Hourly struct {
 	WeatherCode int
 	Description string
 	Icon        string
+	// PrecipChance — вероятность осадков (%) для данного часа, max(rain,snow). -1 если недоступно.
+	PrecipChance int
 }
 
 type WeatherData struct {

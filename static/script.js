@@ -300,30 +300,23 @@
     }
 
     /**
-     * Hourly temperature sparkline (Chart.js) built from `.hourly-item` nodes under `#js-hourly-scroll`.
+     * 24-hour temperature chart (Chart.js) built from `.hourly-item` nodes under `#js-hourly-scroll`.
+     * Shows X-axis labels every 3 hours, a shaded night zone (22:00-06:00), and rich tooltips.
      * @returns {void}
      */
     function renderTempChart() {
         const canvas = document.getElementById("js-temp-chart");
-        if (!canvas) {
-            console.error("ОШИБКА: Холст #js-temp-chart не найден на странице!");
-            return;
-        }
-        if (typeof Chart === "undefined") {
-            console.error("ОШИБКА: Библиотека Chart.js не загрузилась!");
-            return;
-        }
-        console.log("Canvas найден, Chart.js готов. Собираем данные...");
+        if (!canvas) return;
+        if (typeof Chart === "undefined") return;
 
         const scroll = document.getElementById("js-hourly-scroll");
-        if (!scroll) {
-            console.error("ОШИБКА: Контейнер #js-hourly-scroll не найден.");
-            return;
-        }
+        if (!scroll) return;
 
         const items = scroll.querySelectorAll(".hourly-item");
         const labels = [];
-        const data = [];
+        const temps = [];
+        const icons = [];
+        const precipChances = [];
         for (let i = 0; i < items.length; i++) {
             const timeEl = items[i].querySelector(".hourly-item__time");
             const tempEl = items[i].querySelector(".hourly-item__temp");
@@ -339,18 +332,38 @@
             const n = parseFloat(raw.replace(",", "."));
             if (Number.isNaN(n)) continue;
             labels.push(lab);
-            data.push(n);
+            temps.push(n);
+            icons.push(items[i].getAttribute("data-icon") || "");
+            var pc = parseInt(items[i].getAttribute("data-precip"), 10);
+            precipChances.push(Number.isNaN(pc) ? -1 : pc);
         }
 
         const existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
-        if (existing) {
-            existing.destroy();
-        }
+        if (existing) existing.destroy();
+        if (!labels.length) return;
 
-        if (!labels.length) {
-            console.warn("renderTempChart: нет почасовых точек в DOM (ожидается загрузка API).");
-            return;
-        }
+        /** Inline plugin: shaded rectangles for night hours (22:00–06:00). */
+        var nightShadePlugin = {
+            id: "nightShade",
+            beforeDraw: function (chart) {
+                var xScale = chart.scales.x;
+                var yScale = chart.scales.y;
+                if (!xScale || !yScale) return;
+                var ctx = chart.ctx;
+                ctx.save();
+                ctx.fillStyle = "rgba(0,0,0,0.12)";
+                for (var i = 0; i < labels.length; i++) {
+                    var hh = parseInt(labels[i], 10);
+                    if (Number.isNaN(hh)) continue;
+                    if (hh >= 22 || hh < 6) {
+                        var x0 = i === 0 ? xScale.left : (xScale.getPixelForValue(i - 1) + xScale.getPixelForValue(i)) / 2;
+                        var x1 = i === labels.length - 1 ? xScale.right : (xScale.getPixelForValue(i) + xScale.getPixelForValue(i + 1)) / 2;
+                        ctx.fillRect(x0, yScale.top, x1 - x0, yScale.bottom - yScale.top);
+                    }
+                }
+                ctx.restore();
+            }
+        };
 
         new Chart(canvas, {
             type: "line",
@@ -358,26 +371,55 @@
                 labels: labels,
                 datasets: [
                     {
-                        data: data,
+                        data: temps,
                         borderColor: "rgba(255,255,255,0.8)",
                         backgroundColor: "rgba(255,255,255,0.08)",
                         borderWidth: 2,
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 3,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
                         pointBackgroundColor: "rgba(255,255,255,0.9)",
                         pointBorderColor: "rgba(255,255,255,0.5)"
                     }
                 ]
             },
+            plugins: [nightShadePlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: "index", intersect: false },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function (ctx) {
+                                return ctx[0].label || "";
+                            },
+                            label: function (ctx) {
+                                var idx = ctx.dataIndex;
+                                var line = Math.round(ctx.parsed.y) + "°";
+                                if (icons[idx]) line = icons[idx] + " " + line;
+                                if (precipChances[idx] >= 0) line += "  💧" + precipChances[idx] + "%";
+                                return line;
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    x: { display: false },
+                    x: {
+                        display: true,
+                        ticks: {
+                            color: "rgba(255,255,255,0.5)",
+                            font: { size: 10 },
+                            maxRotation: 0,
+                            callback: function (val, idx) {
+                                var hh = parseInt(labels[idx], 10);
+                                return hh % 3 === 0 ? labels[idx] : "";
+                            }
+                        },
+                        grid: { display: false }
+                    },
                     y: { display: false }
                 }
             }
@@ -401,6 +443,9 @@
 
                 var item = document.createElement("div");
                 item.className = "hourly-item" + (i === 0 ? " hourly-item--now" : "");
+                if (h.precip_chance != null) item.setAttribute("data-precip", String(h.precip_chance));
+                if (h.icon) item.setAttribute("data-icon", h.icon);
+                if (h.description) item.setAttribute("data-desc", h.description);
 
                 var timeEl = document.createElement("div");
                 timeEl.className = "hourly-item__time";
@@ -425,9 +470,7 @@
             }
         }
 
-        // Отрисовываем график только после того, как DOM наполнился данными
         if (typeof renderTempChart === "function") {
-            // Небольшая задержка, чтобы браузер успел отрисовать элементы
             setTimeout(renderTempChart, 50);
         }
         if (typeof initDragToScroll === "function") {

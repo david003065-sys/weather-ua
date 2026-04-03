@@ -758,13 +758,15 @@ type weatherAPIForecastDay struct {
 }
 
 type weatherAPIHour struct {
-	TimeEpoch  int64   `json:"time_epoch"`
-	Time       string  `json:"time"`
-	TempC      float64 `json:"temp_c"`
-	FeelslikeC float64 `json:"feelslike_c"`
-	PrecipMM   float64 `json:"precip_mm"`
-	SnowCM     float64 `json:"snow_cm"`
-	Condition  struct {
+	TimeEpoch    int64   `json:"time_epoch"`
+	Time         string  `json:"time"`
+	TempC        float64 `json:"temp_c"`
+	FeelslikeC   float64 `json:"feelslike_c"`
+	PrecipMM     float64 `json:"precip_mm"`
+	SnowCM       float64 `json:"snow_cm"`
+	ChanceOfRain int     `json:"chance_of_rain,string"`
+	ChanceOfSnow int     `json:"chance_of_snow,string"`
+	Condition    struct {
 		Code int `json:"code"`
 	} `json:"condition"`
 }
@@ -912,16 +914,21 @@ func parseAstroTime(dateISO, clock string, loc *time.Location) time.Time {
 
 func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLocal time.Time) []Hourly {
 	type slot struct {
-		t    time.Time
-		tmp  float64
-		feel float64
-		wa   int
+		t     time.Time
+		tmp   float64
+		feel  float64
+		wa    int
+		pctRn int
+		pctSn int
 	}
 	var slots []slot
 	for _, fd := range days {
 		for _, h := range fd.Hour {
 			t := time.Unix(h.TimeEpoch, 0).In(loc)
-			slots = append(slots, slot{t: t, tmp: h.TempC, feel: h.FeelslikeC, wa: h.Condition.Code})
+			slots = append(slots, slot{
+				t: t, tmp: h.TempC, feel: h.FeelslikeC, wa: h.Condition.Code,
+				pctRn: h.ChanceOfRain, pctSn: h.ChanceOfSnow,
+			})
 		}
 	}
 	if len(slots) == 0 {
@@ -937,14 +944,14 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 			startIdx = i
 		}
 	}
-	n := 12
+	const target = 24
+	n := target
 	if startIdx+n > len(slots) {
 		n = len(slots) - startIdx
 	}
-	// Если «сейчас» оказалось после последнего слота API (редкий сдвиг TZ/времени) — показываем с начала суток прогноза.
 	if n <= 0 {
 		startIdx = 0
-		n = 12
+		n = target
 		if n > len(slots) {
 			n = len(slots)
 		}
@@ -956,13 +963,18 @@ func buildHourlySeries(days []weatherAPIForecastDay, loc *time.Location, nowLoca
 	for i := 0; i < n; i++ {
 		s := slots[startIdx+i]
 		wmo := mapWeatherAPICodeToWMO(s.wa)
+		pc := s.pctRn
+		if s.pctSn > pc {
+			pc = s.pctSn
+		}
 		out = append(out, Hourly{
-			Time:        s.t,
-			Temperature: s.tmp,
-			FeelsLike:   s.feel,
-			WeatherCode: wmo,
-			Description: "",
-			Icon:        i18n.WeatherIcon(wmo),
+			Time:         s.t,
+			Temperature:  s.tmp,
+			FeelsLike:    s.feel,
+			WeatherCode:  wmo,
+			Description:  "",
+			Icon:         i18n.WeatherIcon(wmo),
+			PrecipChance: pc,
 		})
 	}
 	return out
