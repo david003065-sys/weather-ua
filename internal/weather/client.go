@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,25 +65,155 @@ type Client struct {
 	cache map[string]CachedWeather
 
 	sf singleflight.Group
+
+	persistCh chan struct{} // non-blocking signal to flush cache to disk
 }
 
 func NewClient(cacheTTL, timeout time.Duration) *Client {
 	if cacheTTL <= 0 {
 		cacheTTL = cacheTTLDefault
 	}
-	return &Client{
+	c := &Client{
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
-		cacheTTL: cacheTTL,
-		cache:    make(map[string]CachedWeather),
+		cacheTTL:  cacheTTL,
+		cache:     make(map[string]CachedWeather),
+		persistCh: make(chan struct{}, 1),
 	}
+	c.loadCacheFromDisk()
+	go c.persistLoop()
+	return c
 }
 
 // SetLogger задаёт логгер для сообщений кэша.
 func (c *Client) SetLogger(l Logger) {
 	c.logger = l
 }
+
+// ── disk persistence ──
+
+const diskCacheMaxAge = 60 * time.Minute
+
+type diskCacheEntry struct {
+	Data      *WeatherData `json:"data"`
+	Timestamp time.Time    `json:"timestamp"`
+}
+
+// loadCacheFromDisk restores valid entries from the JSON file written by persistCacheToDisk.
+func (c *Client) loadCacheFromDisk() {
+	path := weatherCacheFilePath()
+	f, err := os.Open(path)
+	if err != nil {
+		return // file not found — normal on first run
+	}
+	defer f.Close()
+
+	var entries map[string]diskCacheEntry
+	if err := json.NewDecoder(f).Decode(&entries); err != nil {
+		if c.logger != nil {
+			c.logger.Printf("disk cache load: json decode failed: %v", err)
+		}
+		return
+	}
+
+	now := time.Now()
+	loaded := 0
+	c.mu.Lock()
+	for k, e := range entries {
+		if e.Data == nil || now.Sub(e.Timestamp) > diskCacheMaxAge {
+			continue
+		}
+		c.cache[k] = CachedWeather{
+			Data:      e.Data,
+			Timestamp: e.Timestamp,
+			IsValid:   true,
+		}
+		loaded++
+	}
+	c.mu.Unlock()
+
+	if c.logger != nil {
+		c.logger.Printf("disk cache loaded: %d entries from %s (skipped %d stale)", loaded, path, len(entries)-loaded)
+	}
+}
+
+// persistCacheToDisk writes the current cache snapshot atomically (tmp + rename).
+func (c *Client) persistCacheToDisk() {
+	path := weatherCacheFilePath()
+
+	c.mu.RLock()
+	snapshot := make(map[string]diskCacheEntry, len(c.cache))
+	now := time.Now()
+	for k, e := range c.cache {
+		if e.Data == nil || !e.IsValid || now.Sub(e.Timestamp) > diskCacheMaxAge {
+			continue
+		}
+		snapshot[k] = diskCacheEntry{Data: e.Data, Timestamp: e.Timestamp}
+	}
+	c.mu.RUnlock()
+
+	if len(snapshot) == 0 {
+		return
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		if c.logger != nil {
+			c.logger.Printf("disk cache persist: mkdir failed: %v", err)
+		}
+		return
+	}
+
+	tmp := path + ".tmp"
+	f, err := os.Create(tmp)
+	if err != nil {
+		if c.logger != nil {
+			c.logger.Printf("disk cache persist: create tmp failed: %v", err)
+		}
+		return
+	}
+
+	if err := json.NewEncoder(f).Encode(snapshot); err != nil {
+		f.Close()
+		os.Remove(tmp)
+		if c.logger != nil {
+			c.logger.Printf("disk cache persist: encode failed: %v", err)
+		}
+		return
+	}
+	f.Close()
+
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		if c.logger != nil {
+			c.logger.Printf("disk cache persist: rename failed: %v", err)
+		}
+		return
+	}
+
+	if c.logger != nil {
+		c.logger.Printf("disk cache persisted: %d entries to %s", len(snapshot), path)
+	}
+}
+
+// schedulePersist sends a non-blocking signal to the background persist loop.
+func (c *Client) schedulePersist() {
+	select {
+	case c.persistCh <- struct{}{}:
+	default: // already scheduled
+	}
+}
+
+// persistLoop coalesces persist signals so rapid writes only flush once per second.
+func (c *Client) persistLoop() {
+	for range c.persistCh {
+		time.Sleep(time.Second) // coalesce burst writes
+		c.persistCacheToDisk()
+	}
+}
+
+// ── end disk persistence ──
 
 func normalizeCacheKey(key string) string {
 	return strings.ToLower(strings.TrimSpace(key))
@@ -267,6 +398,8 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 		LastError: "",
 	}
 	c.mu.Unlock()
+
+	c.schedulePersist()
 
 	if c.logger != nil {
 		c.logger.Printf("cache store success key=%s", cacheKey)

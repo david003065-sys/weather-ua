@@ -10,9 +10,11 @@ import (
 
 // Переменные окружения для выбора провайдера и ключа.
 const (
-	EnvWeatherAPIProvider = "WEATHER_API_PROVIDER"
-	EnvWeatherAPIKey      = "WEATHERAPI_KEY"
-	EnvWeatherAPIBaseURL  = "WEATHERAPI_BASE_URL"
+	EnvWeatherAPIProvider  = "WEATHER_API_PROVIDER"
+	EnvWeatherAPIKey       = "WEATHERAPI_KEY"
+	EnvWeatherAPIBaseURL   = "WEATHERAPI_BASE_URL"
+	EnvWeatherCacheFile    = "WEATHER_CACHE_FILE"
+	defaultWeatherCacheFile = "data/weather_cache.json"
 )
 
 const (
@@ -79,6 +81,13 @@ func logMissingAPIKeyOnce(logger Logger) {
 	logMissingKeyOnce.Do(func() {
 		logger.Printf("weather provider key missing: set %s (or put it in .env for local dev)", EnvWeatherAPIKey)
 	})
+}
+
+func weatherCacheFilePath() string {
+	if p := getenvWithDotEnv(EnvWeatherCacheFile); p != "" {
+		return p
+	}
+	return defaultWeatherCacheFile
 }
 
 // providerReady returns false when configured provider cannot serve requests.
