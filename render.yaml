@@ -3,8 +3,9 @@ services:
     name: weather-ua
     env: go
     # Если data/places.db уже в репозитории — первая команда пропускается (sh -c с test).
-    buildCommand: sh -c 'test -f data/places.db || go run ./cmd/build_db -input "${PLACES_CSV:-data/source/places.csv}" -output data/places.db; go build -o app ./cmd/server'
+    buildCommand: sh -c 'test -f data/places.db || go run ./cmd/build_db -input "${PLACES_CSV:-data/source/places.csv}" -output data/places.db; go test ./... && go build -o app ./cmd/server'
     startCommand: ./app
+    healthCheckPath: /health
     envVars:
       - key: WEATHER_API_PROVIDER
         value: weatherapi
