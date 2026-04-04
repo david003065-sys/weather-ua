@@ -1,12 +1,13 @@
 /**
- * @file Secret "knock" UI: five quick clicks on `.brand-pulse-knock` (thermo logo button) open a monospace overlay that polls `/api/pulse`.
+ * @file Secret "knock" UI: five quick clicks on `#js-pulse-knock` (thermo logo button) open a monospace overlay that polls `/api/pulse`.
  * The home link (`.brand-link`) is separate — normal navigation is not intercepted.
  * @module pulse
  */
 (function () {
     "use strict";
 
-    var MAX_GAP_MS = 400;
+    /** If no further knock click within this window, the knock counter resets. */
+    var KNOCK_RESET_MS = 2000;
     var REQUIRED_KNOCKS = 5;
     var knockCount = 0;
     var clickResetTimer = null;
@@ -15,7 +16,7 @@
     var outputEl = null;
     var pollTimer = null;
 
-    /** Clears knock counter and pending navigation timeout. */
+    /** Clears knock counter and pending reset timer. */
     function resetKnockState() {
         knockCount = 0;
         if (clickResetTimer) {
@@ -197,12 +198,13 @@
         clickResetTimer = setTimeout(function () {
             knockCount = 0;
             clickResetTimer = null;
-        }, MAX_GAP_MS);
+        }, KNOCK_RESET_MS);
     }
 
-    /** Attaches knock handler to the thermo logo button only (not the home link). */
+    /** Attaches knock handler to the thermo logo button (`#js-pulse-knock` in layout.html). */
     function initPulseSecretKnock() {
-        var knockEl = document.querySelector(".brand-pulse-knock");
+        var knockEl =
+            document.getElementById("js-pulse-knock") || document.querySelector("button.brand-pulse-knock");
         if (!knockEl) return;
         knockEl.addEventListener("click", onPulseKnockClick);
     }
