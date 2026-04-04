@@ -68,21 +68,22 @@
     <header class="site-header">
         <div class="shell shell--header">
             <div class="header-brand" style="flex-shrink: 0; display: flex; align-items: center;">
-                <a href="/" class="brand-link" aria-label="{{ .Text.BrandHomeAria }}">
-                    <div class="brand">
-                        <div class="brand-mark" aria-hidden="true">
-                            <div class="brand-thermo">
-                                <div class="brand-thermo__bulb"></div>
-                                <div class="brand-thermo__column"></div>
-                            </div>
+                <div class="brand">
+                    {{/* Thermo logo: button only — pulse.js secret knock (5 clicks); not a link */}}
+                    <button type="button" class="brand-mark brand-pulse-knock" aria-hidden="true" tabindex="-1">
+                        <div class="brand-thermo">
+                            <div class="brand-thermo__bulb"></div>
+                            <div class="brand-thermo__column"></div>
                         </div>
+                    </button>
+                    <a href="/" class="brand-link" aria-label="{{ .Text.BrandHomeAria }}">
                         <span class="brand-icon" aria-hidden="true"></span>
                         <div class="brand-text">
                             <span class="brand-text__label">{{ .Text.BrandTop }}</span>
                             <span class="brand-text__title">{{ .Text.BrandBottom }}</span>
                         </div>
-                    </div>
-                </a>
+                    </a>
+                </div>
             </div>
 
             <div class="header-install">

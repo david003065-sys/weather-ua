@@ -227,6 +227,16 @@ html[data-theme="light"] .geo-btn:hover {
     place-items: center;
 }
 
+button.brand-mark {
+    border: none;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .brand-icon {
     width: 8px;
     height: 8px;
