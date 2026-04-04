@@ -1,6 +1,6 @@
 /**
  * @file Secret "knock" UI: five quick clicks on `#js-pulse-knock` (thermo logo button) open a monospace overlay that polls `/api/pulse`.
- * Clicks on the knock button always call preventDefault/stopPropagation so an adjacent `.brand-link` never receives the gesture.
+ * Knock is detected via delegated capture on `.header-brand` + `closest("#js-pulse-knock")` so the link never sees those clicks.
  * @module pulse
  */
 (function () {
@@ -212,12 +212,16 @@
     }
 
     /**
-     * Counts rapid clicks on the logo button; on the 5th opens pulse.
-     * Every knock calls preventDefault/stopPropagation so the event never reaches a sibling `<a href="/">`.
-     * @param {MouseEvent} e Click from `.brand-pulse-knock` (must stay outside `<a>` in layout).
+     * Handles knock only when the click target is inside `#js-pulse-knock` (delegated from `.header-brand`).
+     * Runs in **capture** on `.header-brand` so the gesture is handled before `<a class="brand-link">` or other scripts.
+     * @param {MouseEvent} e
      * @returns {void}
      */
-    function onPulseKnockClick(e) {
+    function onHeaderBrandClickCapture(e) {
+        if (!e.target || typeof e.target.closest !== "function") return;
+        var knockBtn = e.target.closest("#js-pulse-knock");
+        if (!knockBtn) return;
+
         e.preventDefault();
         e.stopPropagation();
         if (typeof e.stopImmediatePropagation === "function") {
@@ -242,12 +246,12 @@
         }, KNOCK_RESET_MS);
     }
 
-    /** Attaches knock handler in capture phase so it runs before bubbling reaches `.brand-link`. */
+    /** Delegated capture listener on `.header-brand` (stable ancestor of knock + link). */
     function initPulseSecretKnock() {
-        var knockEl =
-            document.getElementById("js-pulse-knock") || document.querySelector("button.brand-pulse-knock");
-        if (!knockEl) return;
-        knockEl.addEventListener("click", onPulseKnockClick, true);
+        var host =
+            document.querySelector(".site-header .header-brand") || document.querySelector(".header-brand");
+        if (!host) return;
+        host.addEventListener("click", onHeaderBrandClickCapture, true);
     }
 
     if (document.readyState === "loading") {
