@@ -518,20 +518,34 @@ func defaultWarmTargets() []WarmTarget {
 	}
 }
 
+const warmCacheRequestDelay = 500 * time.Millisecond
+
 // WarmCache performs background warm-up for popular cities.
+// Waits warmCacheRequestDelay between HTTP calls so bursts do not trigger WeatherAPI 429
+// and the global api cooldown (see blockAPIAfter429).
 func (c *Client) WarmCache(ctx context.Context) {
 	if c.logger != nil {
-		c.logger.Printf("cache warm started")
+		c.logger.Printf("cache warm started (delay %v between requests)", warmCacheRequestDelay)
 	}
 	targets := defaultWarmTargets()
 	success := 0
-	for _, t := range targets {
+	for i, t := range targets {
+		if i > 0 {
+			select {
+			case <-ctx.Done():
+				if c.logger != nil {
+					c.logger.Printf("cache warm cancelled")
+				}
+				return
+			case <-time.After(warmCacheRequestDelay):
+			}
+		}
 		callCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 		data, err := c.GetWeatherForLocation(callCtx, t.Key, t.Name, t.Lat, t.Lon)
 		cancel()
 		if err != nil || data == nil || data.IsFallback {
 			if c.logger != nil {
-				c.logger.Printf("cache warm failed")
+				c.logger.Printf("cache warm skip key=%s: err=%v fallback=%v", t.Key, err, data != nil && data.IsFallback)
 			}
 			continue
 		}
@@ -539,9 +553,9 @@ func (c *Client) WarmCache(ctx context.Context) {
 	}
 	if c.logger != nil {
 		if success > 0 {
-			c.logger.Printf("cache warm success")
+			c.logger.Printf("cache warm finished: %d/%d ok", success, len(targets))
 		} else {
-			c.logger.Printf("cache warm failed")
+			c.logger.Printf("cache warm finished: 0/%d ok", len(targets))
 		}
 	}
 }
@@ -764,8 +778,9 @@ type weatherAPIHour struct {
 	FeelslikeC   float64 `json:"feelslike_c"`
 	PrecipMM     float64 `json:"precip_mm"`
 	SnowCM       float64 `json:"snow_cm"`
-	ChanceOfRain int     `json:"chance_of_rain,string"`
-	ChanceOfSnow int     `json:"chance_of_snow,string"`
+	// WeatherAPI returns these as JSON numbers (not quoted strings).
+	ChanceOfRain int `json:"chance_of_rain"`
+	ChanceOfSnow int `json:"chance_of_snow"`
 	Condition    struct {
 		Code int `json:"code"`
 	} `json:"condition"`

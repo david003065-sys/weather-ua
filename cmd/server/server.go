@@ -40,10 +40,11 @@ func Run() error {
 		}
 	}
 
-	// Per-IP: 10 req/min (burst 10), global: 60 req/min (burst 60).
-	apiRL := middleware.NewRateLimiter(rate.Every(time.Minute/10), 10, rate.Every(time.Minute/60), 60, 5*time.Minute)
+	// Per-IP and global caps apply only to HTTP /api/* — not to in-process weather.WarmCache (direct provider calls).
+	// Slightly relaxed vs original 10/60 so one browser tab opening several API endpoints in parallel is less likely to 429.
+	apiRL := middleware.NewRateLimiter(rate.Every(time.Minute/20), 20, rate.Every(time.Minute/120), 120, 5*time.Minute)
 	apiRL.StartCleanup(5*time.Minute, make(chan struct{}))
-	logger.Printf("api rate limiter: per-ip 10/min, global 60/min")
+	logger.Printf("api rate limiter: per-ip 20/min, global 120/min (WarmCache bypasses this)")
 
 	apiRoute := func(h func(*handlers.Server, http.ResponseWriter, *http.Request)) http.Handler {
 		return apiRL.WrapFunc(readyOr503(h))
