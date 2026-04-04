@@ -15,6 +15,9 @@
     var overlayEl = null;
     var outputEl = null;
     var pollTimer = null;
+    /** Document listeners for closing overlay (removed in closeDashboard). */
+    var pulseDocClickHandler = null;
+    var pulseEscapeHandler = null;
 
     /** Clears knock counter and pending reset timer. */
     function resetKnockState() {
@@ -80,8 +83,20 @@
         }
     }
 
-    /** Removes overlay DOM and stops polling. */
+    function removePulseDocumentListeners() {
+        if (pulseDocClickHandler) {
+            document.removeEventListener("click", pulseDocClickHandler, true);
+            pulseDocClickHandler = null;
+        }
+        if (pulseEscapeHandler) {
+            document.removeEventListener("keydown", pulseEscapeHandler, true);
+            pulseEscapeHandler = null;
+        }
+    }
+
+    /** Removes overlay DOM, stops polling, and detaches document-level close handlers. */
     function closeDashboard() {
+        removePulseDocumentListeners();
         stopPolling();
         if (overlayEl && overlayEl.parentNode) {
             overlayEl.parentNode.removeChild(overlayEl);
@@ -164,6 +179,28 @@
         overlayEl.appendChild(outputEl);
         document.body.appendChild(overlayEl);
 
+        pulseEscapeHandler = function (e) {
+            if (!overlayEl) return;
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            closeDashboard();
+        };
+        document.addEventListener("keydown", pulseEscapeHandler, true);
+
+        setTimeout(function () {
+            var ignoreNextBackdropClick = true;
+            pulseDocClickHandler = function (e) {
+                if (!overlayEl) return;
+                if (overlayEl.contains(e.target)) return;
+                if (ignoreNextBackdropClick) {
+                    ignoreNextBackdropClick = false;
+                    return;
+                }
+                closeDashboard();
+            };
+            document.addEventListener("click", pulseDocClickHandler, true);
+        }, 50);
+
         fetchPulse();
         pollTimer = setInterval(fetchPulse, 1000);
     }
@@ -190,6 +227,9 @@
         if (knockCount >= REQUIRED_KNOCKS) {
             e.preventDefault();
             e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === "function") {
+                e.stopImmediatePropagation();
+            }
             resetKnockState();
             togglePulseDashboard();
             return;
