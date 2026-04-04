@@ -235,6 +235,8 @@ button.brand-mark {
     color: inherit;
     cursor: pointer;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .brand-icon {

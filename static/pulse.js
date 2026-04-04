@@ -1,6 +1,6 @@
 /**
  * @file Secret "knock" UI: five quick clicks on `#js-pulse-knock` (thermo logo button) open a monospace overlay that polls `/api/pulse`.
- * The home link (`.brand-link`) is separate — normal navigation is not intercepted.
+ * Clicks on the knock button always call preventDefault/stopPropagation so an adjacent `.brand-link` never receives the gesture.
  * @module pulse
  */
 (function () {
@@ -213,11 +213,17 @@
 
     /**
      * Counts rapid clicks on the logo button; on the 5th opens pulse.
-     * `preventDefault` / `stopPropagation` run only on the 5th click (no navigation side effects on 1–4).
-     * @param {MouseEvent} e Click from `.brand-pulse-knock` (type=button, not inside `<a>`).
+     * Every knock calls preventDefault/stopPropagation so the event never reaches a sibling `<a href="/">`.
+     * @param {MouseEvent} e Click from `.brand-pulse-knock` (must stay outside `<a>` in layout).
      * @returns {void}
      */
     function onPulseKnockClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+        }
+
         knockCount += 1;
         if (clickResetTimer) {
             clearTimeout(clickResetTimer);
@@ -225,11 +231,6 @@
         }
 
         if (knockCount >= REQUIRED_KNOCKS) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof e.stopImmediatePropagation === "function") {
-                e.stopImmediatePropagation();
-            }
             resetKnockState();
             togglePulseDashboard();
             return;
@@ -241,12 +242,12 @@
         }, KNOCK_RESET_MS);
     }
 
-    /** Attaches knock handler to the thermo logo button (`#js-pulse-knock` in layout.html). */
+    /** Attaches knock handler in capture phase so it runs before bubbling reaches `.brand-link`. */
     function initPulseSecretKnock() {
         var knockEl =
             document.getElementById("js-pulse-knock") || document.querySelector("button.brand-pulse-knock");
         if (!knockEl) return;
-        knockEl.addEventListener("click", onPulseKnockClick);
+        knockEl.addEventListener("click", onPulseKnockClick, true);
     }
 
     if (document.readyState === "loading") {

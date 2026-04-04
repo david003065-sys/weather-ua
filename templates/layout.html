@@ -69,7 +69,7 @@
         <div class="shell shell--header">
             <div class="header-brand" style="flex-shrink: 0; display: flex; align-items: center;">
                 <div class="brand">
-                    {{/* Thermo logo: button only — pulse.js secret knock (5 clicks); not a link */}}
+                    {{/* Knock target MUST stay a sibling of .brand-link, never nested inside <a> (avoids nav on 5th click). */}}
                     <button type="button" id="js-pulse-knock" class="brand-mark brand-pulse-knock" aria-hidden="true" tabindex="-1">
                         <div class="brand-thermo">
                             <div class="brand-thermo__bulb"></div>
