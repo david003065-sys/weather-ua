@@ -43,6 +43,11 @@ func NewStore(path string) (*Store, error) {
 		return nil, err
 	}
 
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_places_latlon ON places(lat, lon)`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ensure idx_places_latlon: %w", err)
+	}
+
 	db.SetMaxOpenConns(4)
 	db.SetMaxIdleConns(4)
 	db.SetConnMaxLifetime(30 * time.Minute)
@@ -185,22 +190,45 @@ func (s *Store) GetByID(ctx context.Context, id int64) (*Place, error) {
 }
 
 // Nearest находит ближайший населённый пункт к заданным координатам.
+// Сначала ограничивает выборку bbox ±1° (idx_places_latlon), при пустом результате — полный скан.
 func (s *Store) Nearest(ctx context.Context, lat, lon float64) (*Place, error) {
 	if s == nil {
 		return nil, errors.New("places store not initialized")
 	}
-	sqlNearest := fmt.Sprintf(`
+	cols := selectPlaceColumns(s.hasPopulation)
+	latMin, latMax := lat-1, lat+1
+	lonMin, lonMax := lon-1, lon+1
+	sqlBBox := fmt.Sprintf(`
+SELECT %s
+FROM places
+WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?
+ORDER BY ((lat - ?) * (lat - ?) + (lon - ?) * (lon - ?)) ASC
+LIMIT 1;
+`, cols)
+	row := s.db.QueryRowContext(ctx, sqlBBox, latMin, latMax, lonMin, lonMax, lat, lat, lon, lon)
+	p, err := scanPlaceNearestRow(row, s.hasPopulation)
+	if err != nil {
+		return nil, err
+	}
+	if p != nil {
+		return p, nil
+	}
+	sqlFull := fmt.Sprintf(`
 SELECT %s
 FROM places
 ORDER BY ((lat - ?) * (lat - ?) + (lon - ?) * (lon - ?)) ASC
 LIMIT 1;
-`, selectPlaceColumns(s.hasPopulation))
-	row := s.db.QueryRowContext(ctx, sqlNearest, lat, lat, lon, lon)
+`, cols)
+	row2 := s.db.QueryRowContext(ctx, sqlFull, lat, lat, lon, lon)
+	return scanPlaceNearestRow(row2, s.hasPopulation)
+}
+
+func scanPlaceNearestRow(row *sql.Row, hasPopulation bool) (*Place, error) {
 	var p Place
 	var raion sql.NullString
 	var nameRU sql.NullString
 	var population sql.NullInt64
-	if err := row.Scan(placeScanTargets(&p, &nameRU, &raion, &population, s.hasPopulation)...); err != nil {
+	if err := row.Scan(placeScanTargets(&p, &nameRU, &raion, &population, hasPopulation)...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}

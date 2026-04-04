@@ -48,6 +48,7 @@ CREATE TABLE places (
 	search_name TEXT NOT NULL
 );
 CREATE INDEX idx_places_search_name ON places(search_name);
+CREATE INDEX IF NOT EXISTS idx_places_latlon ON places(lat, lon);
 `
 
 const ftsSchemaSQL = `
