@@ -42,6 +42,13 @@ func TestHandlePulse_GET(t *testing.T) {
 			t.Errorf("missing key %q", k)
 		}
 	}
+	var pj pulseJSON
+	if err := json.Unmarshal(rr.Body.Bytes(), &pj); err != nil {
+		t.Fatal(err)
+	}
+	if pj.MemoryAllocMB < 0 || pj.MemorySysMB < 0 {
+		t.Errorf("negative memory: alloc=%v sys=%v", pj.MemoryAllocMB, pj.MemorySysMB)
+	}
 }
 
 func TestHandlePulse_MethodNotAllowed(t *testing.T) {

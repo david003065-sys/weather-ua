@@ -45,6 +45,15 @@ func (s *Server) SetPlacesStore(ps *places.Store) {
 	s.placesMu.Unlock()
 }
 
+// pulseJSON is the stable JSON shape for GET /api/pulse (used by static/pulse.js).
+type pulseJSON struct {
+	Goroutines     int     `json:"goroutines"`
+	MemoryAllocMB  float64 `json:"memory_alloc_mb"`
+	MemorySysMB    float64 `json:"memory_sys_mb"`
+	GCCycles       uint32  `json:"gc_cycles"`
+	Uptime         string  `json:"uptime"`
+}
+
 func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -55,16 +64,23 @@ func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	resp := map[string]interface{}{
-		"goroutines":      runtime.NumGoroutine(),
-		"memory_alloc_mb": float64(m.Alloc) / 1024.0 / 1024.0,
-		"memory_sys_mb":   float64(m.Sys) / 1024.0 / 1024.0,
-		"gc_cycles":       m.NumGC,
-		"uptime":          time.Since(serverStartTime).String(),
+	resp := pulseJSON{
+		Goroutines:    runtime.NumGoroutine(),
+		MemoryAllocMB: float64(m.Alloc) / 1024.0 / 1024.0,
+		MemorySysMB:   float64(m.Sys) / 1024.0 / 1024.0,
+		GCCycles:      m.NumGC,
+		Uptime:        time.Since(serverStartTime).String(),
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(w).Encode(resp)
+	w.Header().Set("Cache-Control", "no-store")
+
+	body, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "encode error", http.StatusInternalServerError)
+		return
+	}
+	_, _ = w.Write(body)
 }
 
 func (s *Server) getPlacesStore() *places.Store {

@@ -29,23 +29,46 @@
     }
 
     /**
+     * Coerces API numeric fields to a finite number (JSON numbers, numeric strings, BigInt).
+     * @param {unknown} v
+     * @returns {number|null}
+     */
+    function asFiniteNumber(v) {
+        if (v == null) return null;
+        if (typeof v === "number" && Number.isFinite(v)) return v;
+        if (typeof v === "bigint") {
+            var bi = Number(v);
+            return Number.isFinite(bi) ? bi : null;
+        }
+        if (typeof v === "string" && String(v).trim() !== "") {
+            var n = parseFloat(String(v).replace(/,/g, "."));
+            return Number.isFinite(n) ? n : null;
+        }
+        return null;
+    }
+
+    /**
      * Renders Go runtime stats from `/api/pulse` into the overlay `<pre>`.
      * @param {Record<string, unknown>|null|undefined} data Parsed JSON body.
      * @returns {void}
      */
     function renderPulse(data) {
         if (!outputEl) return;
-        var goroutines = data && data.goroutines != null ? data.goroutines : "n/a";
-        var memAlloc =
-            data && typeof data.memory_alloc_mb === "number"
-                ? data.memory_alloc_mb.toFixed(1) + " MB"
-                : "n/a";
-        var memSys =
-            data && typeof data.memory_sys_mb === "number"
-                ? data.memory_sys_mb.toFixed(1) + " MB"
-                : "n/a";
-        var memory = memAlloc === "n/a" ? "n/a" : memAlloc + " (Sys: " + memSys + ")";
-        var gcCycles = data && data.gc_cycles != null ? data.gc_cycles : "n/a";
+        var g = data ? asFiniteNumber(data.goroutines) : null;
+        var goroutines = g != null ? String(Math.floor(g)) : "n/a";
+
+        var alloc = data ? asFiniteNumber(data.memory_alloc_mb) : null;
+        var sys = data ? asFiniteNumber(data.memory_sys_mb) : null;
+        var memory = "n/a";
+        if (alloc != null || sys != null) {
+            var memAlloc = alloc != null ? alloc.toFixed(1) + " MB" : "n/a";
+            var memSys = sys != null ? sys.toFixed(1) + " MB" : "n/a";
+            memory = alloc != null && sys != null ? memAlloc + " (Sys: " + memSys + ")" : memAlloc !== "n/a" ? memAlloc : memSys;
+        }
+
+        var gcN = data ? asFiniteNumber(data.gc_cycles) : null;
+        var gcCycles = gcN != null ? String(Math.floor(gcN)) : "n/a";
+
         var uptime = "n/a";
         if (data && typeof data.uptime === "string" && data.uptime) {
             var parts = data.uptime.split(".");
