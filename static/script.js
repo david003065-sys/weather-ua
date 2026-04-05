@@ -25,6 +25,30 @@
     }
     var clientI18n = readClientI18n();
 
+    /**
+     * @param {number} kph
+     * @returns {string}
+     */
+    function formatWindSpeed(kph) {
+        if (typeof kph !== "number" || Number.isNaN(kph)) return "—";
+        var u = clientI18n.windUnit;
+        if (!u) {
+            u = lang === "en" ? "km/h" : lang === "uk" ? "км/год" : "км/ч";
+        }
+        return String(Math.round(kph)) + " " + u;
+    }
+
+    /**
+     * @param {number} index smartAdvice slot 0..7
+     * @returns {string}
+     */
+    function smartAdviceAt(index) {
+        var arr = clientI18n.smartAdvice;
+        if (!Array.isArray(arr) || index < 0 || index >= arr.length) return "";
+        var s = arr[index];
+        return s == null ? "" : String(s);
+    }
+
     var MOOD_CLASSES = ["weather-clear", "weather-cloudy", "weather-rain", "weather-snow", "weather-night"];
 
     /**
@@ -236,28 +260,29 @@
             adviceElement.classList.remove("animate-advice");
         }
 
-        var base;
-        if (tempC < 0) {
-            base = "Одевайся максимально тепло! Пуховик, шарф и перчатки обязательны.";
-        } else if (tempC < 10) {
-            base = "Прохладно. Пальто или теплая куртка будут в самый раз.";
-        } else if (tempC < 18) {
-            base = "Свежо. Ветровка или плотное худи — идеальный выбор.";
-        } else if (tempC < 25) {
-            base = "Комфортно! Футболка и легкая кофта на вечер.";
-        } else {
-            base = "Жара! Выбирай легкую одежду из хлопка и пей больше воды.";
-        }
+        var baseIdx = 4;
+        if (tempC < 0) baseIdx = 0;
+        else if (tempC < 10) baseIdx = 1;
+        else if (tempC < 18) baseIdx = 2;
+        else if (tempC < 25) baseIdx = 3;
+        var base = smartAdviceAt(baseIdx);
 
         var extras = [];
         if (typeof windKph === "number" && !Number.isNaN(windKph)) {
             var windMs = windKph / 3.6; // API gives kph
-            if (windMs > 7) extras.push("...но берегись ветра, он сегодня кусачий.");
+            if (windMs > 7) {
+                var wExtra = smartAdviceAt(5);
+                if (wExtra) extras.push(wExtra);
+            }
         }
         if (typeof humidityPct === "number" && !Number.isNaN(humidityPct) && humidityPct > 80) {
-            extras.push("Влажность высокая, будет казаться холоднее, чем есть.");
+            var hExtra = smartAdviceAt(6);
+            if (hExtra) extras.push(hExtra);
         }
-        if (isRain) extras.push("И не забудь зонт — сегодня без него никак!");
+        if (isRain) {
+            var rExtra = smartAdviceAt(7);
+            if (rExtra) extras.push(rExtra);
+        }
 
         adviceTextEl.textContent = extras.length ? base + " " + extras.join(" ") : base;
 
@@ -540,7 +565,11 @@
         var windTileEl = document.getElementById("js-current-wind");
         var humTileEl = document.getElementById("js-current-humidity");
 
-        if (pressureUnitEl) pressureUnitEl.textContent = "мм рт. ст.";
+        if (pressureUnitEl) {
+            var pu = clientI18n.pressureUnit;
+            if (!pu) pu = lang === "en" ? "mmHg" : "мм рт. ст.";
+            pressureUnitEl.textContent = pu;
+        }
         if (uvIndexEl) uvIndexEl.textContent = "—";
         if (uvSubEl) uvSubEl.textContent = "";
         if (visibilityEl) visibilityEl.textContent = "—";
@@ -560,8 +589,7 @@
             else {
                 var wSpd = numFromJSON(current.wind);
                 if (!Number.isNaN(wSpd)) {
-                    windTileEl.textContent =
-                        Math.round(wSpd) + (clientI18n.windSuffix || " км/ч");
+                    windTileEl.textContent = formatWindSpeed(wSpd);
                 }
             }
         }
@@ -580,9 +608,9 @@
             uvIndexEl.textContent = String(Math.round(uv));
         }
         if (uvSubEl && !Number.isNaN(uv)) {
-            if (uv <= 2) uvSubEl.textContent = "Низкий";
-            else if (uv <= 5) uvSubEl.textContent = "Средний";
-            else uvSubEl.textContent = "Высокий";
+            if (uv <= 2) uvSubEl.textContent = clientI18n.uvLow || "";
+            else if (uv <= 5) uvSubEl.textContent = clientI18n.uvMedium || "";
+            else uvSubEl.textContent = clientI18n.uvHigh || "";
         }
 
         var vis = numFromJSON(current.visibility);
@@ -1004,9 +1032,7 @@
             var updatedEl = document.getElementById("js-weather-updated");
             if (updatedEl) updatedEl.textContent = formatUpdatedLabel(data.lastUpdated);
             if (windEl) {
-                windEl.textContent = isFallback
-                    ? "—"
-                    : Math.round(data.current.wind) + (clientI18n.windSuffix || " км/ч");
+                windEl.textContent = isFallback ? "—" : formatWindSpeed(data.current.wind);
             }
             if (humEl) {
                 humEl.textContent = isFallback
@@ -2258,9 +2284,7 @@
         wLab.textContent = windLabel || "";
         var wVal = document.createElement("span");
         wVal.className = "meta-pair__value";
-        wVal.textContent = item.weatherUnavailable
-            ? "—"
-            : String(Math.round(item.windSpeed)) + (clientI18n.windSuffix || "");
+        wVal.textContent = item.weatherUnavailable ? "—" : formatWindSpeed(item.windSpeed);
         windPair.appendChild(wLab);
         windPair.appendChild(wVal);
 
