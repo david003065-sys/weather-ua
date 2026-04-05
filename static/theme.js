@@ -3,11 +3,12 @@
  * Exposes `window.__theme` for imperative updates.
  */
 (function () {
-    var NIGHT_FALLBACK_START = 20; // 20:00
-    var NIGHT_FALLBACK_END = 6;    // 06:00
+    /** Fallback day window when `sun` times missing (browser local clock). */
+    var FALLBACK_DAY_START_MIN = 7 * 60; // 07:00
+    var FALLBACK_DAY_END_MIN = 21 * 60; // 21:00
     var THEME_KEY = "weather:themeMode";
     var payload = null;
-    var autoTimerId = null;
+    var autoPollId = null;
     var themeTransitionClearId = null;
 
     /* Apply stored light/dark before paint (html data-theme + body class). */
@@ -57,15 +58,17 @@
     }
 
     /**
-     * @returns {"light"|"dark"|"auto"} Persisted mode or default `"dark"` on first visit.
+     * @returns {"light"|"dark"|"auto"} Збережені лише light/dark; без ключа — авто.
      */
     function getThemeMode() {
         try {
             var v = localStorage.getItem(THEME_KEY);
-            if (v === "light" || v === "dark" || v === "auto") return v;
+            if (v === "light" || v === "dark") return v;
+            if (v === "auto") {
+                localStorage.removeItem(THEME_KEY);
+            }
         } catch (_) {}
-        /* First visit: polished dark theme; Auto/Light only after explicit choice */
-        return "dark";
+        return "auto";
     }
 
     /**
@@ -74,7 +77,11 @@
      */
     function saveThemeMode(mode) {
         try {
-            localStorage.setItem(THEME_KEY, mode);
+            if (mode === "auto") {
+                localStorage.removeItem(THEME_KEY);
+            } else {
+                localStorage.setItem(THEME_KEY, mode);
+            }
         } catch (_) {}
     }
 
@@ -126,24 +133,24 @@
     }
 
     /**
-     * Local "now" for the current city using UTC offset from payload meta when available.
+     * Хвилини від півночі в часовому поясі міста (`meta.offsetSeconds` від UTC), без зсуву getHours() браузера.
      * @param {{ offsetSeconds?: number }} [meta]
-     * @returns {Date}
+     * @returns {number}
      */
-    function computeCityNow(meta) {
-        var now = new Date();
+    function computeCityMinutesFromMidnight(meta) {
         var offsetSeconds = meta && typeof meta.offsetSeconds === "number" ? meta.offsetSeconds : null;
         if (offsetSeconds == null) {
-            return now;
+            var loc = new Date();
+            return loc.getHours() * 60 + loc.getMinutes();
         }
-        // current UTC time in ms
-        var utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-        var cityMs = utcMs + offsetSeconds * 1000;
-        return new Date(cityMs);
+        var utcSec = Math.floor(Date.now() / 1000);
+        var citySec = utcSec + offsetSeconds;
+        var secInDay = ((citySec % 86400) + 86400) % 86400;
+        return Math.floor(secInDay / 60);
     }
 
     /**
-     * Sets light/dark from sun times in payload or clock fallback (20:00–06:00), then schedules next switch.
+     * Авто: світло від сходу до заходу (дані з #__WEATHER__.sun), інакше fallback 07:00–21:00 локально браузера.
      * @returns {void}
      */
     function applyAutoTheme() {
@@ -154,61 +161,34 @@
         var sunriseMinutes = typeof sun.sunriseMinutes === "number" ? sun.sunriseMinutes : null;
         var sunsetMinutes = typeof sun.sunsetMinutes === "number" ? sun.sunsetMinutes : null;
 
-        var cityNow = computeCityNow(meta);
-        var minutesNow = cityNow.getHours() * 60 + cityNow.getMinutes();
+        var minutesNow = computeCityMinutesFromMidnight(meta);
         var isNight;
 
         if (sunriseMinutes != null && sunsetMinutes != null && sunriseMinutes !== sunsetMinutes) {
             isNight = minutesNow < sunriseMinutes || minutesNow > sunsetMinutes;
         } else {
-            // fallback: 20:00–06:00
-            isNight = cityNow.getHours() >= NIGHT_FALLBACK_START || cityNow.getHours() < NIGHT_FALLBACK_END;
+            isNight = minutesNow < FALLBACK_DAY_START_MIN || minutesNow >= FALLBACK_DAY_END_MIN;
             if (console && console.debug) {
-                console.debug("[theme] fallback clock mode, no sun times");
+                console.debug("[theme] auto: no sun in payload, using 07:00–21:00 local fallback");
             }
         }
 
         setBodyThemeClass(isNight ? "dark" : "light");
-        scheduleNextAutoSwitch(cityNow, sunriseMinutes, sunsetMinutes);
     }
 
-    /**
-     * Schedules `applyAutoTheme` at the next sunrise/sunset boundary (or every 30 min if times missing).
-     * @param {Date} cityNow
-     * @param {number|null} sunriseMinutes Minutes from midnight for sunrise.
-     * @param {number|null} sunsetMinutes Minutes from midnight for sunset.
-     * @returns {void}
-     */
-    function scheduleNextAutoSwitch(cityNow, sunriseMinutes, sunsetMinutes) {
-        if (autoTimerId) {
-            clearTimeout(autoTimerId);
-            autoTimerId = null;
+    /** @returns {void} */
+    function stopAutoPolling() {
+        if (autoPollId) {
+            clearInterval(autoPollId);
+            autoPollId = null;
         }
-        if (sunriseMinutes == null || sunsetMinutes == null || sunriseMinutes === sunsetMinutes) {
-            // simple fallback: пересчитать через 30 минут
-            autoTimerId = setTimeout(applyAutoTheme, 30 * 60 * 1000);
-            return;
-        }
-        var minutesNow = cityNow.getHours() * 60 + cityNow.getMinutes();
-        var nextMinutes;
-        var isCurrentlyNight = minutesNow < sunriseMinutes || minutesNow > sunsetMinutes;
-        if (isCurrentlyNight) {
-            if (minutesNow < sunriseMinutes) {
-                nextMinutes = sunriseMinutes;
-            } else {
-                nextMinutes = sunriseMinutes + 24 * 60;
-            }
-        } else {
-            nextMinutes = sunsetMinutes;
-            if (minutesNow >= sunsetMinutes) {
-                nextMinutes = sunriseMinutes + 24 * 60;
-            }
-        }
-        var diffMinutes = nextMinutes - minutesNow;
-        if (diffMinutes <= 0) {
-            diffMinutes = 15; // safety
-        }
-        autoTimerId = setTimeout(applyAutoTheme, diffMinutes * 60 * 1000);
+    }
+
+    /** Один одразу + кожні 5 хвилин, поки активний режим Авто. */
+    function startAutoPolling() {
+        stopAutoPolling();
+        applyAutoTheme();
+        autoPollId = setInterval(applyAutoTheme, 5 * 60 * 1000);
     }
 
     /**
@@ -217,19 +197,13 @@
      */
     function applyThemeMode(mode) {
         if (mode === "light") {
-            if (autoTimerId) {
-                clearTimeout(autoTimerId);
-                autoTimerId = null;
-            }
+            stopAutoPolling();
             setBodyThemeClass("light");
         } else if (mode === "dark") {
-            if (autoTimerId) {
-                clearTimeout(autoTimerId);
-                autoTimerId = null;
-            }
+            stopAutoPolling();
             setBodyThemeClass("dark");
         } else {
-            applyAutoTheme();
+            startAutoPolling();
         }
         syncThemeControls(mode);
     }
@@ -272,7 +246,7 @@
 
     /**
      * Imperative theme API for other scripts.
-     * @type {{ getMode: typeof getThemeMode, setMode: function(string): void, applyAuto: typeof applyAutoTheme }}
+     * @type {{ getMode: typeof getThemeMode, setMode: function(string): void, applyAuto: function(): void }}
      */
     window.__theme = {
         getMode: getThemeMode,
@@ -281,7 +255,11 @@
             saveThemeMode(mode);
             applyThemeMode(mode);
         },
-        applyAuto: applyAutoTheme
+        applyAuto: function () {
+            if (getThemeMode() === "auto") {
+                applyAutoTheme();
+            }
+        }
     };
 
     document.addEventListener("DOMContentLoaded", function () {
