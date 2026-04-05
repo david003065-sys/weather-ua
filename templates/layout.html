@@ -3,7 +3,7 @@
 <html lang="{{ .Lang }}" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>{{ block "title" . }}Живая погода{{ end }}</title>
+    <title>{{ block "title" . }}{{ .Text.AppName }}{{ end }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="{{ block "description" . }}{{ .Text.CitiesTitle }}{{ end }}">
     <meta name="theme-color" content="#020d18">
@@ -119,7 +119,7 @@
                     type="text"
                     id="js-place-search"
                     class="search-input header-search__field"
-                    placeholder="Поиск города..."
+                    placeholder="{{ .Text.SearchPlaceholder }}"
                     autocomplete="off"
                     aria-keyshortcuts="Control+K Meta+K"
                 >

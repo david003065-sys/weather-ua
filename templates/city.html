@@ -68,7 +68,7 @@
 
             <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); padding: 0 30px; text-align: center;">
                 <span style="font-size: 16px; flex-shrink: 0;" aria-hidden="true">💡</span>
-                <span id="js-weather-advice-text">Советы по одежде</span>
+                <span id="js-weather-advice-text">{{ .Text.SmartAdviceTitle }}</span>
             </div>
         </div>
 
@@ -87,7 +87,7 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label">Ощущается</span>
+                    <span class="metric-label">{{ .Text.FeelsLike }}</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="feels-like-val">—</span><span class="metric-unit">°C</span>
                     </span>
@@ -103,7 +103,7 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label">Давление</span>
+                    <span class="metric-label">{{ .Text.Pressure }}</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="pressure-val">—</span><span class="metric-unit" id="pressure-unit">мм рт. ст.</span>
                     </span>
@@ -155,7 +155,7 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label">УФ-индекс</span>
+                    <span class="metric-label">{{ .Text.UVIndex }}</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="uv-index-val">—</span><span class="metric-uv-sub" id="uv-index-sub"></span>
                     </span>
@@ -170,20 +170,20 @@
                     </svg>
                 </span>
                 <div class="metric-card__main">
-                    <span class="metric-label">Видимость</span>
+                    <span class="metric-label">{{ .Text.Visibility }}</span>
                     <span class="metric-card__nums">
                         <span class="metric-value" id="visibility-val">—</span><span class="metric-unit">км</span>
                     </span>
                 </div>
             </div>
 
-            <div class="weather-details-grid__sun metrics-sun-row" aria-label="Восход и закат">
+            <div class="weather-details-grid__sun metrics-sun-row" aria-label="{{ .Text.SunTimesAria }}">
                 <div class="metrics-sun-item">
-                    <span class="metric-label">Рассвет</span>
+                    <span class="metric-label">{{ .Text.Sunrise }}</span>
                     <span class="metric-value metrics-sun-item__time" id="sunrise-val">—</span>
                 </div>
                 <div class="metrics-sun-item">
-                    <span class="metric-label">Закат</span>
+                    <span class="metric-label">{{ .Text.Sunset }}</span>
                     <span class="metric-value metrics-sun-item__time" id="sunset-val">—</span>
                 </div>
             </div>

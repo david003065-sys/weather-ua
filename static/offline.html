@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Живая погода — офлайн</title>
+    <title>Offline</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -39,9 +39,62 @@
 </head>
 <body>
     <div class="card">
-        <h1>Нет подключения</h1>
-        <p>Вы офлайн. Когда соединение восстановится, данные о погоде обновятся автоматически.</p>
+        <h1 id="offline-h1"></h1>
+        <p id="offline-p"></p>
     </div>
+    <script>
+        (function () {
+            function cookieLang() {
+                try {
+                    var c = document.cookie || "";
+                    var m = c.match(/(?:^|;\s*)lang=([^;]+)/i);
+                    if (!m) return "";
+                    var raw = m[1].trim();
+                    var v = decodeURIComponent(raw.replace(/\+/g, " ")).toLowerCase();
+                    if (v === "uk" || v === "en" || v === "ru") return v;
+                } catch (e) {}
+                return "";
+            }
+
+            function navLang() {
+                var nav = (
+                    navigator.language ||
+                    navigator.userLanguage ||
+                    ""
+                ).toLowerCase();
+                if (nav.indexOf("uk") === 0) return "uk";
+                if (nav.indexOf("en") === 0) return "en";
+                return "";
+            }
+
+            var lang = cookieLang() || navLang() || "ru";
+
+            var T = {
+                uk: {
+                    title: "Жива погода — офлайн",
+                    h1: "Немає з'єднання",
+                    p: "Ви офлайн. Після відновлення з'єднання дані про погоду оновляться автоматично."
+                },
+                en: {
+                    title: "Live Weather — offline",
+                    h1: "No connection",
+                    p: "You're offline. When you're back online, weather data will refresh automatically."
+                },
+                ru: {
+                    title: "Живая погода — офлайн",
+                    h1: "Нет подключения",
+                    p: "Вы офлайн. Когда соединение восстановится, данные о погоде обновятся автоматически."
+                }
+            };
+
+            var t = T[lang] || T.ru;
+            document.documentElement.lang = lang;
+            document.title = t.title;
+            var h1 = document.getElementById("offline-h1");
+            var pEl = document.getElementById("offline-p");
+            if (h1) h1.textContent = t.h1;
+            if (pEl) pEl.textContent = t.p;
+        })();
+    </script>
 </body>
 </html>
-

@@ -64,6 +64,16 @@ type UI struct {
 	ChooseAnotherDuplicate  string
 	HourlySectionTitle      string
 	MetaDescriptionTemplate string // may contain %s for city list
+
+	AppName          string
+	SmartAdviceTitle string
+	FeelsLike        string
+	Pressure         string
+	UVIndex          string
+	Visibility       string
+	Sunrise          string
+	Sunset           string
+	SunTimesAria     string // aria-label for sunrise/sunset row
 }
 
 // For returns all UI strings for SSR.
@@ -129,6 +139,15 @@ func For(lang string) UI {
 			ChooseAnotherDuplicate:  "Choose another",
 			HourlySectionTitle:      "Today — hourly",
 			MetaDescriptionTemplate: "Weather in Ukraine: %s.",
+			AppName:                 "Live Weather",
+			SmartAdviceTitle:        "Clothing tips",
+			FeelsLike:               "Feels like",
+			Pressure:                "Pressure",
+			UVIndex:                 "UV index",
+			Visibility:              "Visibility",
+			Sunrise:                 "Sunrise",
+			Sunset:                  "Sunset",
+			SunTimesAria:            "Sunrise and sunset",
 		}
 	case "uk":
 		return UI{
@@ -190,6 +209,15 @@ func For(lang string) UI {
 			ChooseAnotherDuplicate:  "Обрати інший",
 			HourlySectionTitle:      "Сьогодні — погодинно",
 			MetaDescriptionTemplate: "Погода в Україні: %s.",
+			AppName:                 "Жива погода",
+			SmartAdviceTitle:        "Поради щодо одягу",
+			FeelsLike:               "Відчувається",
+			Pressure:                "Тиск",
+			UVIndex:                 "УФ-індекс",
+			Visibility:              "Видимість",
+			Sunrise:                 "Схід",
+			Sunset:                  "Захід",
+			SunTimesAria:            "Схід і захід сонця",
 		}
 	default: // ru
 		return UI{
@@ -251,6 +279,15 @@ func For(lang string) UI {
 			ChooseAnotherDuplicate:  "Выбрать другой",
 			HourlySectionTitle:      "Сегодня — по часам",
 			MetaDescriptionTemplate: "Погода в Украине: %s.",
+			AppName:                 "Живая погода",
+			SmartAdviceTitle:        "Советы по одежде",
+			FeelsLike:               "Ощущается",
+			Pressure:                "Давление",
+			UVIndex:                 "УФ-индекс",
+			Visibility:              "Видимость",
+			Sunrise:                 "Рассвет",
+			Sunset:                  "Закат",
+			SunTimesAria:            "Восход и закат",
 		}
 	}
 }

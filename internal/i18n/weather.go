@@ -18,6 +18,8 @@ func phraseForCode(code int) weatherPhrase {
 		return weatherPhrase{"Туман", "Fog", "Туман", "🌫"}
 	case 51, 53, 55:
 		return weatherPhrase{"Морось", "Light drizzle", "Морось", "🌦"}
+	case 56, 57:
+		return weatherPhrase{"Ледяная морось", "Freezing drizzle", "Крижана мряка", "🌦"}
 	case 61, 63, 65:
 		return weatherPhrase{"Дождь", "Rain", "Дощ", "🌧"}
 	case 66, 67:
@@ -26,6 +28,8 @@ func phraseForCode(code int) weatherPhrase {
 		return weatherPhrase{"Снег", "Snow", "Сніг", "❄️"}
 	case 80, 81, 82:
 		return weatherPhrase{"Ливни", "Rain showers", "Зливи", "🌧"}
+	case 85, 86:
+		return weatherPhrase{"Снежный ливень", "Snow showers", "Снігова злива", "❄️"}
 	case 95:
 		return weatherPhrase{"Гроза", "Thunderstorm", "Гроза", "⛈"}
 	case 96, 97, 99:

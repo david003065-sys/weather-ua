@@ -494,7 +494,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	data, err := s.weather.GetWeather(ctx, cityID)
 	if err != nil {
 		s.logger.Printf("get city weather %s: %v", cityID, err)
-		http.Error(w, "не удалось получить данные погоды", http.StatusBadGateway)
+		http.Error(w, "failed to get weather data", http.StatusBadGateway)
 		return
 	}
 
@@ -1399,7 +1399,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.logger.Printf("get weather for place %d: %v", id, err)
-		http.Error(w, "не удалось получить данные погоды", http.StatusBadGateway)
+		http.Error(w, "failed to get weather data", http.StatusBadGateway)
 		return
 	}
 
