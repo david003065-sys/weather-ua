@@ -23,15 +23,15 @@
         opacity 2s ease;
 }
 
-/* True Apple-like mesh for light theme */
+/* Light theme: solid sky + canvas clouds (atmosphere.js) */
 html[data-theme="light"] #weather-bg {
-    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
+    background: #1a78c2 !important;
 }
 
 .theme-light #weather-bg.weather-bg--apple-light-mesh,
 body.theme-light #weather-bg.weather-bg--apple-light-mesh,
 html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
-    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
+    background: #1a78c2 !important;
 }
 
 .weather-bg__stars-canvas {
@@ -45,6 +45,20 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
 }
 
 html[data-theme="light"] .weather-bg__stars-canvas {
+    display: none;
+}
+
+.weather-bg__light-clouds-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+html[data-theme="dark"] .weather-bg__light-clouds-canvas {
     display: none;
 }
 
@@ -235,7 +249,7 @@ html[data-theme="light"] .weather-bg__stars-canvas {
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--fx-cloud-mesh {
-    background: linear-gradient(180deg, #b0c4d8 0%, #889eb4 48%, #6a8298 100%);
+    background: #1a78c2 !important;
 }
 
 .weather-bg__clouds .sky-mesh {
@@ -434,7 +448,7 @@ html[data-theme="light"] #weather-bg.weather-bg--night .weather-bg__cloud-svg pa
 
 /* Ясно — день */
 html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
-    background: linear-gradient(185deg, #6eb0ff 0%, #9dd0ff 35%, #c5e6ff 65%, #e8f4fc 100%);
+    background: #1a78c2 !important;
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
@@ -447,12 +461,12 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--night {
-    background: linear-gradient(180deg, #2a3d56 0%, #3d4f6a 50%, #2f4158 100%);
+    background: #1a78c2 !important;
 }
 
 /* Облачно */
 html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
-    background: linear-gradient(180deg, #8faecf 0%, #a8bdd4 45%, #c2d0e0 100%);
+    background: #1a78c2 !important;
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
@@ -460,7 +474,7 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
-    background: linear-gradient(180deg, #3d4d63 0%, #4a5a70 100%);
+    background: #1a78c2 !important;
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night,
@@ -471,7 +485,7 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night,
 /* Дождь / гроза */
 html[data-theme="light"] #weather-bg.weather-bg--sky-rain.weather-bg--day,
 html[data-theme="light"] #weather-bg.weather-bg--sky-storm.weather-bg--day {
-    background: linear-gradient(180deg, #6b7f96 0%, #8a9bb0 50%, #9cabc0 100%);
+    background: #1a78c2 !important;
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-rain.weather-bg--day,
@@ -483,12 +497,12 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-storm.weather-bg--night {
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-rain.weather-bg--night,
 html[data-theme="light"] #weather-bg.weather-bg--sky-storm.weather-bg--night {
-    background: linear-gradient(180deg, #4a5568 0%, #5c6578 100%);
+    background: #1a78c2 !important;
 }
 
 /* Снег */
 html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--day {
-    background: linear-gradient(180deg, #b8c9dc 0%, #d2deed 100%);
+    background: #1a78c2 !important;
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--day,
@@ -497,7 +511,7 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
-    background: linear-gradient(180deg, #94a3b8 0%, #b0bfd2 100%);
+    background: #1a78c2 !important;
 }
 
 /* Shell над #weather-bg (фон shell — transparent в style.css) */
@@ -963,8 +977,8 @@ html[data-theme="light"] .atmo-chart.chart-card {
     }
 }
 
-/* Force Cupertino-like saturated blue background (no “dirty” colors) */
+/* Light theme base (see block near top of file) */
 html[data-theme="light"] #weather-bg {
-    background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
+    background: #1a78c2 !important;
 }
 

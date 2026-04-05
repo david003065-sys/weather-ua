@@ -21,20 +21,6 @@
     }
 
     /**
-     * Light theme: Apple-style sun mesh for «fair» codes (WMO 0–3 / OpenWeather 800–804).
-     * @param {number|string} code
-     * @returns {boolean}
-     */
-    function isFairWeatherForAppleMesh(code) {
-        var c = typeof code === "number" ? code : parseInt(code, 10);
-        if (Number.isNaN(c)) return false;
-        if (c >= 200 && c < 900) {
-            return c >= 800 && c <= 804;
-        }
-        return c >= 0 && c <= 3;
-    }
-
-    /**
      * @returns {{ sky: string, fx: string }}
      * sky: clear | cloudy | rain | snow | storm
      * fx: none | rain | snow | svg-clouds | cloud-mesh (WMO 3) | cloud-layers — 4×.cloud-fog (WMO 1,2,45,48)
@@ -87,6 +73,10 @@
         this._starsCanvas = null;
         this._starsRaf = null;
         this._stars = [];
+        this._lightCloudsCanvas = null;
+        this._lightCloudsRaf = null;
+        this._lightClouds = [];
+        this._lightCloudsLastT = 0;
         this._cloudsLayer = null;
         this._meshLayer = null;
         this._resizeObs = null;
@@ -131,6 +121,7 @@
             el.setAttribute("aria-hidden", "true");
             el.innerHTML =
                 '<canvas class="weather-bg__stars-canvas" aria-hidden="true"></canvas>' +
+                '<canvas class="weather-bg__light-clouds-canvas" aria-hidden="true"></canvas>' +
                 '<div class="weather-bg__mesh" aria-hidden="true"></div>' +
                 '<div class="weather-bg__clouds" aria-hidden="true"></div>' +
                 '<canvas class="weather-bg__canvas" aria-hidden="true"></canvas>';
@@ -152,19 +143,36 @@
             starsEl.setAttribute("aria-hidden", "true");
             el.insertBefore(starsEl, el.firstChild);
         }
+        if (el && !el.querySelector(".weather-bg__light-clouds-canvas")) {
+            var lc = document.createElement("canvas");
+            lc.className = "weather-bg__light-clouds-canvas";
+            lc.setAttribute("aria-hidden", "true");
+            var starsRef2 = el.querySelector(".weather-bg__stars-canvas");
+            if (starsRef2) {
+                el.insertBefore(lc, starsRef2.nextSibling);
+            } else {
+                el.insertBefore(lc, el.firstChild);
+            }
+        }
         if (el && !el.querySelector(".weather-bg__mesh")) {
             var mesh = document.createElement("div");
             mesh.className = "weather-bg__mesh";
             mesh.setAttribute("aria-hidden", "true");
-            var starsRef = el.querySelector(".weather-bg__stars-canvas");
-            if (starsRef) {
-                el.insertBefore(mesh, starsRef.nextSibling);
+            var lcMesh = el.querySelector(".weather-bg__light-clouds-canvas");
+            if (lcMesh) {
+                el.insertBefore(mesh, lcMesh.nextSibling);
             } else {
-                el.insertBefore(mesh, el.firstChild);
+                var starsRef = el.querySelector(".weather-bg__stars-canvas");
+                if (starsRef) {
+                    el.insertBefore(mesh, starsRef.nextSibling);
+                } else {
+                    el.insertBefore(mesh, el.firstChild);
+                }
             }
         }
         this._root = el;
         this._starsCanvas = el.querySelector(".weather-bg__stars-canvas");
+        this._lightCloudsCanvas = el.querySelector(".weather-bg__light-clouds-canvas");
         this._meshLayer = el.querySelector(".weather-bg__mesh");
         this._cloudsLayer = el.querySelector(".weather-bg__clouds");
         this._canvas = el.querySelector(".weather-bg__canvas");
@@ -291,13 +299,215 @@
         if (!this._starsRaf) this._starsFrame();
     };
 
+    /**
+     * Five soft drifting clouds (light theme only): multi-ellipse radial gradients.
+     * @returns {void}
+     */
+    Atmosphere.prototype._initLightCloudModels = function () {
+        if (!this._root) return;
+        var w = this._root.clientWidth || global.innerWidth || 800;
+        var h = this._root.clientHeight || global.innerHeight || 600;
+        var templates = [
+            {
+                yPct: 0.06,
+                scale: 1,
+                speed: 6.5,
+                alpha: 0.42,
+                blobs: [
+                    { dx: 0, dy: 0, rx: 58, ry: 34 },
+                    { dx: -40, dy: 7, rx: 42, ry: 27 },
+                    { dx: 44, dy: 9, rx: 38, ry: 24 },
+                    { dx: -12, dy: -14, rx: 32, ry: 20 },
+                ],
+            },
+            {
+                yPct: 0.2,
+                scale: 0.78,
+                speed: 10,
+                alpha: 0.35,
+                blobs: [
+                    { dx: 0, dy: 0, rx: 50, ry: 30 },
+                    { dx: -34, dy: 5, rx: 36, ry: 22 },
+                    { dx: 32, dy: 7, rx: 30, ry: 20 },
+                ],
+            },
+            {
+                yPct: 0.36,
+                scale: 0.95,
+                speed: 7.8,
+                alpha: 0.4,
+                blobs: [
+                    { dx: 0, dy: 0, rx: 62, ry: 36 },
+                    { dx: -48, dy: 10, rx: 44, ry: 28 },
+                    { dx: 50, dy: 6, rx: 40, ry: 26 },
+                    { dx: 8, dy: -16, rx: 34, ry: 22 },
+                ],
+            },
+            {
+                yPct: 0.52,
+                scale: 0.65,
+                speed: 12,
+                alpha: 0.32,
+                blobs: [
+                    { dx: 0, dy: 0, rx: 44, ry: 26 },
+                    { dx: -28, dy: 4, rx: 30, ry: 18 },
+                    { dx: 26, dy: 6, rx: 26, ry: 16 },
+                ],
+            },
+            {
+                yPct: 0.68,
+                scale: 0.88,
+                speed: 8.8,
+                alpha: 0.38,
+                blobs: [
+                    { dx: 0, dy: 0, rx: 54, ry: 32 },
+                    { dx: -36, dy: 8, rx: 40, ry: 25 },
+                    { dx: 38, dy: 5, rx: 36, ry: 23 },
+                    { dx: -6, dy: -12, rx: 28, ry: 18 },
+                ],
+            },
+        ];
+        var clouds = [];
+        var i;
+        var j;
+        for (i = 0; i < templates.length; i++) {
+            var tm = templates[i];
+            var minX = 0;
+            var maxX = 0;
+            for (j = 0; j < tm.blobs.length; j++) {
+                var bl = tm.blobs[j];
+                var sc = tm.scale;
+                minX = Math.min(minX, bl.dx * sc - bl.rx * sc);
+                maxX = Math.max(maxX, bl.dx * sc + bl.rx * sc);
+            }
+            var span = maxX - minX + 60;
+            clouds.push({
+                x: (i / templates.length) * (w + span) - span * 0.4 + Math.random() * 40,
+                y: h * tm.yPct,
+                scale: tm.scale,
+                speed: tm.speed,
+                alpha: tm.alpha,
+                blobs: tm.blobs,
+                span: span,
+            });
+        }
+        this._lightClouds = clouds;
+    };
+
+    /** @returns {void} */
+    Atmosphere.prototype._stopLightClouds = function () {
+        if (this._lightCloudsRaf) {
+            global.cancelAnimationFrame(this._lightCloudsRaf);
+            this._lightCloudsRaf = null;
+        }
+        this._lightClouds = [];
+        this._lightCloudsLastT = 0;
+        if (this._lightCloudsCanvas && this._root) {
+            var ctx = this._lightCloudsCanvas.getContext("2d");
+            if (ctx) {
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, this._lightCloudsCanvas.width, this._lightCloudsCanvas.height);
+                ctx.restore();
+            }
+        }
+    };
+
+    /**
+     * @returns {void}
+     */
+    Atmosphere.prototype._lightCloudsFrame = function () {
+        var self = this;
+        var canvas = self._lightCloudsCanvas;
+        var container = self._root;
+        if (!canvas || !container || !canvas.isConnected) {
+            self._lightCloudsRaf = null;
+            return;
+        }
+        var isLight =
+            document.documentElement.classList.contains("theme-light") ||
+            document.documentElement.getAttribute("data-theme") === "light";
+        if (!isLight || prefersReducedMotion()) {
+            self._stopLightClouds();
+            return;
+        }
+        var w = container.clientWidth || global.innerWidth;
+        var h = container.clientHeight || global.innerHeight;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        if (self._lightClouds.length === 0) self._initLightCloudModels();
+
+        var nowMs = performance.now();
+        var last = self._lightCloudsLastT || nowMs;
+        var dt = Math.min(0.045, (nowMs - last) / 1000);
+        self._lightCloudsLastT = nowMs;
+
+        ctx.clearRect(0, 0, w, h);
+        var clouds = self._lightClouds;
+        var i;
+        var b;
+        for (i = 0; i < clouds.length; i++) {
+            var c = clouds[i];
+            c.x += c.speed * dt;
+            if (c.x > w + c.span) {
+                c.x = -c.span - 20 - Math.random() * 100;
+                c.y = h * (0.05 + Math.random() * 0.65);
+            }
+            ctx.save();
+            ctx.globalAlpha = c.alpha;
+            for (b = 0; b < c.blobs.length; b++) {
+                var bl = c.blobs[b];
+                var cx = c.x + bl.dx * c.scale;
+                var cy = c.y + bl.dy * c.scale;
+                var rx = bl.rx * c.scale;
+                var ry = bl.ry * c.scale;
+                var rad = Math.max(rx, ry);
+                var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+                g.addColorStop(0, "rgba(255,255,255,0.95)");
+                g.addColorStop(1, "rgba(200,235,255,0)");
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fillStyle = g;
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        self._lightCloudsRaf = global.requestAnimationFrame(function () {
+            self._lightCloudsFrame();
+        });
+    };
+
+    /**
+     * @param {boolean} isLightTheme
+     * @returns {void}
+     */
+    Atmosphere.prototype._syncLightClouds = function (isLightTheme) {
+        if (!isLightTheme || prefersReducedMotion()) {
+            this._stopLightClouds();
+            return;
+        }
+        this._ensureDom();
+        if (this._lightClouds.length === 0) this._initLightCloudModels();
+        if (!this._lightCloudsRaf) this._lightCloudsFrame();
+    };
+
     Atmosphere.prototype._resizeCanvas = function () {
         var container = this._root;
         if (!container) return;
         this._sizeCanvasToRoot(this._canvas, container);
         this._sizeCanvasToRoot(this._starsCanvas, container);
+        this._sizeCanvasToRoot(this._lightCloudsCanvas, container);
         this._drops = [];
         this._reseedStars();
+        var lightNow =
+            document.documentElement.getAttribute("data-theme") === "light" ||
+            document.documentElement.classList.contains("theme-light");
+        if (lightNow && !prefersReducedMotion()) {
+            this._initLightCloudModels();
+        } else {
+            this._lightClouds = [];
+        }
     };
 
     Atmosphere.prototype._stopPrecip = function () {
@@ -498,17 +708,6 @@
         if (this._meshLayer) this._meshLayer.innerHTML = "";
     };
 
-    /** Светлая тема + коды 0–3 (WMO) / 800–804 (OW): цветные сферы Apple Weather mesh. */
-    Atmosphere.prototype._buildAppleLightMesh = function () {
-        if (!this._meshLayer) return;
-        this._meshLayer.innerHTML = "";
-        // Cupertino-like sun lens effect only (no spheres/patches).
-        var sun = document.createElement("div");
-        sun.className = "mesh-sun";
-        sun.setAttribute("aria-hidden", "true");
-        this._meshLayer.appendChild(sun);
-    };
-
     /**
      * @param {number} weatherCode — OpenWeather id или WMO
      * @param {boolean} [isNight] — иначе берётся из .weather-app[data-is-night]
@@ -573,23 +772,21 @@
             }
         }
 
-        var appleLightMesh = isLightTheme && isFairWeatherForAppleMesh(cNum);
-        if (appleLightMesh) {
-            this._stopStars();
-            el.classList.add("weather-bg--apple-light-mesh");
-            el.classList.add("weather-bg--fx-none");
-            this._buildAppleLightMesh();
-            return;
-        }
-
         if (prefersReducedMotion()) {
             this._stopStars();
+            this._stopLightClouds();
             el.classList.add("weather-bg--fx-none");
             return;
         }
 
-        // If "cloudy" without explicit fx (resolveState => fx:none), give it gentle movement.
-        if (state.sky === "cloudy" && (state.fx === "none" || !state.fx)) {
+        if (isLightTheme) {
+            if (state.sky === "cloudy" && (state.fx === "none" || !state.fx)) {
+                state.fx = "none";
+            }
+            if (state.fx === "svg-clouds" || state.fx === "cloud-mesh" || state.fx === "cloud-layers") {
+                state.fx = "none";
+            }
+        } else if (state.sky === "cloudy" && (state.fx === "none" || !state.fx)) {
             state.fx = "svg-clouds";
         }
 
@@ -621,6 +818,7 @@
         }
 
         this._syncStars(isLightTheme);
+        this._syncLightClouds(isLightTheme);
     };
 
     global.Atmosphere = Atmosphere;
