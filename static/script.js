@@ -344,7 +344,7 @@
 
         var isDark = document.documentElement.getAttribute("data-theme") === "dark";
 
-        /** Inline plugin: shaded rectangles for night hours (22:00–06:00). */
+        /** Inline plugin: barely visible night bands (22:00–06:00). */
         var nightShadePlugin = {
             id: "nightShade",
             beforeDraw: function (chart) {
@@ -353,7 +353,7 @@
                 if (!xScale || !yScale) return;
                 var ctx = chart.ctx;
                 ctx.save();
-                ctx.fillStyle = isDark ? "rgba(20, 45, 80, 0.22)" : "rgba(255,255,255,0.06)";
+                ctx.fillStyle = isDark ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 50, 0.08)";
                 for (var i = 0; i < labels.length; i++) {
                     var hh = parseInt(labels[i], 10);
                     if (Number.isNaN(hh)) continue;
