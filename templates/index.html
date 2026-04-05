@@ -43,7 +43,7 @@
             </div>
 
             <div class="hero-forecast" aria-label="{{ .Text.ShortForecastAria }}">
-                <div class="forecast-chip">{{ .Text.Today }} · {{ if or .WeatherUnavailable (not .TodayLabel) }}—{{ else }}{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°{{ end }}</div>
+                <div class="forecast-chip forecast-chip--active">{{ .Text.Today }} · {{ if or .WeatherUnavailable (not .TodayLabel) }}—{{ else }}{{ printf "%.0f" .TodayMin }}°—{{ printf "%.0f" .TodayMax }}°{{ end }}</div>
                 <div class="forecast-chip">{{ .Text.Tomorrow }} · {{ if or .WeatherUnavailable (not .TomorrowLabel) }}—{{ else }}{{ printf "%.0f" .TomorrowMin }}°—{{ printf "%.0f" .TomorrowMax }}°{{ end }}</div>
                 <div class="forecast-chip">{{ .Text.DayAfterTomorrow }} · {{ if or .WeatherUnavailable (not .DayAfterLabel) }}—{{ else }}{{ printf "%.0f" .DayAfterMin }}°—{{ printf "%.0f" .DayAfterMax }}°{{ end }}</div>
             </div>

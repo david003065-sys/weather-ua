@@ -88,11 +88,11 @@
         var isDark = theme === "dark";
         if (root) {
             root.setAttribute("data-theme", isDark ? "dark" : "light");
-            root.style.backgroundColor = isDark ? "#020d18" : "#e8eef5";
+            root.style.backgroundColor = isDark ? "#020d18" : "#1a78c2";
         }
         var themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) {
-            themeMeta.setAttribute("content", isDark ? "#020d18" : "#e8eef5");
+            themeMeta.setAttribute("content", isDark ? "#020d18" : "#1a78c2");
         }
         try {
             window.dispatchEvent(new CustomEvent("weather-theme-change"));
