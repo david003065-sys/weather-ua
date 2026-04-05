@@ -8,6 +8,7 @@
     var THEME_KEY = "weather:themeMode";
     var payload = null;
     var autoTimerId = null;
+    var themeTransitionClearId = null;
 
     /* Apply stored light/dark before paint (html data-theme + body class). */
     try {
@@ -86,16 +87,38 @@
         var body = document.body;
         var root = document.documentElement;
         var isDark = theme === "dark";
+        var nextAttr = isDark ? "dark" : "light";
+        var prevAttr = root ? root.getAttribute("data-theme") || "dark" : "dark";
+        var changed = prevAttr !== nextAttr;
+
+        if (changed && body) {
+            body.classList.add("theme-transitioning");
+            if (themeTransitionClearId) {
+                clearTimeout(themeTransitionClearId);
+                themeTransitionClearId = null;
+            }
+            themeTransitionClearId = setTimeout(function () {
+                if (body) body.classList.remove("theme-transitioning");
+                themeTransitionClearId = null;
+            }, 400);
+        }
+
         if (root) {
-            root.setAttribute("data-theme", isDark ? "dark" : "light");
+            root.setAttribute("data-theme", nextAttr);
             root.style.backgroundColor = isDark ? "#020d18" : "#1a78c2";
         }
         var themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) {
             themeMeta.setAttribute("content", isDark ? "#020d18" : "#1a78c2");
         }
+        var fromDark = prevAttr === "dark";
+        var toDark = isDark;
         try {
-            window.dispatchEvent(new CustomEvent("weather-theme-change"));
+            window.dispatchEvent(
+                new CustomEvent("weather-theme-change", {
+                    detail: { fromDark: fromDark, toDark: toDark, changed: changed }
+                })
+            );
         } catch (_) {}
         if (!body) return;
         body.classList.remove("theme-light", "theme-dark");
@@ -234,6 +257,9 @@
         if (items && items.length) {
             items.forEach(function (btn) {
                 btn.addEventListener("click", function () {
+                    if (document.body && document.body.classList.contains("theme-transitioning")) {
+                        return;
+                    }
                     var mode = btn.getAttribute("data-theme-mode") || "auto";
                     saveThemeMode(mode);
                     applyThemeMode(mode);

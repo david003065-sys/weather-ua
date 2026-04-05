@@ -1,6 +1,6 @@
 :root {
     --font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-    --theme-duration: 300ms;
+    --theme-duration: 400ms;
     --radius-lg: 32px;
     --radius-md: 20px;
     --radius-sm: 14px;
@@ -21,9 +21,74 @@ body {
     min-height: 100%;
 }
 
+html {
+    transition: background-color 0.4s ease;
+}
+
 body {
     font-family: var(--font-family);
     -webkit-font-smoothing: antialiased;
+}
+
+/* Плавна зміна теми: ключові поверхні (canvas графіків і atmosphere — без transition) */
+body,
+.weather-app,
+.site-header,
+.shell,
+.site-footer,
+.weather-hero,
+.weather-card,
+.metric-card,
+.metrics-sun-item,
+.search-input,
+.header-search .search-input,
+.header-search .header-search__field,
+.hourly-forecast,
+.hourly-forecast-container,
+.forecast-chip,
+.daily-item,
+.js-trend-chart-wrap.chart-card.atmo-chart,
+.search-suggestions,
+.theme-switch,
+.lang-switch,
+.theme-switch__item,
+.lang-switch__item,
+.nav-link,
+.brand-mark,
+.fav-btn,
+.sw-update-toast,
+.pwa-install-btn,
+.hourly-item,
+.hero-forecast,
+.weather-details-grid,
+.city-daily-section,
+.city-chart-section,
+.atmo-section__head,
+.atmo-section__label,
+.atmo-section__title,
+.radar-container,
+.weather-hero__subloc,
+.cities-title,
+.city-daily-section__title {
+    transition:
+        background 0.4s ease,
+        background-color 0.4s ease,
+        border-color 0.4s ease,
+        color 0.4s ease,
+        box-shadow 0.4s ease;
+}
+
+/* Зірки / світлі хмари: opacity керує atmosphere.js (rAF), без CSS transition */
+#weather-bg canvas.weather-bg__stars-canvas,
+#weather-bg canvas.weather-bg__light-clouds-canvas {
+    transition: none !important;
+}
+
+.chart-wrapper canvas,
+.js-trend-chart-wrap canvas,
+#js-temp-chart,
+#js-trend-chart {
+    transition: none !important;
 }
 
 html[data-theme="dark"] {
@@ -361,7 +426,12 @@ button.brand-mark {
     padding: 0.2rem 0.48rem;
     border-radius: 999px;
     cursor: pointer;
-    transition: background var(--theme-duration) ease;
+    transition:
+        background 0.4s ease,
+        background-color 0.4s ease,
+        border-color 0.4s ease,
+        color 0.4s ease,
+        box-shadow 0.4s ease;
 }
 
 .lang-switch__item--active {

@@ -19,7 +19,8 @@
     overflow: hidden;
     background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
     transition:
-        background 2s ease,
+        background 0.4s ease,
+        background-color 0.4s ease,
         opacity 2s ease;
 }
 
@@ -42,10 +43,13 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
     display: block;
     z-index: 0;
     pointer-events: none;
+    transition: none !important;
 }
 
 html[data-theme="light"] .weather-bg__stars-canvas {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .weather-bg__light-clouds-canvas {
@@ -56,10 +60,13 @@ html[data-theme="light"] .weather-bg__stars-canvas {
     display: block;
     z-index: 0;
     pointer-events: none;
+    transition: none !important;
 }
 
 html[data-theme="dark"] .weather-bg__light-clouds-canvas {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .weather-bg__mesh {
@@ -221,6 +228,7 @@ html[data-theme="dark"] .weather-bg__light-clouds-canvas {
     opacity: 0;
     transition: opacity 1.2s ease;
     display: block;
+    /* opacity for rain/snow; no CSS transition on canvas pixels (atmosphere.js) */
 }
 
 #weather-bg.weather-bg--fx-rain .weather-bg__canvas,
@@ -649,9 +657,11 @@ html[data-theme="light"] .atmo-section__title {
     -webkit-backdrop-filter: none;
     transition:
         transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-        border-color 0.25s ease,
-        box-shadow 0.32s ease,
-        background 0.25s ease;
+        border-color 0.4s ease,
+        box-shadow 0.4s ease,
+        background 0.4s ease,
+        background-color 0.4s ease,
+        color 0.4s ease;
 }
 
 html[data-theme="light"] .rail-card,

@@ -80,11 +80,24 @@
         this._cloudsLayer = null;
         this._meshLayer = null;
         this._resizeObs = null;
+        this._themeCanvasFade = null;
+        this._themeFadeRaf = null;
         this._ensureDom();
         var self = this;
         try {
-            global.addEventListener("weather-theme-change", function () {
-                self._syncFromWeatherApp();
+            global.addEventListener("weather-theme-change", function (ev) {
+                var d = ev && ev.detail;
+                if (
+                    prefersReducedMotion() ||
+                    !d ||
+                    d.changed === false ||
+                    d.fromDark === d.toDark
+                ) {
+                    self._endThemeCanvasFadeImmediate();
+                    self._syncFromWeatherApp();
+                    return;
+                }
+                self._beginThemeCanvasFade(d.fromDark, d.toDark);
             });
         } catch (e) {}
         this._syncFromWeatherApp();
@@ -109,6 +122,87 @@
             document.documentElement.classList.contains("theme-light") ||
             document.documentElement.getAttribute("data-theme") === "light";
         this.update(code, night, isLightTheme);
+    };
+
+    /** @returns {void} */
+    Atmosphere.prototype._endThemeCanvasFadeImmediate = function () {
+        if (this._themeFadeRaf) {
+            global.cancelAnimationFrame(this._themeFadeRaf);
+            this._themeFadeRaf = null;
+        }
+        this._themeCanvasFade = null;
+        if (this._starsCanvas) {
+            this._starsCanvas.style.opacity = "";
+            this._starsCanvas.style.visibility = "";
+        }
+        if (this._lightCloudsCanvas) {
+            this._lightCloudsCanvas.style.opacity = "";
+            this._lightCloudsCanvas.style.visibility = "";
+        }
+    };
+
+    /**
+     * 300ms cross-fade stars ↔ light clouds (rAF + inline opacity; CSS transition disabled on these canvases).
+     * @param {boolean} fromDark
+     * @param {boolean} toDark
+     * @returns {void}
+     */
+    Atmosphere.prototype._beginThemeCanvasFade = function (fromDark, toDark) {
+        var self = this;
+        self._endThemeCanvasFadeImmediate();
+        self._ensureDom();
+        var toLight = !toDark;
+        self._themeCanvasFade = { start: global.performance.now(), toLight: toLight };
+        if (toLight) {
+            if (self._starsCanvas) {
+                self._starsCanvas.style.visibility = "visible";
+                self._starsCanvas.style.opacity = "1";
+            }
+            if (self._lightCloudsCanvas) {
+                self._lightCloudsCanvas.style.visibility = "visible";
+                self._lightCloudsCanvas.style.opacity = "0";
+            }
+        } else {
+            if (self._lightCloudsCanvas) {
+                self._lightCloudsCanvas.style.visibility = "visible";
+                self._lightCloudsCanvas.style.opacity = "1";
+            }
+            if (self._starsCanvas) {
+                self._starsCanvas.style.visibility = "visible";
+                self._starsCanvas.style.opacity = "0";
+            }
+        }
+        self._syncFromWeatherApp();
+
+        function tick() {
+            var fade = self._themeCanvasFade;
+            if (!fade) return;
+            var elapsed = global.performance.now() - fade.start;
+            var t = Math.min(1, elapsed / 300);
+            if (fade.toLight) {
+                if (self._starsCanvas) self._starsCanvas.style.opacity = String(1 - t);
+                if (self._lightCloudsCanvas) self._lightCloudsCanvas.style.opacity = String(t);
+            } else {
+                if (self._lightCloudsCanvas) self._lightCloudsCanvas.style.opacity = String(1 - t);
+                if (self._starsCanvas) self._starsCanvas.style.opacity = String(t);
+            }
+            if (t < 1) {
+                self._themeFadeRaf = global.requestAnimationFrame(tick);
+            } else {
+                self._themeFadeRaf = null;
+                self._themeCanvasFade = null;
+                if (self._starsCanvas) {
+                    self._starsCanvas.style.opacity = "";
+                    self._starsCanvas.style.visibility = "";
+                }
+                if (self._lightCloudsCanvas) {
+                    self._lightCloudsCanvas.style.opacity = "";
+                    self._lightCloudsCanvas.style.visibility = "";
+                }
+                self._syncFromWeatherApp();
+            }
+        }
+        self._themeFadeRaf = global.requestAnimationFrame(tick);
     };
 
     Atmosphere.prototype._ensureDom = function () {
@@ -259,7 +353,8 @@
         var isLight =
             document.documentElement.classList.contains("theme-light") ||
             document.documentElement.getAttribute("data-theme") === "light";
-        if (isLight || prefersReducedMotion()) {
+        var fadingStarsOut = self._themeCanvasFade && self._themeCanvasFade.toLight;
+        if ((isLight && !fadingStarsOut) || prefersReducedMotion()) {
             self._stopStars();
             return;
         }
@@ -291,8 +386,11 @@
      */
     Atmosphere.prototype._syncStars = function (isLightTheme) {
         if (isLightTheme || prefersReducedMotion()) {
-            this._stopStars();
-            return;
+            var fadingStarsOut = this._themeCanvasFade && this._themeCanvasFade.toLight;
+            if (!fadingStarsOut) {
+                this._stopStars();
+                return;
+            }
         }
         this._ensureDom();
         if (this._stars.length === 0) this._reseedStars();
@@ -427,7 +525,8 @@
         var isLight =
             document.documentElement.classList.contains("theme-light") ||
             document.documentElement.getAttribute("data-theme") === "light";
-        if (!isLight || prefersReducedMotion()) {
+        var fadingCloudsOut = self._themeCanvasFade && !self._themeCanvasFade.toLight;
+        if ((!isLight && !fadingCloudsOut) || prefersReducedMotion()) {
             self._stopLightClouds();
             return;
         }
@@ -483,9 +582,16 @@
      * @returns {void}
      */
     Atmosphere.prototype._syncLightClouds = function (isLightTheme) {
-        if (!isLightTheme || prefersReducedMotion()) {
+        if (prefersReducedMotion()) {
             this._stopLightClouds();
             return;
+        }
+        if (!isLightTheme) {
+            var fadingCloudsOut = this._themeCanvasFade && !this._themeCanvasFade.toLight;
+            if (!fadingCloudsOut) {
+                this._stopLightClouds();
+                return;
+            }
         }
         this._ensureDom();
         if (this._lightClouds.length === 0) this._initLightCloudModels();
@@ -773,6 +879,7 @@
         }
 
         if (prefersReducedMotion()) {
+            this._endThemeCanvasFadeImmediate();
             this._stopStars();
             this._stopLightClouds();
             el.classList.add("weather-bg--fx-none");
