@@ -681,6 +681,21 @@ html[data-theme="dark"] .daily-item {
     box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
 }
 
+html[data-theme="light"] .daily-item {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    box-shadow: none;
+}
+
+html[data-theme="light"] .daily-item__hi {
+    color: #fff;
+}
+
+html[data-theme="light"] .daily-item__lo {
+    color: rgba(255, 255, 255, 0.7);
+}
+
 /* Мобильный скролл для дневных карточек */
 @media (max-width: 600px) {
     .city-daily-scroll {
@@ -846,6 +861,35 @@ html[data-theme="dark"] .metric-card {
 html[data-theme="dark"] .metrics-sun-item {
     border-width: 0.5px;
     box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="light"] .metric-card {
+    background: rgba(255, 255, 255, 0.15);
+    border: 0.5px solid rgba(255, 255, 255, 0.3);
+}
+
+html[data-theme="light"] .metric-label {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+html[data-theme="light"] .metric-card__nums,
+html[data-theme="light"] .metric-value,
+html[data-theme="light"] .metric-card__icon,
+html[data-theme="light"] .metric-unit {
+    color: #fff;
+}
+
+html[data-theme="light"] .metrics-sun-item {
+    background: rgba(255, 255, 255, 0.15);
+    border: 0.5px solid rgba(255, 255, 255, 0.3);
+}
+
+html[data-theme="light"] .metrics-sun-item .metric-label {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+html[data-theme="light"] .metrics-sun-item .metric-value {
+    color: #fff;
 }
 
 .search-input-wrap,
