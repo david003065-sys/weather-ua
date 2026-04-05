@@ -6,7 +6,7 @@
     <title>{{ block "title" . }}Живая погода{{ end }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="{{ block "description" . }}{{ .Text.CitiesTitle }}{{ end }}">
-    <meta name="theme-color" content="#020617">
+    <meta name="theme-color" content="#020d18">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -30,9 +30,9 @@
         try {
             var st = localStorage.getItem("weather:themeMode");
             document.documentElement.style.backgroundColor =
-                st === "light" ? "#e8eef5" : "#020617";
+                st === "light" ? "#e8eef5" : "#020d18";
         } catch (e) {
-            document.documentElement.style.backgroundColor = "#020617";
+            document.documentElement.style.backgroundColor = "#020d18";
         }
         try {
             var standalone =

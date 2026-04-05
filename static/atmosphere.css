@@ -17,7 +17,7 @@
     z-index: -1 !important;
     pointer-events: none;
     overflow: hidden;
-    background: linear-gradient(to bottom, #0f172a, #1e293b);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
     transition:
         background 2s ease,
         opacity 2s ease;
@@ -32,6 +32,20 @@ html[data-theme="light"] #weather-bg {
 body.theme-light #weather-bg.weather-bg--apple-light-mesh,
 html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
     background: linear-gradient(135deg, #4286f4 0%, #373b44 100%) !important;
+}
+
+.weather-bg__stars-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+html[data-theme="light"] .weather-bg__stars-canvas {
+    display: none;
 }
 
 .weather-bg__mesh {
@@ -189,6 +203,7 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
     inset: 0;
     width: 100%;
     height: 100%;
+    z-index: 2;
     opacity: 0;
     transition: opacity 1.2s ease;
     display: block;
@@ -202,6 +217,7 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
 .weather-bg__clouds {
     position: absolute;
     inset: 0;
+    z-index: 1;
     opacity: 0;
     transition: opacity 2s ease;
     pointer-events: none;
@@ -215,7 +231,7 @@ html[data-theme="light"] #weather-bg.weather-bg--apple-light-mesh {
 
 /* WMO 3: mesh — три больших градиента, медленный морфинг */
 #weather-bg.weather-bg--fx-cloud-mesh {
-    background: linear-gradient(165deg, #0a1220 0%, #152a40 55%, #0f1828 100%);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--fx-cloud-mesh {
@@ -422,12 +438,12 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-clear.weather-bg--day {
-    background: linear-gradient(180deg, #1a3a62 0%, #243e5c 45%, #152535 100%);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 /* Ясно — ночь */
 #weather-bg.weather-bg--sky-clear.weather-bg--night {
-    background: linear-gradient(185deg, #0a1628 0%, #122238 40%, #0c1522 100%);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-clear.weather-bg--night {
@@ -440,7 +456,7 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
 }
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--day {
-    background: linear-gradient(to bottom, #2c3e50, #1a252f);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
@@ -449,7 +465,7 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-cloudy.weather-bg--night,
 #weather-bg.weather-bg--sky-cloudy.weather-bg--night {
-    background: linear-gradient(to bottom, #2c3e50, #0d1117);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 /* Дождь / гроза */
@@ -462,7 +478,7 @@ html[data-theme="dark"] #weather-bg.weather-bg--sky-rain.weather-bg--day,
 html[data-theme="dark"] #weather-bg.weather-bg--sky-storm.weather-bg--day,
 html[data-theme="dark"] #weather-bg.weather-bg--sky-rain.weather-bg--night,
 html[data-theme="dark"] #weather-bg.weather-bg--sky-storm.weather-bg--night {
-    background: linear-gradient(180deg, #0e141d 0%, #16202e 55%, #0c121a 100%);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-rain.weather-bg--night,
@@ -477,7 +493,7 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--day {
 
 html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--day,
 html[data-theme="dark"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
-    background: linear-gradient(180deg, #1e2a3a 0%, #2a3848 100%);
+    background: radial-gradient(ellipse at 30% 0%, #0d2a4a 0%, #071520 50%, #020d18 100%);
 }
 
 html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {

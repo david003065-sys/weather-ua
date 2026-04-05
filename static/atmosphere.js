@@ -84,6 +84,9 @@
         this._drops = [];
         this._root = null;
         this._canvas = null;
+        this._starsCanvas = null;
+        this._starsRaf = null;
+        this._stars = [];
         this._cloudsLayer = null;
         this._meshLayer = null;
         this._resizeObs = null;
@@ -127,6 +130,7 @@
             el.className = "weather-bg weather-bg--sky-cloudy weather-bg--day weather-bg--fx-none";
             el.setAttribute("aria-hidden", "true");
             el.innerHTML =
+                '<canvas class="weather-bg__stars-canvas" aria-hidden="true"></canvas>' +
                 '<div class="weather-bg__mesh" aria-hidden="true"></div>' +
                 '<div class="weather-bg__clouds" aria-hidden="true"></div>' +
                 '<canvas class="weather-bg__canvas" aria-hidden="true"></canvas>';
@@ -142,13 +146,25 @@
                 document.addEventListener("DOMContentLoaded", mount);
             }
         }
+        if (el && !el.querySelector(".weather-bg__stars-canvas")) {
+            var starsEl = document.createElement("canvas");
+            starsEl.className = "weather-bg__stars-canvas";
+            starsEl.setAttribute("aria-hidden", "true");
+            el.insertBefore(starsEl, el.firstChild);
+        }
         if (el && !el.querySelector(".weather-bg__mesh")) {
             var mesh = document.createElement("div");
             mesh.className = "weather-bg__mesh";
             mesh.setAttribute("aria-hidden", "true");
-            el.insertBefore(mesh, el.firstChild);
+            var starsRef = el.querySelector(".weather-bg__stars-canvas");
+            if (starsRef) {
+                el.insertBefore(mesh, starsRef.nextSibling);
+            } else {
+                el.insertBefore(mesh, el.firstChild);
+            }
         }
         this._root = el;
+        this._starsCanvas = el.querySelector(".weather-bg__stars-canvas");
         this._meshLayer = el.querySelector(".weather-bg__mesh");
         this._cloudsLayer = el.querySelector(".weather-bg__clouds");
         this._canvas = el.querySelector(".weather-bg__canvas");
@@ -162,9 +178,13 @@
         this._resizeCanvas();
     };
 
-    Atmosphere.prototype._resizeCanvas = function () {
-        var canvas = this._canvas;
-        var container = this._root;
+    /**
+     * Sizes a canvas to the container with DPR scaling; optional 2d context transform.
+     * @param {HTMLCanvasElement|null} canvas
+     * @param {HTMLElement|null} container
+     * @returns {void}
+     */
+    Atmosphere.prototype._sizeCanvasToRoot = function (canvas, container) {
         if (!canvas || !container) return;
         var dpr = global.devicePixelRatio || 1;
         var w = container.clientWidth || global.innerWidth || 320;
@@ -175,7 +195,109 @@
         canvas.style.height = h + "px";
         var ctx = canvas.getContext("2d");
         if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    /** @returns {void} */
+    Atmosphere.prototype._reseedStars = function () {
+        if (!this._starsCanvas || !this._root) return;
+        var w = this._root.clientWidth || global.innerWidth || 320;
+        var h = this._root.clientHeight || global.innerHeight || 480;
+        var n = 60 + Math.floor(Math.random() * 21);
+        var stars = [];
+        var i;
+        for (i = 0; i < n; i++) {
+            stars.push({
+                x: Math.random() * w,
+                y: Math.random() * h * 0.6,
+                r: 0.3 + Math.random() * 1.2,
+                phase: Math.random() * Math.PI * 2,
+            });
+        }
+        this._stars = stars;
+    };
+
+    /** @returns {void} */
+    Atmosphere.prototype._stopStars = function () {
+        if (this._starsRaf) {
+            global.cancelAnimationFrame(this._starsRaf);
+            this._starsRaf = null;
+        }
+        this._stars = [];
+        if (this._starsCanvas && this._root) {
+            var ctx = this._starsCanvas.getContext("2d");
+            if (ctx) {
+                var w = this._root.clientWidth || global.innerWidth;
+                var h = this._root.clientHeight || global.innerHeight;
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, this._starsCanvas.width, this._starsCanvas.height);
+                ctx.restore();
+            }
+        }
+    };
+
+    /**
+     * Twinkling starfield for dark theme only (see atmosphere.css).
+     * @returns {void}
+     */
+    Atmosphere.prototype._starsFrame = function () {
+        var self = this;
+        var canvas = self._starsCanvas;
+        var container = self._root;
+        if (!canvas || !container || !canvas.isConnected) {
+            self._starsRaf = null;
+            return;
+        }
+        var isLight =
+            document.documentElement.classList.contains("theme-light") ||
+            document.documentElement.getAttribute("data-theme") === "light";
+        if (isLight || prefersReducedMotion()) {
+            self._stopStars();
+            return;
+        }
+        var w = container.clientWidth || global.innerWidth;
+        var h = container.clientHeight || global.innerHeight;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        if (self._stars.length === 0) self._reseedStars();
+        var t = performance.now() / 1000;
+        ctx.clearRect(0, 0, w, h);
+        var stars = self._stars;
+        var i;
+        for (i = 0; i < stars.length; i++) {
+            var s = stars[i];
+            var alpha = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t + s.phase));
+            ctx.fillStyle = "rgba(200,225,255," + alpha + ")";
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        self._starsRaf = global.requestAnimationFrame(function () {
+            self._starsFrame();
+        });
+    };
+
+    /**
+     * @param {boolean} isLightTheme
+     * @returns {void}
+     */
+    Atmosphere.prototype._syncStars = function (isLightTheme) {
+        if (isLightTheme || prefersReducedMotion()) {
+            this._stopStars();
+            return;
+        }
+        this._ensureDom();
+        if (this._stars.length === 0) this._reseedStars();
+        if (!this._starsRaf) this._starsFrame();
+    };
+
+    Atmosphere.prototype._resizeCanvas = function () {
+        var container = this._root;
+        if (!container) return;
+        this._sizeCanvasToRoot(this._canvas, container);
+        this._sizeCanvasToRoot(this._starsCanvas, container);
         this._drops = [];
+        this._reseedStars();
     };
 
     Atmosphere.prototype._stopPrecip = function () {
@@ -453,6 +575,7 @@
 
         var appleLightMesh = isLightTheme && isFairWeatherForAppleMesh(cNum);
         if (appleLightMesh) {
+            this._stopStars();
             el.classList.add("weather-bg--apple-light-mesh");
             el.classList.add("weather-bg--fx-none");
             this._buildAppleLightMesh();
@@ -460,6 +583,7 @@
         }
 
         if (prefersReducedMotion()) {
+            this._stopStars();
             el.classList.add("weather-bg--fx-none");
             return;
         }
@@ -495,6 +619,8 @@
         } else {
             el.classList.add("weather-bg--fx-none");
         }
+
+        this._syncStars(isLightTheme);
     };
 
     global.Atmosphere = Atmosphere;
