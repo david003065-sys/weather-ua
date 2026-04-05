@@ -894,6 +894,25 @@ html[data-theme="dark"] .metrics-sun-item {
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
 }
 
+html[data-theme="light"] .search-input,
+html[data-theme="light"] .header-search .search-input,
+html[data-theme="light"] .header-search .header-search__field {
+    background: rgba(255, 255, 255, 0.18);
+    border: 0.5px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+html[data-theme="light"] .search-input::placeholder,
+html[data-theme="light"] .header-search .search-input::placeholder,
+html[data-theme="light"] .header-search .header-search__field::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+html[data-theme="light"] .search-input:focus {
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
 .search-input-spinner {
     position: absolute;
     right: 14px;

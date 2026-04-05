@@ -588,7 +588,7 @@ html[data-theme="light"] #weather-bg.weather-bg--sky-snow.weather-bg--night {
 }
 
 html[data-theme="light"] .atmo-section__title {
-    color: #112033;
+    color: #fff;
 }
 
 /* --- Horizontal city rails --- */
@@ -656,9 +656,10 @@ html[data-theme="light"] .atmo-section__title {
 
 html[data-theme="light"] .rail-card,
 html[data-theme="light"] .cities-rail > a.city-card {
-    background: #d4e0ec;
-    border-color: rgba(79, 102, 128, 0.28);
-    box-shadow: 0 8px 24px rgba(17, 32, 51, 0.08);
+    background: rgba(255, 255, 255, 0.2);
+    border: 0.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0, 50, 100, 0.12);
 }
 
 .rail-card:hover,
@@ -670,8 +671,8 @@ html[data-theme="light"] .cities-rail > a.city-card {
 
 html[data-theme="light"] .rail-card:hover,
 html[data-theme="light"] .cities-rail > a.city-card:hover {
-    border-color: rgba(95, 143, 191, 0.4);
-    box-shadow: 0 12px 32px rgba(17, 32, 51, 0.1);
+    border-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 12px 32px rgba(0, 50, 100, 0.18);
 }
 
 .rail-card__top {
@@ -713,7 +714,7 @@ html[data-theme="light"] .cities-rail > a.city-card:hover {
 }
 
 html[data-theme="light"] .rail-card__temp-val {
-    color: #112033;
+    color: #fff;
 }
 
 .rail-card__temp-unit {
@@ -736,11 +737,11 @@ html[data-theme="light"] .rail-card__temp-val {
 }
 
 html[data-theme="light"] .rail-card__desc {
-    color: #4f6680;
+    color: rgba(255, 255, 255, 0.65);
 }
 
 html[data-theme="light"] .rail-card__temp-unit {
-    color: #5d7390;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .rail-card__meta {
@@ -782,7 +783,7 @@ html[data-theme="light"] .rail-card__temp-unit {
 }
 
 html[data-theme="light"] .rail-card__meta {
-    border-top-color: rgba(79, 102, 128, 0.28);
+    border-top-color: rgba(255, 255, 255, 0.25);
 }
 
 .rail-card__chev {
@@ -793,7 +794,7 @@ html[data-theme="light"] .rail-card__meta {
 }
 
 html[data-theme="light"] .rail-card__chev {
-    color: #5f8fbf;
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .rail-card--switch {
@@ -807,9 +808,9 @@ html[data-theme="light"] .rail-card__chev {
 }
 
 html[data-theme="light"] .rail-card--active {
-    background: linear-gradient(155deg, rgba(95, 143, 191, 0.18) 0%, #d4e0ec 100%);
-    border-color: rgba(95, 143, 191, 0.48);
-    box-shadow: 0 12px 36px rgba(95, 143, 191, 0.14);
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 12px 36px rgba(0, 50, 100, 0.2);
 }
 
 /* Legacy city-card inside rail (favorites / recent) */
