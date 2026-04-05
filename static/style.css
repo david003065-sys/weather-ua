@@ -48,6 +48,12 @@ html[data-theme="light"] {
     --caption-text: rgba(255, 255, 255, 0.5);
     --canvas-text: #ffffff;
     --canvas-text-muted: rgba(255, 255, 255, 0.65);
+    --text-strong: #ffffff;
+    --chart-grid: rgba(255, 255, 255, 0.1);
+    --link: rgba(255, 255, 255, 0.92);
+    --accent-warm: rgba(255, 210, 170, 0.95);
+    --chart-fill-max: rgba(255, 255, 255, 0.18);
+    --chart-fill-min: rgba(255, 210, 170, 0.16);
     --glass-bg: rgba(255, 255, 255, 0.2);
     --glass-border: rgba(255, 255, 255, 0.5);
     --chip-bg: rgba(255, 255, 255, 0.15);

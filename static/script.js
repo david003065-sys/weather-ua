@@ -353,7 +353,7 @@
                 if (!xScale || !yScale) return;
                 var ctx = chart.ctx;
                 ctx.save();
-                ctx.fillStyle = isDark ? "rgba(20, 45, 80, 0.22)" : "rgba(0,0,0,0.12)";
+                ctx.fillStyle = isDark ? "rgba(20, 45, 80, 0.22)" : "rgba(255,255,255,0.06)";
                 for (var i = 0; i < labels.length; i++) {
                     var hh = parseInt(labels[i], 10);
                     if (Number.isNaN(hh)) continue;
@@ -374,18 +374,22 @@
                 datasets: [
                     {
                         data: temps,
-                        borderColor: isDark ? "rgba(100,180,255,0.8)" : "rgba(255,255,255,0.8)",
+                        borderColor: isDark ? "rgba(100,180,255,0.8)" : "rgba(255,255,255,0.85)",
                         backgroundColor: function (context) {
-                            if (!isDark) return "rgba(255,255,255,0.08)";
                             var chartRef = context.chart;
                             var ctxGrad = chartRef.ctx;
                             var chartArea = chartRef.chartArea;
                             if (!chartArea || chartArea.bottom <= chartArea.top) {
-                                return "rgba(60,140,230,0.2)";
+                                return isDark ? "rgba(60,140,230,0.2)" : "rgba(255,255,255,0.15)";
                             }
                             var g = ctxGrad.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                            g.addColorStop(0, "rgba(60,140,230,0.25)");
-                            g.addColorStop(1, "rgba(60,140,230,0)");
+                            if (isDark) {
+                                g.addColorStop(0, "rgba(60,140,230,0.25)");
+                                g.addColorStop(1, "rgba(60,140,230,0)");
+                            } else {
+                                g.addColorStop(0, "rgba(255,255,255,0.22)");
+                                g.addColorStop(1, "rgba(255,255,255,0)");
+                            }
                             return g;
                         },
                         borderWidth: 2,
@@ -395,8 +399,8 @@
                         pointHoverRadius: 5,
                         pointBackgroundColor: isDark
                             ? "rgba(130,200,255,0.95)"
-                            : "rgba(255,255,255,0.9)",
-                        pointBorderColor: isDark ? "rgba(100,180,255,0.55)" : "rgba(255,255,255,0.5)"
+                            : "rgba(255,255,255,0.85)",
+                        pointBorderColor: isDark ? "rgba(100,180,255,0.55)" : "rgba(255,255,255,0.55)"
                     }
                 ]
             },
@@ -440,7 +444,11 @@
                                   color: "rgba(60,120,200,0.1)",
                                   drawBorder: false
                               }
-                            : { display: false }
+                            : {
+                                  display: true,
+                                  color: "rgba(255,255,255,0.1)",
+                                  drawBorder: false
+                              }
                     },
                     y: { display: false }
                 }

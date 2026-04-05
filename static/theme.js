@@ -20,7 +20,7 @@
         }
         var metaEarly = document.querySelector('meta[name="theme-color"]');
         if (metaEarly && (storedEarly === "light" || storedEarly === "dark")) {
-            metaEarly.setAttribute("content", storedEarly === "light" ? "#e8eef5" : "#020d18");
+            metaEarly.setAttribute("content", storedEarly === "light" ? "#1a78c2" : "#020d18");
         }
         /* auto / missing: keep <html data-theme="dark"> from template */
         var bodyEarly = document.body;
