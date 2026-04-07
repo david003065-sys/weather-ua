@@ -733,7 +733,6 @@ html[data-theme="dark"] .weather-source-row--live_api .weather-source-badge {
     background: #ef4444;
 }
 
-.weather-advice,
 .hero-forecast {
     width: 100%;
     display: flex;
@@ -741,6 +740,40 @@ html[data-theme="dark"] .weather-source-row--live_api .weather-source-badge {
     justify-content: center;
     align-items: center;
     gap: 0.2rem;
+}
+
+/* Clothes tips: keep lamp + text on one row (do not inherit hero-forecast wrap). */
+.weather-advice.weather-advice--tips {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.weather-advice__row {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.weather-advice__icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.weather-advice__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
 }
 
 .forecast-chip {

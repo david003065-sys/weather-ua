@@ -66,10 +66,7 @@
             ></div>
             {{/* atmosphere.js подключается в layout.html (head, defer) */}}
 
-            <div class="weather-advice" role="status" aria-live="polite" style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); padding: 0 30px; text-align: center;">
-                <span style="font-size: 16px; flex-shrink: 0;" aria-hidden="true">💡</span>
-                <span id="js-weather-advice-text">{{ .Text.SmartAdviceTitle }}</span>
-            </div>
+            {{ template "weather-advice" . }}
         </div>
 
         <div class="hourly-forecast" aria-label="{{ .Text.HourlySectionTitle }}">

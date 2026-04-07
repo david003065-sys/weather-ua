@@ -1,0 +1,8 @@
+{{ define "weather-advice" }}
+<div class="weather-advice weather-advice--tips" role="status" aria-live="polite">
+    <span class="weather-advice__row">
+        <span class="weather-advice__icon" aria-hidden="true">💡</span>
+        <span class="weather-advice__text" id="js-weather-advice-text">{{ .Text.SmartAdviceTitle }}</span>
+    </span>
+</div>
+{{ end }}
