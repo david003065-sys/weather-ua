@@ -323,9 +323,78 @@
         });
     }
 
+    /** Mobile: pull down at scroll top to reload (≤768px). */
+    function initPullToRefresh() {
+        var mq = window.matchMedia("(max-width: 768px)");
+        var el = document.getElementById("js-pull-refresh");
+        if (!el) return;
+
+        var startY = 0;
+        var pulling = false;
+        var lastCapped = 0;
+        var RES = 0.4;
+        var THRESH = 60;
+        var CAP = 100;
+
+        function clearPullStyles() {
+            el.style.transform = "";
+        }
+
+        function onStart(e) {
+            if (!mq.matches) return;
+            if (document.body.classList.contains("is-refreshing")) return;
+            if (window.scrollY > 0) return;
+            startY = e.touches[0].clientY;
+            pulling = true;
+            lastCapped = 0;
+        }
+
+        function onMove(e) {
+            if (!pulling) return;
+            if (window.scrollY > 0) {
+                pulling = false;
+                document.body.classList.remove("is-pulling");
+                clearPullStyles();
+                lastCapped = 0;
+                return;
+            }
+            var dy = e.touches[0].clientY - startY;
+            if (dy <= 0) {
+                document.body.classList.remove("is-pulling");
+                clearPullStyles();
+                lastCapped = 0;
+                return;
+            }
+            e.preventDefault();
+            document.body.classList.add("is-pulling");
+            lastCapped = Math.min(dy * RES, CAP);
+            el.style.transform = "translateY(" + lastCapped + "px)";
+        }
+
+        function onEnd() {
+            if (!pulling) return;
+            pulling = false;
+            document.body.classList.remove("is-pulling");
+            if (lastCapped >= THRESH) {
+                document.body.classList.add("is-refreshing");
+                clearPullStyles();
+                window.location.reload();
+                return;
+            }
+            lastCapped = 0;
+            el.style.transform = "translateY(0)";
+        }
+
+        document.addEventListener("touchstart", onStart, { passive: true });
+        document.addEventListener("touchmove", onMove, { passive: false });
+        document.addEventListener("touchend", onEnd, { passive: true });
+        document.addEventListener("touchcancel", onEnd, { passive: true });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initThemeControls();
         initHeaderAppMenu();
         initHeaderSearchToggle();
+        initPullToRefresh();
     });
 })();

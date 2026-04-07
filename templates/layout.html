@@ -56,6 +56,9 @@
     <script src="/static/pulse.js" defer></script>
 </head>
 <body class="theme-dark">
+<div id="js-pull-refresh" class="pull-refresh" aria-hidden="true">
+    <span class="pull-refresh__spinner" aria-hidden="true"></span>
+</div>
 <script id="__WEATHER__" type="application/json">{{ .WeatherJSON }}</script>
 <script id="__CLIENT_I18N__" type="application/json">{{ .ClientI18n }}</script>
 <script src="/static/theme.js"></script>
