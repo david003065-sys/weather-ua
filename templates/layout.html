@@ -143,17 +143,31 @@
                 <div id="js-place-suggestions" class="search-suggestions"></div>
             </div>
 
-            <div class="header-actions" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
-                    <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
-                    <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
-                    <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
-                </div>
-
-                <div class="lang-switch" aria-label="{{ .Text.LangSwitchAria }}">
-                    <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
-                    <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
-                    <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
+            <div class="header-actions" id="js-header-actions">
+                <button
+                    type="button"
+                    class="header-menu-toggle"
+                    id="js-header-menu-toggle"
+                    aria-expanded="false"
+                    aria-controls="js-header-menu-panel"
+                    aria-label="{{ .Text.HeaderMenuAria }}"
+                >
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                    </svg>
+                </button>
+                <div class="header-actions__dropdown" id="js-header-menu-panel">
+                    <div class="theme-switch" aria-label="{{ .Text.ThemeSwitchAria }}">
+                        <button type="button" class="theme-switch__item" data-theme-mode="auto">{{ .Text.ThemeAuto }}</button>
+                        <button type="button" class="theme-switch__item" data-theme-mode="light">{{ .Text.ThemeLight }}</button>
+                        <button type="button" class="theme-switch__item" data-theme-mode="dark">{{ .Text.ThemeDark }}</button>
+                    </div>
+                    <div class="lang-switch" aria-label="{{ .Text.LangSwitchAria }}">
+                        <a href="{{ .Path }}?lang=uk" class="lang-switch__item {{ if eq .Lang "uk" }}lang-switch__item--active{{ end }}">UA</a>
+                        <a href="{{ .Path }}?lang=en" class="lang-switch__item {{ if eq .Lang "en" }}lang-switch__item--active{{ end }}">EN</a>
+                        <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -262,7 +262,34 @@
         }
     };
 
+    /** Mobile: gear toggles theme + language panel (desktop: always visible). */
+    function initHeaderAppMenu() {
+        var root = document.getElementById("js-header-actions");
+        var toggle = document.getElementById("js-header-menu-toggle");
+        var panel = document.getElementById("js-header-menu-panel");
+        if (!root || !toggle || !panel) return;
+
+        function setOpen(open) {
+            root.classList.toggle("header-actions--open", open);
+            toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        toggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            setOpen(!root.classList.contains("header-actions--open"));
+        });
+
+        panel.addEventListener("click", function (e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener("click", function () {
+            setOpen(false);
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initThemeControls();
+        initHeaderAppMenu();
     });
 })();

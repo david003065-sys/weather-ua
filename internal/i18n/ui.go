@@ -45,6 +45,7 @@ type UI struct {
 	ThemeDark               string
 	ThemeSwitchAria         string
 	LangSwitchAria          string
+	HeaderMenuAria          string // mobile: opens theme + language panel
 	NavAria                 string
 	BrandHomeAria           string
 	GeoDetectButton         string
@@ -120,6 +121,7 @@ func For(lang string) UI {
 			ThemeDark:               "Dark",
 			ThemeSwitchAria:         "Theme mode",
 			LangSwitchAria:          "Language",
+			HeaderMenuAria:          "Theme and language",
 			NavAria:                 "Main navigation",
 			BrandHomeAria:           "MeteoUA — home",
 			GeoDetectButton:         "Detect my location",
@@ -190,6 +192,7 @@ func For(lang string) UI {
 			ThemeDark:               "Темна",
 			ThemeSwitchAria:         "Режим теми",
 			LangSwitchAria:          "Мова інтерфейсу",
+			HeaderMenuAria:          "Тема та мова",
 			NavAria:                 "Головна навігація",
 			BrandHomeAria:           "MeteoUA — на головну",
 			GeoDetectButton:         "Визначити моє місцезнаходження",
@@ -260,6 +263,7 @@ func For(lang string) UI {
 			ThemeDark:               "Тёмная",
 			ThemeSwitchAria:         "Режим темы",
 			LangSwitchAria:          "Выбор языка",
+			HeaderMenuAria:          "Тема и язык",
 			NavAria:                 "Основная навигация",
 			BrandHomeAria:           "MeteoUA — на главную",
 			GeoDetectButton:         "Определить моё местоположение",
