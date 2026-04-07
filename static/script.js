@@ -189,24 +189,24 @@
         var loc = (document.documentElement.lang || "ru").toLowerCase();
         var kind = String(sourceKind || "live_api").toLowerCase();
         if (loc === "en") {
-            if (kind === "browser_cache") return "Source: Browser cache";
-            if (kind === "server_cache") return "Source: Server cache";
-            if (kind === "server_cache_stale") return "Source: Server stale cache";
-            if (kind === "no_data") return "Source: No live data";
-            return "Source: Live API";
+            if (kind === "browser_cache") return "From browser cache";
+            if (kind === "server_cache") return "Data from cache";
+            if (kind === "server_cache_stale") return "Data from cache (may be outdated)";
+            if (kind === "no_data") return "No live data available";
+            return "Live data";
         }
         if (loc === "uk") {
-            if (kind === "browser_cache") return "Джерело: кеш браузера";
-            if (kind === "server_cache") return "Джерело: кеш сервера";
-            if (kind === "server_cache_stale") return "Джерело: застарілий кеш сервера";
-            if (kind === "no_data") return "Джерело: немає live-даних";
-            return "Джерело: live API";
+            if (kind === "browser_cache") return "З кешу браузера";
+            if (kind === "server_cache") return "Дані з кешу";
+            if (kind === "server_cache_stale") return "Дані з кешу (можуть бути застарілі)";
+            if (kind === "no_data") return "Немає актуальних даних";
+            return "Актуальні дані";
         }
-        if (kind === "browser_cache") return "Источник: кэш браузера";
-        if (kind === "server_cache") return "Источник: серверный кэш";
-        if (kind === "server_cache_stale") return "Источник: устаревший кэш сервера";
-        if (kind === "no_data") return "Источник: нет live-данных";
-        return "Источник: live API";
+        if (kind === "browser_cache") return "Из кэша браузера";
+        if (kind === "server_cache") return "Данные из кэша";
+        if (kind === "server_cache_stale") return "Данные из кэша (могут быть устаревшими)";
+        if (kind === "no_data") return "Нет актуальных данных";
+        return "Актуальные данные";
     }
 
     /**

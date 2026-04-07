@@ -192,7 +192,8 @@ html[data-theme="light"] .site-header .geo-btn:hover {
     position: relative;
 }
 
-.header-menu-toggle {
+.header-menu-toggle,
+.header-search-toggle {
     display: none;
     align-items: center;
     justify-content: center;
@@ -207,7 +208,8 @@ html[data-theme="light"] .site-header .geo-btn:hover {
     flex-shrink: 0;
 }
 
-.header-menu-toggle:hover {
+.header-menu-toggle:hover,
+.header-search-toggle:hover {
     opacity: 0.92;
 }
 
@@ -630,6 +632,11 @@ html[data-theme="light"] .weather-card {
     margin-bottom: 2px;
     font-size: 12px;
     color: var(--text-muted);
+}
+
+.weather-hero__source-meta .weather-source-row {
+    opacity: 0.6;
+    font-size: 0.75rem;
 }
 
 /* Источник данных: цветной бейдж (live / кэш / нет данных) */
@@ -1314,7 +1321,34 @@ html[data-theme="dark"] .cities-title {
         flex-wrap: wrap;
     }
 
-    .header-menu-toggle {
+    .shell--header .header-search {
+        transition:
+            max-height 0.3s ease,
+            opacity 0.25s ease,
+            margin 0.25s ease,
+            visibility 0.25s ease;
+    }
+
+    .shell--header:not(.shell--header--search-open) .header-search {
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .shell--header--search-open .header-search {
+        max-height: 140px;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        margin-top: 0.1rem !important;
+    }
+
+    .header-menu-toggle,
+    .header-search-toggle {
         display: inline-flex;
     }
 
@@ -1366,14 +1400,11 @@ html[data-theme="dark"] .cities-title {
         padding: 0.22rem 0.48rem;
         font-size: 0.68rem;
     }
-
-    .weather-hero__source-meta .weather-source-row {
-        display: none;
-    }
 }
 
 @media (min-width: 769px) {
-    .header-menu-toggle {
+    .header-menu-toggle,
+    .header-search-toggle {
         display: none !important;
     }
 

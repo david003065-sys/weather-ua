@@ -414,35 +414,35 @@ func weatherSourceText(lang string, data *weather.WeatherData) string {
 	case "en":
 		switch source {
 		case "server_cache":
-			return "Source: Server cache"
+			return "Data from cache"
 		case "server_cache_stale":
-			return "Source: Server stale cache"
+			return "Data from cache (may be outdated)"
 		case "no_data":
-			return "Source: No live data"
+			return "No live data available"
 		default:
-			return "Source: Live API"
+			return "Live data"
 		}
 	case "uk":
 		switch source {
 		case "server_cache":
-			return "Джерело: Кеш сервера"
+			return "Дані з кешу"
 		case "server_cache_stale":
-			return "Джерело: Застарілий кеш сервера"
+			return "Дані з кешу (можуть бути застарілі)"
 		case "no_data":
-			return "Джерело: Немає live-даних"
+			return "Немає актуальних даних"
 		default:
-			return "Джерело: Live API"
+			return "Актуальні дані"
 		}
 	default:
 		switch source {
 		case "server_cache":
-			return "Источник: серверный кэш"
+			return "Данные из кэша"
 		case "server_cache_stale":
-			return "Источник: устаревший кэш сервера"
+			return "Данные из кэша (могут быть устаревшими)"
 		case "no_data":
-			return "Источник: нет live-данных"
+			return "Нет актуальных данных"
 		default:
-			return "Источник: live API"
+			return "Актуальные данные"
 		}
 	}
 }

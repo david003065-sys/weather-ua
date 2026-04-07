@@ -288,8 +288,44 @@
         });
     }
 
+    /** Mobile (≤768px): loupe toggles header search row under the bar. */
+    function initHeaderSearchToggle() {
+        var shell = document.getElementById("js-shell-header");
+        var btn = document.getElementById("js-header-search-toggle");
+        var input = document.getElementById("js-place-search");
+        if (!shell || !btn) return;
+
+        function setOpen(open) {
+            shell.classList.toggle("shell--header--search-open", open);
+            btn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var next = !shell.classList.contains("shell--header--search-open");
+            setOpen(next);
+            if (next && input) {
+                try {
+                    input.focus();
+                } catch (_) {}
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            try {
+                if (window.matchMedia("(max-width: 768px)").matches) {
+                    var header = document.querySelector(".site-header");
+                    if (header && !header.contains(e.target)) {
+                        setOpen(false);
+                    }
+                }
+            } catch (_) {}
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initThemeControls();
         initHeaderAppMenu();
+        initHeaderSearchToggle();
     });
 })();
