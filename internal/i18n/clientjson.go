@@ -23,6 +23,10 @@ type ClientPayload struct {
 	PlaceTypeFallback string   `json:"placeTypeFallback"`
 	GeoNoBrowser      string   `json:"geoNoBrowserSupport"`
 	GeoLocationFailed string   `json:"geoLocationFailed"`
+	ShareTitleFmt     string   `json:"shareTitleFmt"`
+	ShareTextFmt      string   `json:"shareTextFmt"`
+	ShareCopied       string   `json:"shareCopied"`
+	ShareButton       string   `json:"shareButton"`
 }
 
 func clientPayload(lang string) ClientPayload {
@@ -56,6 +60,10 @@ func clientPayload(lang string) ClientPayload {
 			PlaceTypeFallback: "Settlement",
 			GeoNoBrowser:      "This browser does not support geolocation.",
 			GeoLocationFailed: "Could not get your position. Check site permissions.",
+			ShareTitleFmt:     "Weather in {city} — {temp}°C, {desc}",
+			ShareTextFmt:      "{temp}°, {desc}. Today: {d0}. Tomorrow: {d1}.",
+			ShareCopied:       "Link copied",
+			ShareButton:       "Share",
 		}
 	case "uk":
 		return ClientPayload{
@@ -86,6 +94,10 @@ func clientPayload(lang string) ClientPayload {
 			PlaceTypeFallback: "населений пункт",
 			GeoNoBrowser:      "Ваш браузер не підтримує геолокацію.",
 			GeoLocationFailed: "Не вдалося отримати координати. Перевір дозволи сайту.",
+			ShareTitleFmt:     "Погода в {city} — {temp}°C, {desc}",
+			ShareTextFmt:      "{temp}°, {desc}. Сьогодні: {d0}. Завтра: {d1}.",
+			ShareCopied:       "Посилання скопійовано",
+			ShareButton:       "Поділитися",
 		}
 	default:
 		return ClientPayload{
@@ -116,6 +128,10 @@ func clientPayload(lang string) ClientPayload {
 			PlaceTypeFallback: "населённый пункт",
 			GeoNoBrowser:      "Ваш браузер не поддерживает геолокацию.",
 			GeoLocationFailed: "Не удалось получить координаты. Проверьте разрешения.",
+			ShareTitleFmt:     "Погода в {city} — {temp}°C, {desc}",
+			ShareTextFmt:      "{temp}°, {desc}. Сегодня: {d0}. Завтра: {d1}.",
+			ShareCopied:       "Ссылка скопирована",
+			ShareButton:       "Поделиться",
 		}
 	}
 }

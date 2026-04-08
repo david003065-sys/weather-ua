@@ -353,7 +353,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		DayAfterMin:         dayAfterMin,
 		DayAfterMax:         dayAfterMax,
 		Cities:              nil,
-		WeatherJSON:         buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds),
+		WeatherJSON:         buildWeatherJSON(heroData.Sunrise, heroData.Sunset, heroData.Timezone, heroData.UTCOffsetSeconds, weather.LocalizedCityName(heroData.CityID, lang)),
 		MetaDescription:     metaDesc,
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
 	}
@@ -615,7 +615,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		TrendText:           trend,
 		Cities:              cityCards,
 		Hourly:              hourly,
-		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds, weather.LocalizedCityName(data.CityID, lang)),
 		ClientI18n:          template.JS(i18n.MarshalClientJSON(lang)),
 		RadarLat:            0,
 		RadarLon:            0,
@@ -1516,7 +1516,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		TrendText:           trend,
 		Cities:              cityCards,
 		Hourly:              hourly,
-		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds),
+		WeatherJSON:         buildWeatherJSON(data.Sunrise, data.Sunset, data.Timezone, data.UTCOffsetSeconds, displayName),
 		DuplicatesCount:     dupCount,
 		DuplicatesLabel:     dupLabel,
 		DuplicatesURL:       dupURL,
@@ -1531,7 +1531,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildWeatherJSON(sunrise, sunset time.Time, tz string, offsetSeconds int) template.JS {
+func buildWeatherJSON(sunrise, sunset time.Time, tz string, offsetSeconds int, cityName string) template.JS {
 	if sunrise.IsZero() || sunset.IsZero() {
 		return template.JS("{}")
 	}
@@ -1550,6 +1550,7 @@ func buildWeatherJSON(sunrise, sunset time.Time, tz string, offsetSeconds int) t
 			TZ            string `json:"tz"`
 			OffsetSeconds int    `json:"offsetSeconds"`
 		} `json:"meta"`
+		CityName string `json:"cityName,omitempty"`
 	}{
 		Sun: struct {
 			SunriseISO     string `json:"sunriseISO"`
@@ -1566,6 +1567,7 @@ func buildWeatherJSON(sunrise, sunset time.Time, tz string, offsetSeconds int) t
 			TZ            string `json:"tz"`
 			OffsetSeconds int    `json:"offsetSeconds"`
 		}{TZ: tz, OffsetSeconds: offsetSeconds},
+		CityName: strings.TrimSpace(cityName),
 	}
 	b, _ := json.Marshal(payload)
 	return template.JS(b)

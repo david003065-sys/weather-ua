@@ -2380,6 +2380,130 @@
         loadFavorites();
     }
 
+    /** City page: Web Share API or copy URL + toast. Data from live DOM (+ optional __WEATHER__). */
+    var shareCopyToastTimer = null;
+
+    function replaceShareFmt(str, map) {
+        if (!str) return "";
+        return String(str).replace(/\{(\w+)\}/g, function (_, k) {
+            var v = map[k];
+            return v != null && v !== "" ? String(v) : "";
+        });
+    }
+
+    function readDailyShareRange(idx) {
+        var scroll = document.getElementById("js-daily-scroll");
+        if (!scroll) return "";
+        var items = scroll.querySelectorAll(".daily-item");
+        var item = items[idx];
+        if (!item) return "";
+        var hi = item.querySelector(".daily-item__hi");
+        var lo = item.querySelector(".daily-item__lo");
+        if (!hi || !lo) return "";
+        return (
+            String(lo.textContent || "")
+                .trim()
+                .replace(/\s+/g, "") +
+            "—" +
+            String(hi.textContent || "")
+                .trim()
+                .replace(/\s+/g, "")
+        );
+    }
+
+    function buildCityShareMap() {
+        var city = "";
+        var temp = "";
+        var desc = "";
+        try {
+            var wel = document.getElementById("__WEATHER__");
+            if (wel && wel.textContent && wel.textContent.trim()) {
+                var wj = JSON.parse(wel.textContent.trim());
+                if (wj && typeof wj.cityName === "string" && wj.cityName.trim()) {
+                    city = wj.cityName.trim();
+                }
+            }
+        } catch (_) {}
+        var cityEl = document.getElementById("city-title");
+        if (!city && cityEl) city = cityEl.textContent.trim();
+        var tempEl = document.getElementById("js-current-temp");
+        if (tempEl) temp = String(tempEl.textContent || "").trim();
+        var descEl = document.querySelector(".weather-hero__condition");
+        if (descEl) desc = descEl.textContent.trim();
+        var d0 = readDailyShareRange(0);
+        var d1 = readDailyShareRange(1);
+        if (!d0) d0 = "—";
+        if (!d1) d1 = "—";
+        return { city: city, temp: temp, desc: desc, d0: d0, d1: d1 };
+    }
+
+    function showShareCopiedToast() {
+        var msg = (clientI18n && clientI18n.shareCopied) || "";
+        if (!msg) return;
+        var id = "js-share-copied-toast";
+        var el = document.getElementById(id);
+        if (!el) {
+            el = document.createElement("div");
+            el.id = id;
+            el.className = "sw-update-toast";
+            el.setAttribute("role", "status");
+            el.setAttribute("aria-live", "polite");
+            document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.classList.add("sw-update-toast--visible");
+        if (shareCopyToastTimer) clearTimeout(shareCopyToastTimer);
+        shareCopyToastTimer = setTimeout(function () {
+            el.classList.remove("sw-update-toast--visible");
+        }, 2200);
+    }
+
+    function copyUrlToClipboard(url, done) {
+        function finish() {
+            if (typeof done === "function") done();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(finish).catch(fallback);
+        } else fallback();
+
+        function fallback() {
+            try {
+                var ta = document.createElement("textarea");
+                ta.value = url;
+                ta.setAttribute("readonly", "");
+                ta.style.position = "fixed";
+                ta.style.left = "-9999px";
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+            } catch (_) {}
+            finish();
+        }
+    }
+
+    function initCityShare() {
+        var btn = document.getElementById("js-city-share");
+        if (!btn) return;
+        var lbl = btn.querySelector(".city-share-btn__label");
+        if (lbl && clientI18n && clientI18n.shareButton) {
+            lbl.textContent = clientI18n.shareButton;
+        }
+        btn.addEventListener("click", function () {
+            var map = buildCityShareMap();
+            var title = replaceShareFmt((clientI18n && clientI18n.shareTitleFmt) || "", map);
+            var text = replaceShareFmt((clientI18n && clientI18n.shareTextFmt) || "", map);
+            var url = window.location.href;
+            if (navigator.share) {
+                navigator.share({ title: title, text: text, url: url }).catch(function () {});
+            } else {
+                copyUrlToClipboard(url, showShareCopiedToast);
+            }
+        });
+    }
+
+    initCityShare();
+
     window.addEventListener("weather-theme-change", function () {
         renderTempChart();
     });
