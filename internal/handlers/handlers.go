@@ -47,11 +47,11 @@ func (s *Server) SetPlacesStore(ps *places.Store) {
 
 // pulseJSON is the stable JSON shape for GET /api/pulse (used by static/pulse.js).
 type pulseJSON struct {
-	Goroutines     int     `json:"goroutines"`
-	MemoryAllocMB  float64 `json:"memory_alloc_mb"`
-	MemorySysMB    float64 `json:"memory_sys_mb"`
-	GCCycles       uint32  `json:"gc_cycles"`
-	Uptime         string  `json:"uptime"`
+	Goroutines    int     `json:"goroutines"`
+	MemoryAllocMB float64 `json:"memory_alloc_mb"`
+	MemorySysMB   float64 `json:"memory_sys_mb"`
+	GCCycles      uint32  `json:"gc_cycles"`
+	Uptime        string  `json:"uptime"`
 }
 
 func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
@@ -128,21 +128,21 @@ type IndexPageData struct {
 	WeatherStaleText    string
 	WeatherSourceText   string
 	// WeatherSourceKind: live_api | server_cache | server_cache_stale | no_data (SSR; browser_cache только в JS).
-	WeatherSourceKind   string
-	WeatherUpdatedText  string
-	TodayLabel          string
-	TodayMin            float64
-	TodayMax            float64
-	TomorrowLabel       string
-	TomorrowMin         float64
-	TomorrowMax         float64
-	DayAfterLabel       string
-	DayAfterMin         float64
-	DayAfterMax         float64
-	Cities              []CitySummary
-	WeatherJSON         template.JS
-	MetaDescription     string
-	ClientI18n          template.JS
+	WeatherSourceKind  string
+	WeatherUpdatedText string
+	TodayLabel         string
+	TodayMin           float64
+	TodayMax           float64
+	TomorrowLabel      string
+	TomorrowMin        float64
+	TomorrowMax        float64
+	DayAfterLabel      string
+	DayAfterMin        float64
+	DayAfterMax        float64
+	Cities             []CitySummary
+	WeatherJSON        template.JS
+	MetaDescription    string
+	ClientI18n         template.JS
 }
 
 type DailyView struct {
@@ -631,13 +631,13 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 // --- API: weather by city id (existing) ---
 
 type apiWeatherResponse struct {
-	CityID   string      `json:"cityId"`
-	CityName string      `json:"cityName"`
-	Lang     string      `json:"lang"`
-	Source   string      `json:"source,omitempty"`
-	LastUpdated string   `json:"lastUpdated,omitempty"`
-	Current  apiCurrent  `json:"current"`
-	Hourly   []apiHourly `json:"hourly,omitempty"`
+	CityID      string      `json:"cityId"`
+	CityName    string      `json:"cityName"`
+	Lang        string      `json:"lang"`
+	Source      string      `json:"source,omitempty"`
+	LastUpdated string      `json:"lastUpdated,omitempty"`
+	Current     apiCurrent  `json:"current"`
+	Hourly      []apiHourly `json:"hourly,omitempty"`
 	// Sunrise/Sunset — сегодня, локальное время "15:04" (из astro первого дня WeatherAPI).
 	Sunrise string          `json:"sunrise,omitempty"`
 	Sunset  string          `json:"sunset,omitempty"`
@@ -768,9 +768,9 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 			}
 			return data.LastUpdated.UTC().Format(time.RFC3339)
 		}(),
-		Sunrise:  sunriseStr,
-		Sunset:   sunsetStr,
-		Daily:    apiDailyFromForecast(data.Forecast),
+		Sunrise: sunriseStr,
+		Sunset:  sunsetStr,
+		Daily:   apiDailyFromForecast(data.Forecast),
 		Current: apiCurrent{
 			Temperature:         data.Current.Temperature,
 			ApparentTemperature: data.Current.FeelsLike,
@@ -876,9 +876,9 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 			}
 			return data.LastUpdated.UTC().Format(time.RFC3339)
 		}(),
-		Sunrise:  sunriseStr,
-		Sunset:   sunsetStr,
-		Daily:    apiDailyFromForecast(data.Forecast),
+		Sunrise: sunriseStr,
+		Sunset:  sunsetStr,
+		Daily:   apiDailyFromForecast(data.Forecast),
 		Current: apiCurrent{
 			Temperature:         data.Current.Temperature,
 			ApparentTemperature: data.Current.FeelsLike,
