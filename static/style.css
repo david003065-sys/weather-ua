@@ -615,6 +615,15 @@ html[data-theme="light"] .weather-card {
     gap: 0.35rem 0.5rem;
 }
 
+.weather-hero__share-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 0.35rem;
+    margin-bottom: 0.15rem;
+}
+
 .weather-hero__city {
     margin: 0;
     font-size: clamp(1.8rem, 5vw, 2.3rem);
@@ -628,11 +637,13 @@ html[data-theme="light"] .weather-card {
     z-index: 10;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
     cursor: pointer;
-    background: transparent;
-    border: none;
-    padding: 5px 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.18);
+    border-radius: 20px;
+    padding: 5px 14px;
     margin: 0;
     line-height: 1.2;
     color: var(--text-muted);
@@ -642,26 +653,19 @@ html[data-theme="light"] .weather-card {
 .city-share-btn__icon {
     flex-shrink: 0;
     display: block;
+    width: 13px;
+    height: 13px;
 }
 
 .city-share-btn__label {
-    font-size: 0.82rem;
+    font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-    .city-share-btn__label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
+html[data-theme="light"] .city-share-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.12);
 }
 
 .fav-btn {
@@ -783,7 +787,7 @@ html[data-theme="dark"] .weather-source-row--live_api .weather-source-badge {
     gap: 0.2rem;
 }
 
-/* Clothes tips: keep lamp + text on one row (do not inherit hero-forecast wrap). */
+/* Clothes tips: centered text (do not inherit hero-forecast wrap). */
 .weather-advice.weather-advice--tips {
     width: 100%;
     display: flex;
@@ -801,14 +805,7 @@ html[data-theme="dark"] .weather-source-row--live_api .weather-source-badge {
     flex-wrap: nowrap;
     align-items: flex-start;
     justify-content: center;
-    gap: 8px;
     max-width: 100%;
-}
-
-.weather-advice__icon {
-    flex-shrink: 0;
-    font-size: 16px;
-    line-height: 1.35;
 }
 
 .weather-advice__text {

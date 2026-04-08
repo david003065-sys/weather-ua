@@ -75,7 +75,8 @@ type UI struct {
 	Sunrise          string
 	Sunset           string
 	SunTimesAria     string // aria-label for sunrise/sunset row
-	ShareWeather     string // city page: share weather button
+	ShareWeather     string // city page: share action (verbose aria, optional)
+	ShareButton      string // city page: share label (matches client JSON shareButton)
 }
 
 // For returns all UI strings for SSR.
@@ -151,7 +152,8 @@ func For(lang string) UI {
 			Sunrise:                 "Sunrise",
 			Sunset:                  "Sunset",
 			SunTimesAria:            "Sunrise and sunset",
-			ShareWeather:            "Share",
+			ShareWeather:            "Share weather",
+			ShareButton:             "Share",
 		}
 	case "uk":
 		return UI{
@@ -223,7 +225,8 @@ func For(lang string) UI {
 			Sunrise:                 "Схід",
 			Sunset:                  "Захід",
 			SunTimesAria:            "Схід і захід сонця",
-			ShareWeather:            "Поділитися",
+			ShareWeather:            "Поділитися погодою",
+			ShareButton:             "Поділитися",
 		}
 	default: // ru
 		return UI{
@@ -295,7 +298,8 @@ func For(lang string) UI {
 			Sunrise:                 "Рассвет",
 			Sunset:                  "Закат",
 			SunTimesAria:            "Восход и закат",
-			ShareWeather:            "Поделиться",
+			ShareWeather:            "Поделиться погодой",
+			ShareButton:             "Поделиться",
 		}
 	}
 }
