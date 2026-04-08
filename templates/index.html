@@ -32,10 +32,6 @@
                 <span>{{ .WeatherStaleText }}</span>
             </div>
             {{ end }}
-            <div class="weather-hero__precip" id="js-precip-chance" style="display: flex; align-items: center; gap: 4px; margin: 0; font-size: 15px; color: var(--text-muted);">
-                <span style="font-size: 14px;" aria-hidden="true">☔</span>
-                <span id="js-precip-value">{{ if or .WeatherUnavailable (lt .CurrentPrecipChance 0) }}—{{ else }}{{ .CurrentPrecipChance }}%{{ end }}</span>
-            </div>
 
             {{ template "weather-advice" . }}
 

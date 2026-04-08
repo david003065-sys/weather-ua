@@ -292,33 +292,6 @@
         }
     }
 
-    /**
-     * @param {number} chance Precipitation probability 0–100.
-     * @param {boolean} isFallback
-     * @returns {void}
-     */
-    function updatePrecipChance(chance, isFallback) {
-        var wrap = document.getElementById("js-precip-chance");
-        if (!wrap) return;
-        var valEl = document.getElementById("js-precip-value");
-        var text;
-        if (isFallback) {
-            text = "—";
-        } else {
-            var ch = Number(chance);
-            if (Number.isNaN(ch) || ch < 0 || ch > 100) {
-                text = "—";
-            } else {
-                text = Math.round(ch) + "%";
-            }
-        }
-        if (valEl) {
-            valEl.textContent = text;
-        } else {
-            wrap.textContent = "☔ " + text;
-        }
-    }
-
     /** @returns {HTMLElement|null} */
     function getHourlyScrollEl() {
         return document.getElementById("js-hourly-scroll");
@@ -718,7 +691,6 @@
                 tempElNow.dataset.tempFeels = String(json.current.apparent_temperature);
             }
             if (descElNow) descElNow.textContent = json.current.description || (isFallbackNow ? "—" : "");
-            updatePrecipChance(json.current.precipitation_chance, isFallbackNow);
             if (heroTitleEl && json.cityName) heroTitleEl.textContent = json.cityName;
             var sourceElNow = document.getElementById("js-weather-source");
             if (sourceElNow) sourceElNow.textContent = sourceLabel(json.source);
@@ -1024,7 +996,6 @@
                 tempEl.dataset.tempFeels = String(data.current.apparent_temperature);
             }
             if (descEl) descEl.textContent = data.current.description;
-            updatePrecipChance(data.current.precipitation_chance, isFallback);
             var sourceEl = document.getElementById("js-weather-source");
             var sourceKind = (data && data.__clientSource) || (data && data.source) || "live_api";
             if (sourceEl) sourceEl.textContent = sourceLabel(sourceKind);
