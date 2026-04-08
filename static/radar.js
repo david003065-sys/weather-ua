@@ -14,13 +14,25 @@ document.addEventListener("DOMContentLoaded", function initWeatherRadarMap() {
     var lat = parseFloat(container.dataset.lat) || 48.3794;
     var lon = parseFloat(container.dataset.lon) || 31.1656;
 
+    /** Ukraine-focused bounds: keep Russia mostly out of frame; SW then NE as [lat, lng]. */
+    var maxBounds = [
+        [44.0, 22.0],
+        [52.5, 40.5],
+    ];
+
     var map = L.map("weather-radar-map", {
         zoomControl: false,
         attributionControl: true,
-    }).setView([lat, lon], 6);
+        minZoom: 6,
+        maxZoom: 10,
+        maxBounds: maxBounds,
+        maxBoundsViscosity: 1.0,
+    }).setView([lat, lon], 8);
+
+    map.setMaxBounds(maxBounds);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 18,
+        maxZoom: 10,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
     }).addTo(map);
 
@@ -41,6 +53,7 @@ document.addEventListener("DOMContentLoaded", function initWeatherRadarMap() {
                     opacity: 0.7,
                     tileSize: 256,
                     zIndex: 10,
+                    maxZoom: 10,
                     attribution: "&copy; RainViewer",
                 }
             ).addTo(map);
