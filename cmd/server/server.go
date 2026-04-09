@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"bss/internal/bootstrap"
 	"bss/internal/handlers"
 	"bss/internal/middleware"
 	"bss/internal/places"
@@ -123,11 +124,17 @@ func Run() error {
 
 		go weatherClient.WarmCache(context.Background())
 
+		// Download GeoNames (UA + alternateNamesV2 + admin1), build cities_ua.csv, import SQLite if missing or stale.
+		if err := bootstrap.EnsureData(logger); err != nil {
+			logger.Printf("[bootstrap] ensure data failed: %v", err)
+			return
+		}
+
 		// Heavy: open SQLite / load FTS indexes.
 		const placesRelPath = "data/places.db"
 		abs, _ := filepath.Abs(placesRelPath)
 		if _, err := os.Stat(placesRelPath); err != nil {
-			logger.Printf("[places] places.db not found at %s: %v", abs, err)
+			logger.Printf("[places] places.db not found at %s after bootstrap: %v", abs, err)
 			return
 		}
 		ps, err := places.NewStore(placesRelPath)
@@ -149,4 +156,3 @@ func Run() error {
 
 	return http.ListenAndServe(addr, mux)
 }
-

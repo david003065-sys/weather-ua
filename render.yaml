@@ -2,8 +2,9 @@ services:
   - type: web
     name: weather-ua
     env: go
-    # Если data/places.db уже в репозитории — первая команда пропускается (sh -c с test).
-    buildCommand: sh -c 'test -f data/places.db || go run ./cmd/build_db -input "${PLACES_CSV:-data/source/places.csv}" -output data/places.db; go test ./... && go build -o app ./cmd/server'
+    # places.db збирається на старті через bootstrap.EnsureData (GeoNames + alternateNamesV2).
+    # Не викликати build_db з data/source/places.csv — там немає uk-альтернатив з alternateNamesV2.
+    buildCommand: go test ./... && go build -o app ./cmd/server
     startCommand: ./app
     healthCheckPath: /health
     envVars:
