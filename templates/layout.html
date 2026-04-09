@@ -191,10 +191,14 @@
 
     <main class="site-main" aria-live="polite">
         <div class="shell">
-            {{ if .IsIndex }}
-                {{ template "index-content" . }}
+            {{ if .IsNotFound }}
+                {{ template "notfound-content" . }}
             {{ else }}
-                {{ template "city-content" . }}
+                {{ if .IsIndex }}
+                    {{ template "index-content" . }}
+                {{ else }}
+                    {{ template "city-content" . }}
+                {{ end }}
             {{ end }}
         </div>
     </main>

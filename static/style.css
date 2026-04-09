@@ -582,6 +582,98 @@ html[data-theme="light"] .weather-card {
     box-shadow: 0 18px 45px rgba(0, 50, 100, 0.15);
 }
 
+/* --- 404 (templates/404.html) --- */
+.notfound-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: min(72vh, 680px);
+    padding: 1.5rem 0 2.5rem;
+}
+
+.notfound-card.weather-card {
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 2rem 1.75rem 2.35rem;
+}
+
+.notfound-code {
+    margin: 0 0 0.35rem;
+    font-size: clamp(3.25rem, 14vw, 4.75rem);
+    font-weight: 600;
+    letter-spacing: -0.07em;
+    line-height: 1;
+    color: var(--text-main);
+    opacity: 0.88;
+}
+
+.notfound-subtitle {
+    margin: 0 0 0.65rem;
+    font-size: clamp(1.28rem, 4.2vw, 1.62rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
+}
+
+.notfound-desc {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.notfound-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: center;
+    margin-top: 1.65rem;
+}
+
+.notfound-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.55rem 1.35rem;
+    border-radius: 999px;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.12s ease;
+}
+
+.notfound-btn:focus-visible {
+    outline: 2px solid rgba(96, 165, 250, 0.7);
+    outline-offset: 2px;
+}
+
+.notfound-btn--primary {
+    background: rgba(59, 130, 246, 0.32);
+    border-color: rgba(96, 165, 250, 0.42);
+}
+
+.notfound-btn--secondary {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="light"] .notfound-btn--primary {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+html[data-theme="light"] .notfound-btn--secondary {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
 .weather-hero__atmo {
     position: absolute;
     inset: 0;

@@ -106,6 +106,7 @@ type TextSet = i18n.UI
 
 type IndexPageData struct {
 	IsIndex         bool
+	IsNotFound      bool
 	WeatherCode     int
 	IsNight         bool
 	WeatherMood     string
@@ -169,6 +170,7 @@ type CityWeatherPhysics struct {
 
 type CityPageData struct {
 	IsIndex     bool
+	IsNotFound  bool
 	WeatherCode int
 	IsNight     bool
 	WeatherMood string
@@ -212,6 +214,21 @@ type CityPageData struct {
 	RadarLon            float64
 	// Current — снимок для Canvas-физики (шаблон: .Current.MainCondition, .Current.WindSpeed).
 	Current CityWeatherPhysics
+}
+
+// NotFoundPageData drives templates/404.html (same layout and atmosphere as other pages).
+type NotFoundPageData struct {
+	IsNotFound  bool
+	IsIndex     bool
+	WeatherCode int
+	IsNight     bool
+	WeatherMood string
+	Lang        string
+	Path        string
+	Text        TextSet
+	CityID      string
+	WeatherJSON template.JS
+	ClientI18n  template.JS
 }
 
 func cityCoordsByID(cityID string) (float64, float64) {
@@ -470,18 +487,18 @@ func weatherUpdatedText(lang string, data *weather.WeatherData) string {
 
 func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/city/") {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 
 	cityID := strings.TrimPrefix(r.URL.Path, "/city/")
 	if cityID == "" {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 
 	if !weather.IsKnownCity(cityID) {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 
@@ -625,6 +642,32 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.tmpl.ExecuteTemplate(w, "city-page", page); err != nil {
 		s.logger.Printf("render city: %v", err)
+	}
+}
+
+func (s *Server) renderNotFound(w http.ResponseWriter, r *http.Request) {
+	if s.tmpl == nil {
+		http.NotFound(w, r)
+		return
+	}
+	lang := detectLang(r)
+	text := i18n.For(lang)
+	w.WriteHeader(http.StatusNotFound)
+	page := NotFoundPageData{
+		IsNotFound:  true,
+		IsIndex:     false,
+		WeatherCode: 0,
+		IsNight:     false,
+		WeatherMood: weatherMoodClass(0, false),
+		Lang:        lang,
+		Path:        r.URL.Path,
+		Text:        text,
+		CityID:      "",
+		WeatherJSON: template.JS("{}"),
+		ClientI18n:  template.JS(i18n.MarshalClientJSON(lang)),
+	}
+	if err := s.tmpl.ExecuteTemplate(w, "notfound-page", page); err != nil {
+		s.logger.Printf("render 404: %v", err)
 	}
 }
 
@@ -1346,7 +1389,7 @@ func (s *Server) APIFindCity(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/place/") {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 	placesStore := s.getPlacesStore()
@@ -1357,12 +1400,12 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 
 	idStr := strings.TrimPrefix(r.URL.Path, "/place/")
 	if idStr == "" {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 
@@ -1379,7 +1422,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if place == nil {
-		http.NotFound(w, r)
+		s.renderNotFound(w, r)
 		return
 	}
 

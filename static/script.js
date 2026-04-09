@@ -2530,3 +2530,39 @@ if (document.readyState === "loading") {
 } else {
     initDragToScroll();
 }
+
+/**
+ * 404 page: open mobile header search row if needed, then focus `#js-place-search`.
+ * @returns {void}
+ */
+function initNotFoundSearch() {
+    var btn = document.getElementById("js-notfound-search");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+        var input = document.getElementById("js-place-search");
+        var shell = document.getElementById("js-shell-header");
+        try {
+            if (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 768px)").matches) {
+                if (shell) {
+                    shell.classList.add("shell--header--search-open");
+                }
+                var toggle = document.getElementById("js-header-search-toggle");
+                if (toggle) {
+                    toggle.setAttribute("aria-expanded", "true");
+                }
+            }
+            if (input) {
+                input.focus();
+                if (typeof input.select === "function") {
+                    input.select();
+                }
+            }
+        } catch (_) {}
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initNotFoundSearch);
+} else {
+    initNotFoundSearch();
+}
