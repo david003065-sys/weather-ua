@@ -134,8 +134,10 @@
    - **Build Command**:
 
    ```bash
-   go build -o app ./cmd/server
+   go test -tags=fts5 ./... && go build -tags=fts5 -o app ./cmd/server
    ```
+
+   Тег **`fts5`** потрібен для [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3): увімкнює **FTS5** у вбудованому SQLite (`places_fts`). Без нього на деяких Linux (Render) буде `no such module: fts5`.
 
    - **Start Command**:
 

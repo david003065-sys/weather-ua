@@ -4,7 +4,8 @@ services:
     env: go
     # places.db збирається на старті через bootstrap.EnsureData (GeoNames + alternateNamesV2).
     # Не викликати build_db з data/source/places.csv — там немає uk-альтернатив з alternateNamesV2.
-    buildCommand: go test ./... && go build -o app ./cmd/server
+    # FTS5: образ Render без fts5 у системному SQLite — тег fts5 змушує mattn/go-sqlite3 лінкувати SQLITE_ENABLE_FTS5.
+    buildCommand: go test -tags=fts5 ./... && go build -tags=fts5 -o app ./cmd/server
     startCommand: ./app
     healthCheckPath: /health
     envVars:

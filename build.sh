@@ -4,6 +4,6 @@ set -e
 #   go run ./cmd/tools/build_ua_cities_csv -geonames-dir data/geonames -out-dir data/out
 #   go run ./cmd/build_db -input data/out/cities_ua.csv -output data/places.db
 echo "Running tests..."
-go test ./... -v
+go test -tags=fts5 ./... -v
 echo "Tests passed. Building..."
-go build -o app ./cmd/server
+go build -tags=fts5 -o app ./cmd/server
