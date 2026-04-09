@@ -82,6 +82,12 @@
         this._resizeObs = null;
         this._themeCanvasFade = null;
         this._themeFadeRaf = null;
+        this._lightCloudsPrecipMode = false;
+        this._precipIsLight = false;
+        this._precipIsStorm = false;
+        this._lightningNextAt = 0;
+        this._lightningFlashEnd = 0;
+        this._lightningBoltPath = null;
         this._ensureDom();
         var self = this;
         try {
@@ -398,13 +404,15 @@
     };
 
     /**
-     * Five soft drifting clouds (light theme only): multi-ellipse radial gradients.
+     * Soft drifting clouds (light theme only): multi-ellipse radial gradients.
+     * Clear weather: 5 bright clouds. Rain/snow: 6–7 darker clouds.
      * @returns {void}
      */
     Atmosphere.prototype._initLightCloudModels = function () {
         if (!this._root) return;
         var w = this._root.clientWidth || global.innerWidth || 800;
         var h = this._root.clientHeight || global.innerHeight || 600;
+        var precip = this._lightCloudsPrecipMode;
         var templates = [
             {
                 yPct: 0.06,
@@ -465,6 +473,34 @@
                 ],
             },
         ];
+        if (precip) {
+            templates = templates.concat([
+                {
+                    yPct: 0.78,
+                    scale: 0.72,
+                    speed: 9.2,
+                    alpha: 0.55,
+                    blobs: [
+                        { dx: 0, dy: 0, rx: 48, ry: 28 },
+                        { dx: -30, dy: 5, rx: 34, ry: 20 },
+                        { dx: 28, dy: 6, rx: 28, ry: 18 },
+                    ],
+                },
+            ]);
+            if (Math.random() < 0.5) {
+                templates.push({
+                    yPct: 0.1,
+                    scale: 0.82,
+                    speed: 7.2,
+                    alpha: 0.52,
+                    blobs: [
+                        { dx: 0, dy: 0, rx: 56, ry: 32 },
+                        { dx: -38, dy: 8, rx: 40, ry: 24 },
+                        { dx: 40, dy: 4, rx: 36, ry: 22 },
+                    ],
+                });
+            }
+        }
         var clouds = [];
         var i;
         var j;
@@ -562,8 +598,13 @@
                 var ry = bl.ry * c.scale;
                 var rad = Math.max(rx, ry);
                 var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-                g.addColorStop(0, "rgba(255,255,255,0.95)");
-                g.addColorStop(1, "rgba(200,235,255,0)");
+                if (self._lightCloudsPrecipMode) {
+                    g.addColorStop(0, "rgba(140,170,200,0.7)");
+                    g.addColorStop(1, "rgba(140,170,200,0)");
+                } else {
+                    g.addColorStop(0, "rgba(255,255,255,0.95)");
+                    g.addColorStop(1, "rgba(200,235,255,0)");
+                }
                 ctx.beginPath();
                 ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
                 ctx.fillStyle = g;
@@ -623,6 +664,11 @@
         }
         this._precip = null;
         this._rainHeavy = false;
+        this._precipIsLight = false;
+        this._precipIsStorm = false;
+        this._lightningNextAt = 0;
+        this._lightningFlashEnd = 0;
+        this._lightningBoltPath = null;
         this._drops = [];
         if (this._canvas) {
             var ctx = this._canvas.getContext("2d");
@@ -636,7 +682,7 @@
 
     /**
      * @param {"rain"|"snow"} kind
-     * @param {{ rainHeavy?: boolean }} [opts] — OpenWeather 502/503: чуть быстрее обычного дождя
+     * @param {{ rainHeavy?: boolean, isStorm?: boolean, isLightTheme?: boolean }} [opts]
      */
     Atmosphere.prototype._runPrecip = function (kind, opts) {
         var self = this;
@@ -644,44 +690,106 @@
         this._stopPrecip();
         this._precip = kind;
         this._rainHeavy = kind === "rain" && !!opts.rainHeavy;
+        this._precipIsLight = !!opts.isLightTheme;
+        this._precipIsStorm = !!(opts.isStorm && opts.isLightTheme);
+        if (this._precipIsStorm) {
+            this._lightningFlashEnd = 0;
+            this._lightningBoltPath = null;
+            this._lightningNextAt = global.performance.now() + 1500 + Math.random() * 2500;
+        } else {
+            this._lightningNextAt = 0;
+            this._lightningFlashEnd = 0;
+            this._lightningBoltPath = null;
+        }
         var canvas = this._canvas;
         var container = this._root;
         if (!canvas || !container || prefersReducedMotion()) return;
 
         /**
-         * Seeds particle array: rain uses vertical streaks (length + speed); snow uses small circles with drift.
-         * Coordinates are in **CSS pixel space** of the container — `_resizeCanvas` sets ctx transform to DPR,
-         * so drawing uses logical pixels while the backing store is high-DPI.
+         * @param {number} w
+         * @param {number} h
+         * @returns {{ pts: { x: number, y: number }[] }}
+         */
+        function makeLightningBolt(w, h) {
+            var bx = w * (0.32 + Math.random() * 0.36);
+            var pts = [{ x: bx, y: -20 }];
+            var ly = -20;
+            var s;
+            for (s = 0; s < 6; s++) {
+                ly += h * 0.14 + Math.random() * (h * 0.06);
+                bx += (Math.random() - 0.5) * (w * 0.08);
+                pts.push({ x: bx, y: ly });
+            }
+            return { pts: pts };
+        }
+
+        /**
+         * Seeds particle array: rain uses streaks; snow uses small circles with drift.
          * @param {number} w
          * @param {number} h
          * @returns {void}
          */
         function initDrops(w, h) {
-            var n = kind === "snow" ? 80 : 120;
             var drops = [];
             var i;
-            for (i = 0; i < n; i++) {
-                if (kind === "rain") {
-                    /* Умеренный дождь сверху вниз: ниже скорость, почти без ветрового сноса. */
-                    var spdLo = self._rainHeavy ? 3.2 : 2.2;
-                    var spdSpan = self._rainHeavy ? 1.8 : 1.4;
-                    var lenLo = 14;
-                    var lenSpan = 10;
+            if (kind === "rain") {
+                if (self._precipIsLight) {
+                    var nL = 70;
+                    var isSt = self._precipIsStorm;
+                    var spdLo = isSt ? 5 : 3;
+                    var spdSpan = isSt ? 3 : 2;
+                    for (i = 0; i < nL; i++) {
+                        drops.push({
+                            x: Math.random() * w,
+                            y: Math.random() * h,
+                            len: 8 + Math.random() * 10,
+                            speed: spdLo + Math.random() * spdSpan,
+                            drift: 0.35 + Math.random() * 0.35,
+                            slant: 1.8 + Math.random() * 2.2,
+                            r: 0,
+                        });
+                    }
+                } else {
+                    var nD = 120;
+                    for (i = 0; i < nD; i++) {
+                        var spdLo = self._rainHeavy ? 3.2 : 2.2;
+                        var spdSpan = self._rainHeavy ? 1.8 : 1.4;
+                        var lenLo = 14;
+                        var lenSpan = 10;
+                        drops.push({
+                            x: Math.random() * w,
+                            y: Math.random() * h,
+                            len: lenLo + Math.random() * lenSpan,
+                            speed: spdLo + Math.random() * spdSpan,
+                            drift: 0,
+                            slant: 0,
+                            r: 0,
+                        });
+                    }
+                }
+            } else if (self._precipIsLight) {
+                var nLS = 55;
+                for (i = 0; i < nLS; i++) {
                     drops.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        len: lenLo + Math.random() * lenSpan,
-                        speed: spdLo + Math.random() * spdSpan,
-                        drift: 0,
-                        r: 0,
+                        len: 0,
+                        speed: 0.5 + Math.random() * 1.5,
+                        drift: (Math.random() - 0.5) * 1.8,
+                        slant: 0,
+                        r: 1.5 + Math.random() * 2,
                     });
-                } else {
+                }
+            } else {
+                var nS = 80;
+                for (i = 0; i < nS; i++) {
                     drops.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
                         len: 0,
                         speed: 0.7 + Math.random() * 2.6,
                         drift: (Math.random() - 0.5) * 1.8,
+                        slant: 0,
                         r: 0.9 + Math.random() * 2.2,
                     });
                 }
@@ -689,11 +797,6 @@
             self._drops = drops;
         }
 
-        /**
-         * rAF loop: clears full logical viewport, draws streaks (rain) or arcs (snow), advances `y`/`x` each frame.
-         * Particles wrap from bottom (`y > h`) back to top with randomized `x` for continuous effect.
-         * @returns {void}
-         */
         function frame() {
             if (!canvas.isConnected || self._precip !== kind) return;
             var w = container.clientWidth || global.innerWidth;
@@ -706,21 +809,83 @@
             var i;
             var d;
             if (kind === "rain") {
-                var heavy = self._rainHeavy;
-                ctx.globalAlpha = heavy ? 0.33 : 0.28;
-                ctx.strokeStyle = "rgba(200, 230, 255, 0.55)";
-                ctx.lineWidth = heavy ? 0.62 : 0.48;
-                var wind = heavy ? 0.05 : 0;
+                if (self._precipIsLight) {
+                    ctx.globalAlpha = 1;
+                    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+                    ctx.lineWidth = 0.55;
+                    var windL = self._precipIsStorm ? 0.08 : 0.05;
+                    for (i = 0; i < drops.length; i++) {
+                        d = drops[i];
+                        ctx.beginPath();
+                        ctx.moveTo(d.x, d.y);
+                        ctx.lineTo(d.x - d.slant, d.y + d.len);
+                        ctx.stroke();
+                        d.y += d.speed;
+                        d.x -= d.drift + windL;
+                        if (d.y > h + 20) {
+                            d.y = -12;
+                            d.x = Math.random() * w;
+                        }
+                    }
+                    if (self._precipIsStorm) {
+                        var nowL = performance.now();
+                        if (nowL < self._lightningFlashEnd) {
+                            ctx.fillStyle = "rgba(180,210,255,0.15)";
+                            ctx.fillRect(0, 0, w, h);
+                            var bolt = self._lightningBoltPath;
+                            if (bolt && bolt.pts && bolt.pts.length > 1) {
+                                ctx.strokeStyle = "rgba(255,255,200,0.95)";
+                                ctx.lineWidth = 2.2;
+                                ctx.globalAlpha = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(bolt.pts[0].x, bolt.pts[0].y);
+                                var p;
+                                for (p = 1; p < bolt.pts.length; p++) {
+                                    ctx.lineTo(bolt.pts[p].x, bolt.pts[p].y);
+                                }
+                                ctx.stroke();
+                            }
+                        } else {
+                            self._lightningBoltPath = null;
+                            if (nowL >= self._lightningNextAt) {
+                                self._lightningFlashEnd = nowL + 70 + Math.random() * 100;
+                                self._lightningBoltPath = makeLightningBolt(w, h);
+                                self._lightningNextAt = nowL + 2000 + Math.random() * 5000;
+                            }
+                        }
+                    }
+                } else {
+                    var heavy = self._rainHeavy;
+                    ctx.globalAlpha = heavy ? 0.33 : 0.28;
+                    ctx.strokeStyle = "rgba(200, 230, 255, 0.55)";
+                    ctx.lineWidth = heavy ? 0.62 : 0.48;
+                    var wind = heavy ? 0.05 : 0;
+                    for (i = 0; i < drops.length; i++) {
+                        d = drops[i];
+                        ctx.beginPath();
+                        ctx.moveTo(d.x, d.y);
+                        ctx.lineTo(d.x, d.y + d.len);
+                        ctx.stroke();
+                        d.y += d.speed;
+                        d.x -= wind;
+                        if (d.y > h + 20) {
+                            d.y = -12;
+                            d.x = Math.random() * w;
+                        }
+                    }
+                }
+            } else if (self._precipIsLight) {
+                ctx.globalAlpha = 1;
                 for (i = 0; i < drops.length; i++) {
                     d = drops[i];
+                    ctx.fillStyle = "rgba(255,255,255,0.6)";
                     ctx.beginPath();
-                    ctx.moveTo(d.x, d.y);
-                    ctx.lineTo(d.x, d.y + d.len);
-                    ctx.stroke();
+                    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+                    ctx.fill();
                     d.y += d.speed;
-                    d.x -= wind;
-                    if (d.y > h + 20) {
-                        d.y = -12;
+                    d.x += d.drift;
+                    if (d.y > h + 10) {
+                        d.y = -6;
                         d.x = Math.random() * w;
                     }
                 }
@@ -886,6 +1051,14 @@
             return;
         }
 
+        var wantPrecipClouds =
+            isLightTheme && (state.fx === "rain" || state.fx === "snow");
+        if (wantPrecipClouds !== this._lightCloudsPrecipMode) {
+            this._lightCloudsPrecipMode = wantPrecipClouds;
+            this._lightClouds = [];
+            this._lightCloudsLastT = 0;
+        }
+
         if (isLightTheme) {
             if (state.sky === "cloudy" && (state.fx === "none" || !state.fx)) {
                 state.fx = "none";
@@ -900,16 +1073,24 @@
         if (state.fx === "rain") {
             el.classList.add("weather-bg--fx-rain");
             var self = this;
-            var cNum = typeof weatherCode === "number" ? weatherCode : parseInt(weatherCode, 10);
             var rainHeavy = !Number.isNaN(cNum) && (cNum === 502 || cNum === 503);
+            var stormSky = state.sky === "storm";
             global.requestAnimationFrame(function () {
-                if (el.classList.contains("weather-bg--fx-rain")) self._runPrecip("rain", { rainHeavy: rainHeavy });
+                if (el.classList.contains("weather-bg--fx-rain")) {
+                    self._runPrecip("rain", {
+                        rainHeavy: rainHeavy,
+                        isStorm: stormSky,
+                        isLightTheme: isLightTheme,
+                    });
+                }
             });
         } else if (state.fx === "snow") {
             el.classList.add("weather-bg--fx-snow");
             var self2 = this;
             global.requestAnimationFrame(function () {
-                if (el.classList.contains("weather-bg--fx-snow")) self2._runPrecip("snow");
+                if (el.classList.contains("weather-bg--fx-snow")) {
+                    self2._runPrecip("snow", { isLightTheme: isLightTheme });
+                }
             });
         } else if (state.fx === "svg-clouds") {
             el.classList.add("weather-bg--fx-clouds");
