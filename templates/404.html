@@ -1,0 +1,23 @@
+{{ define "title" }}{{ .Text.BrandTop }} {{ .Text.BrandBottom }} — {{ .Text.NotFoundTitle }}{{ end }}
+
+{{ define "description" }}{{ .Text.NotFoundSubtitle }} · {{ .Text.NotFoundDesc }}{{ end }}
+
+{{ define "notfound-content" }}
+<section class="notfound-section" aria-labelledby="notfound-heading">
+    <div class="notfound-card weather-card">
+        <p class="notfound-code" aria-hidden="true">{{ .Text.NotFoundTitle }}</p>
+        <h1 id="notfound-heading" class="notfound-subtitle">{{ .Text.NotFoundSubtitle }}</h1>
+        <p class="notfound-desc">{{ .Text.NotFoundDesc }}</p>
+        <div class="notfound-actions">
+            <a href="/?lang={{ .Lang }}" class="notfound-btn notfound-btn--primary">{{ .Text.NotFoundHome }}</a>
+            <button type="button" id="js-notfound-search" class="notfound-btn notfound-btn--secondary">
+                {{ .Text.NotFoundSearch }}
+            </button>
+        </div>
+    </div>
+</section>
+{{ end }}
+
+{{ define "notfound-page" }}
+{{ template "layout" . }}
+{{ end }}
