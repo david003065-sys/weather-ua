@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -28,11 +27,6 @@ type city struct {
 	oblast      string
 	featureCode string // GeoNames feature code (PPL/PPLA*/PPLC)
 	population  int64
-}
-
-type ruAltName struct {
-	name      string
-	preferred bool
 }
 
 func main() {
@@ -75,7 +69,7 @@ func run(geoDir, outDir string) error {
 		return fmt.Errorf("load UA.txt cities: %w", err)
 	}
 
-	ruNames, err := loadRuAltNames(altNamesPath, idSet)
+	ukNames, ruNames, enNames, err := places.LoadAlternateNamesV2ForIDs(altNamesPath, idSet)
 	if err != nil {
 		return fmt.Errorf("load alternateNamesV2: %w", err)
 	}
@@ -85,7 +79,7 @@ func run(geoDir, outDir string) error {
 	}
 
 	outPath := filepath.Join(outDir, "cities_ua.csv")
-	if err := writeCSV(outPath, cities, ruNames); err != nil {
+	if err := writeCSV(outPath, cities, ukNames, ruNames, enNames); err != nil {
 		return fmt.Errorf("write csv: %w", err)
 	}
 
@@ -230,67 +224,7 @@ func parsePopulation(field string) int64 {
 	return n
 }
 
-// loadRuAltNames scans alternateNamesV2.txt once and collects best RU name for given geoname IDs.
-func loadRuAltNames(path string, ids map[string]struct{}) (map[string]ruAltName, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	res := make(map[string]ruAltName)
-
-	scanner := bufio.NewScanner(f)
-	// alternateNamesV2.txt can have very long lines; increase buffer.
-	const maxLine = 16 * 1024 * 1024
-	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, maxLine)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, "\t")
-		if len(parts) < 4 {
-			continue
-		}
-
-		geonameID := strings.TrimSpace(parts[1])
-		if _, ok := ids[geonameID]; !ok {
-			continue
-		}
-
-		iso := strings.TrimSpace(parts[2])
-		if iso != "ru" {
-			continue
-		}
-
-		altName := strings.TrimSpace(parts[3])
-		if altName == "" {
-			continue
-		}
-
-		preferred := false
-		if len(parts) >= 5 && strings.TrimSpace(parts[4]) == "1" {
-			preferred = true
-		}
-
-		current, ok := res[geonameID]
-		if !ok || (!current.preferred && preferred) {
-			res[geonameID] = ruAltName{name: altName, preferred: preferred}
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		if errors.Is(err, bufio.ErrTooLong) {
-			return nil, fmt.Errorf("line too long in alternateNamesV2.txt (increase scanner buffer): %w", err)
-		}
-		return nil, err
-	}
-	return res, nil
-}
-
-func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
+func writeCSV(path string, cities []*city, ukNames, ruNames, enNames map[string]string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
@@ -303,25 +237,33 @@ func writeCSV(path string, cities []*city, ruNames map[string]ruAltName) error {
 	w := bufio.NewWriter(f)
 	defer w.Flush()
 
-	// Header
-	if _, err := io.WriteString(w, "name_uk;name_ru;oblast;raion;type;lat;lon\n"); err != nil {
+	// Header (alt_search holds GeoNames en alternate when present — helps FTS / search.)
+	if _, err := io.WriteString(w, "name_uk;name_ru;oblast;raion;type;lat;lon;alt_search\n"); err != nil {
 		return err
 	}
 
 	for _, c := range cities {
-		ru := c.nameUK
-		if alt, ok := ruNames[c.geonameID]; ok && alt.name != "" {
-			ru = alt.name
+		uk := strings.TrimSpace(c.nameUK)
+		if v, ok := ukNames[c.geonameID]; ok && strings.TrimSpace(v) != "" {
+			uk = strings.TrimSpace(v)
+		}
+		ru := strings.TrimSpace(c.nameUK)
+		if v, ok := ruNames[c.geonameID]; ok && strings.TrimSpace(v) != "" {
+			ru = strings.TrimSpace(v)
+		}
+		altSearch := ""
+		if v, ok := enNames[c.geonameID]; ok {
+			altSearch = strings.TrimSpace(v)
 		}
 		typ := places.NormalizeSettlementType(c.featureCode, c.population)
-		// raion всегда пустой (двойной ;;)
-		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s\n",
-			escapeSemi(c.nameUK),
+		line := fmt.Sprintf("%s;%s;%s;;%s;%s;%s;%s\n",
+			escapeSemi(uk),
 			escapeSemi(ru),
 			escapeSemi(c.oblast),
 			typ,
 			c.lat,
 			c.lon,
+			escapeSemi(altSearch),
 		)
 		if _, err := io.WriteString(w, line); err != nil {
 			return err

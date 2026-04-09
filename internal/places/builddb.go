@@ -95,6 +95,10 @@ func openBuildDB(outputPath string) (*sql.DB, error) {
 	return db, nil
 }
 
+// buildFromCSV imports semicolon-separated rows into places.db.
+// When the CSV is produced by internal/bootstrap from GeoNames, name_uk should already carry
+// Ukrainian Cyrillic from alternateNamesV2 (isolanguage=uk) when available; otherwise it falls
+// back to the primary UA.txt ASCII name. name_ru uses isolanguage=ru the same way.
 func buildFromCSV(inputPath, outputPath string, logger *log.Logger) error {
 	f, err := os.Open(inputPath)
 	if err != nil {
