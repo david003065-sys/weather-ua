@@ -4,11 +4,14 @@ services:
     env: go
     # places.db збирається на старті через bootstrap.EnsureData (GeoNames + alternateNamesV2).
     # Не викликати build_db з data/source/places.csv — там немає uk-альтернатив з alternateNamesV2.
-    # FTS5: образ Render без fts5 у системному SQLite — тег fts5 змушує mattn/go-sqlite3 лінкувати SQLITE_ENABLE_FTS5.
-    buildCommand: go test -tags=fts5 ./... && go build -tags=fts5 -o app ./cmd/server
-    startCommand: ./app
+    # FTS5: mattn/go-sqlite3 потребує SQLITE_ENABLE_FTS5 (sqlite3_opt_fts5.go при -tags=fts5).
+    # GOFLAGS: якщо в Render увімкнено авто-build без Blueprint, дефолтний `go build` теж підхопить теги.
+    buildCommand: go test -tags=fts5 ./... && go build -tags=fts5 -o weather-ua ./cmd/server
+    startCommand: ./weather-ua
     healthCheckPath: /health
     envVars:
+      - key: GOFLAGS
+        value: -tags=fts5
       - key: WEATHER_API_PROVIDER
         value: weatherapi
       - key: WEATHERAPI_KEY
