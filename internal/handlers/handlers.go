@@ -1427,8 +1427,11 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := "place:" + strconv.FormatInt(place.ID, 10)
-	displayName := places.LocalizedDisplayName(*place, lang)
-	locationSubtitle := formatPlaceLocation(place, lang)
+	displayName := clampRunes(strings.TrimSpace(places.LocalizedDisplayName(*place, lang)), 128)
+	if displayName == "" {
+		displayName = strconv.FormatInt(place.ID, 10)
+	}
+	locationSubtitle := clampRunes(formatPlaceLocation(place, lang), 256)
 	s.logger.Printf("place %d (%s) location subtitle: %s", place.ID, displayName, locationSubtitle)
 	var data *weather.WeatherData
 	if known, ok := weather.MatchKnownCityByCoords(place.Lat, place.Lon); ok {
@@ -1515,7 +1518,9 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	dupCount, dupLabel, dupURL := s.computePlaceDuplicates(ctx, place, lang, displayName)
+	dupCtx, dupCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	dupCount, dupLabel, dupURL := s.computePlaceDuplicates(dupCtx, place, lang, displayName)
+	dupCancel()
 
 	currentDesc := strings.TrimSpace(data.Current.Description)
 	if currentDesc == "" {
@@ -1908,7 +1913,7 @@ func formatPlaceLocation(p *places.Place, lang string) string {
 			typ = "населённый пункт"
 		}
 	}
-	oblastUK, oblastRU, oblastEN := deriveOblastNames(p.Oblast)
+	oblastUK, oblastRU, oblastEN := deriveOblastNames(clampRunes(p.Oblast, 128))
 	var oblast string
 	switch lang {
 	case "uk":
@@ -1941,7 +1946,10 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 	}
 
 	// Ищем все населённые пункты с таким же названием (в выбранном языке).
-	q := displayName
+	q := clampRunes(strings.TrimSpace(displayName), 64)
+	if q == "" {
+		return 0, "", ""
+	}
 	list, err := placesStore.Search(ctx, q, 10)
 	if err != nil || len(list) == 0 {
 		return 0, "", ""
@@ -1978,4 +1986,19 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 
 func detectLang(r *http.Request) string {
 	return i18n.Normalize(r.URL.Query().Get("lang"))
+}
+
+func clampRunes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return strings.TrimSpace(string(r[:max]))
 }
