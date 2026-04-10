@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -42,6 +43,7 @@ var (
 	apiBlockMu      sync.RWMutex
 	lastCooldownLog time.Time
 	cooldownLogMu   sync.Mutex
+	diskPersistMu   sync.Mutex
 )
 
 var (
@@ -141,21 +143,8 @@ func (c *Client) loadCacheFromDisk() {
 // persistCacheToDisk writes the current cache snapshot atomically (tmp + rename).
 func (c *Client) persistCacheToDisk() {
 	path := weatherCacheFilePath()
-
-	c.mu.RLock()
-	snapshot := make(map[string]diskCacheEntry, len(c.cache))
-	now := time.Now()
-	for k, e := range c.cache {
-		if e.Data == nil || !e.IsValid || now.Sub(e.Timestamp) > diskCacheMaxAge {
-			continue
-		}
-		snapshot[k] = diskCacheEntry{Data: e.Data, Timestamp: e.Timestamp}
-	}
-	c.mu.RUnlock()
-
-	if len(snapshot) == 0 {
-		return
-	}
+	diskPersistMu.Lock()
+	defer diskPersistMu.Unlock()
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -174,15 +163,88 @@ func (c *Client) persistCacheToDisk() {
 		return
 	}
 
-	if err := json.NewEncoder(f).Encode(snapshot); err != nil {
-		f.Close()
-		os.Remove(tmp)
+	w := bufio.NewWriterSize(f, 64*1024)
+	now := time.Now()
+	written := 0
+	writeErr := func(err error, phase string) {
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		if c.logger != nil {
-			c.logger.Printf("disk cache persist: encode failed: %v", err)
+			c.logger.Printf("disk cache persist: %s failed: %v", phase, err)
+		}
+	}
+
+	if _, err := w.WriteString("{"); err != nil {
+		writeErr(err, "open json object")
+		return
+	}
+	first := true
+
+	c.mu.RLock()
+	for k, e := range c.cache {
+		if e.Data == nil || !e.IsValid || now.Sub(e.Timestamp) > diskCacheMaxAge {
+			continue
+		}
+		keyJSON, err := json.Marshal(k)
+		if err != nil {
+			c.mu.RUnlock()
+			writeErr(err, "marshal key")
+			return
+		}
+		entry := diskCacheEntry{Data: e.Data, Timestamp: e.Timestamp}
+		entryJSON, err := json.Marshal(entry)
+		if err != nil {
+			c.mu.RUnlock()
+			writeErr(err, "marshal entry")
+			return
+		}
+		if !first {
+			if _, err := w.WriteString(","); err != nil {
+				c.mu.RUnlock()
+				writeErr(err, "write separator")
+				return
+			}
+		}
+		first = false
+		if _, err := w.Write(keyJSON); err != nil {
+			c.mu.RUnlock()
+			writeErr(err, "write key")
+			return
+		}
+		if _, err := w.WriteString(":"); err != nil {
+			c.mu.RUnlock()
+			writeErr(err, "write colon")
+			return
+		}
+		if _, err := w.Write(entryJSON); err != nil {
+			c.mu.RUnlock()
+			writeErr(err, "write entry")
+			return
+		}
+		written++
+	}
+	c.mu.RUnlock()
+
+	if _, err := w.WriteString("}\n"); err != nil {
+		writeErr(err, "close json object")
+		return
+	}
+	if err := w.Flush(); err != nil {
+		writeErr(err, "flush writer")
+		return
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		if c.logger != nil {
+			c.logger.Printf("disk cache persist: close tmp failed: %v", err)
 		}
 		return
 	}
-	f.Close()
+
+	if written == 0 {
+		_ = os.Remove(tmp)
+		return
+	}
 
 	if err := os.Rename(tmp, path); err != nil {
 		os.Remove(tmp)
@@ -193,7 +255,7 @@ func (c *Client) persistCacheToDisk() {
 	}
 
 	if c.logger != nil {
-		c.logger.Printf("disk cache persisted: %d entries to %s", len(snapshot), path)
+		c.logger.Printf("disk cache persisted: %d entries to %s", written, path)
 	}
 }
 
@@ -211,6 +273,11 @@ func (c *Client) persistLoop() {
 		time.Sleep(time.Second) // coalesce burst writes
 		c.persistCacheToDisk()
 	}
+}
+
+// FlushCacheToDisk forces immediate cache flush (useful on graceful shutdown).
+func (c *Client) FlushCacheToDisk() {
+	c.persistCacheToDisk()
 }
 
 // ── end disk persistence ──

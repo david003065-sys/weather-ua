@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +24,7 @@ import (
 func Run() error {
 	logger := log.New(os.Stdout, "[weather-ua] ", log.LstdFlags|log.Lshortfile)
 	var srvPtr atomic.Pointer[handlers.Server]
+	var weatherClientPtr atomic.Pointer[weather.Client]
 
 	mux := http.NewServeMux()
 	// Render health check must pass even while heavy warm-up is still running.
@@ -43,7 +47,8 @@ func Run() error {
 	// Per-IP and global caps apply only to HTTP /api/* — not to in-process weather.WarmCache (direct provider calls).
 	// Slightly relaxed vs original 10/60 so one browser tab opening several API endpoints in parallel is less likely to 429.
 	apiRL := middleware.NewRateLimiter(rate.Every(time.Minute/20), 20, rate.Every(time.Minute/120), 120, 5*time.Minute)
-	apiRL.StartCleanup(5*time.Minute, make(chan struct{}))
+	rlDone := make(chan struct{})
+	apiRL.StartCleanup(5*time.Minute, rlDone)
 	logger.Printf("api rate limiter: per-ip 20/min, global 120/min (WarmCache bypasses this)")
 
 	apiRoute := func(h func(*handlers.Server, http.ResponseWriter, *http.Request)) http.Handler {
@@ -114,6 +119,7 @@ func Run() error {
 
 		// Один клиент погоды на всё приложение; кэш в памяти, не пересоздаётся при запросах.
 		weatherClient := weather.NewClient(15*time.Minute, 5*time.Second)
+		weatherClientPtr.Store(weatherClient)
 		weatherClient.SetLogger(logger)
 		logger.Printf("weather client created once, cache TTL 15m")
 
@@ -146,7 +152,39 @@ func Run() error {
 
 	addr := ":" + port
 	logger.Printf("starting server on %s", addr)
+	httpSrv := &http.Server{
+		Addr:    addr,
+		Handler: middleware.Recovery(logger, mux),
+	}
 
-	return http.ListenAndServe(addr, mux)
+	errCh := make(chan error, 1)
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+			return
+		}
+		errCh <- nil
+	}()
+
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case err := <-errCh:
+		close(rlDone)
+		return err
+	case <-sigCtx.Done():
+		logger.Printf("shutdown signal received, starting graceful shutdown")
+		close(rlDone)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+			logger.Printf("graceful shutdown error: %v", err)
+		}
+		if wc := weatherClientPtr.Load(); wc != nil {
+			wc.FlushCacheToDisk()
+		}
+		return nil
+	}
 }
 
