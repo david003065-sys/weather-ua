@@ -15,7 +15,7 @@ import (
 
 	"bss/internal/places"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // EnsureData гарантирует, что data/places.db существует.
@@ -75,7 +75,7 @@ func EnsureData(logger *log.Logger) error {
 }
 
 func needsRebuildPlacesByType(dbPath string) (bool, error) {
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_busy_timeout=5000", dbPath))
+	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?_busy_timeout=5000", dbPath))
 	if err != nil {
 		return false, err
 	}

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // BuildDatabase читает CSV (разделитель `;`) или JSON-массив объектов и собирает новый SQLite-файл
@@ -88,7 +88,7 @@ func openBuildDB(outputPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("remove old db: %w", err)
 	}
 	dsn := fmt.Sprintf("file:%s?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL", outputPath)
-	db, err := sql.Open("sqlite3", dsn)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
