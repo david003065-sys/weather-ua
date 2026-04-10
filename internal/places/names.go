@@ -9,9 +9,6 @@
 //
 // Slots are built from SQLite name_uk / name_ru / name (see LocalizedNameUK/RU/EN).
 // Static /city/* labels remain in package weather (LocalizedCityName).
-//
-// SQLite FTS5: go test and go build must use -tags=fts5 (or sqlite_fts5) so mattn/go-sqlite3
-// compiles with SQLITE_ENABLE_FTS5 (see sqlite3_opt_fts5.go in that module). Otherwise CREATE VIRTUAL TABLE … fts5 fails on some Linux images.
 package places
 
 import (
