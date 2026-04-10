@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
-# places.db збирається на старті сервера (bootstrap.EnsureData) або вручну:
-#   go run ./cmd/tools/build_ua_cities_csv -geonames-dir data/geonames -out-dir data/out
-#   go run ./cmd/build_db -input data/out/cities_ua.csv -output data/places.db
+if [ ! -f data/places.db ]; then
+  go run ./cmd/build_db -input "${PLACES_CSV:-data/source/places.csv}" -output data/places.db
+fi
 echo "Running tests..."
-go test -tags=fts5 ./... -v
+go test ./... -v
 echo "Tests passed. Building..."
-go build -tags=fts5 -o app ./cmd/server
+go build -o app ./cmd/server

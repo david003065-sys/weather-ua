@@ -19,9 +19,9 @@ import (
 )
 
 // EnsureData гарантирует, что data/places.db существует.
-// Если файла нет (или схема/типы застарілі), скачивает GeoNames: UA.zip, alternateNamesV2.zip, admin1CodesASCII.txt,
-// генерирует data/out/cities_ua.csv (uk/ru/en из alternateNamesV2) и импортирует SQLite через places.BuildDatabase (FTS5).
-// Вызов блокирующий; первый запуск может занять несколько минут (большой alternateNamesV2.zip).
+// Если файла нет, он автоматически скачивает необходимые GeoNames‑файлы,
+// генерирует CSV с городами и собирает SQLite через places.BuildDatabase (FTS5 включён).
+// Вызов блокирующий; для продакшена обычно коммитят готовый data/places.db и собирают его через cmd/build_db.
 func EnsureData(logger *log.Logger) error {
 	const dbPath = "data/places.db"
 	if _, err := os.Stat(dbPath); err == nil {

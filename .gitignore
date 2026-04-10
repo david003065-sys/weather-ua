@@ -13,8 +13,9 @@ bin/
 # Logs
 *.log
 
-# Data and large assets (places.db генерується на Render при старті через bootstrap)
+# Data and large assets (commit data/places.db for Render / CI)
 data/*
+!data/places.db
 # SQLite at repo root only (not data/places.db)
 /*.db
 *.txt

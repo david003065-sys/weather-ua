@@ -2,16 +2,11 @@ services:
   - type: web
     name: weather-ua
     env: go
-    # places.db збирається на старті через bootstrap.EnsureData (GeoNames + alternateNamesV2).
-    # Не викликати build_db з data/source/places.csv — там немає uk-альтернатив з alternateNamesV2.
-    # FTS5: mattn/go-sqlite3 потребує SQLITE_ENABLE_FTS5 (sqlite3_opt_fts5.go при -tags=fts5).
-    # GOFLAGS: якщо в Render увімкнено авто-build без Blueprint, дефолтний `go build` теж підхопить теги.
-    buildCommand: go test -tags=fts5 ./... && go build -tags=fts5 -o weather-ua ./cmd/server
-    startCommand: ./weather-ua
+    # Если data/places.db уже в репозитории — первая команда пропускается (sh -c с test).
+    buildCommand: sh -c 'test -f data/places.db || go run ./cmd/build_db -input "${PLACES_CSV:-data/source/places.csv}" -output data/places.db; go test ./... && go build -o app ./cmd/server'
+    startCommand: ./app
     healthCheckPath: /health
     envVars:
-      - key: GOFLAGS
-        value: -tags=fts5
       - key: WEATHER_API_PROVIDER
         value: weatherapi
       - key: WEATHERAPI_KEY
