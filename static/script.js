@@ -700,7 +700,7 @@
         if (!req || !req.url) return;
 
         try {
-            var res = await fetch(req.url);
+            var res = await fetch(req.url, { cache: "no-cache" });
             if (!res.ok) return;
             var json = await res.json();
             if (!json || !json.current) return;
@@ -1153,7 +1153,7 @@
                     }
                 }
 
-                var res = await fetch("/api/weather/" + encodeURIComponent(cityId) + "?lang=" + encodeURIComponent(lang));
+                var res = await fetch("/api/weather/" + encodeURIComponent(cityId) + "?lang=" + encodeURIComponent(lang), { cache: "no-cache" });
                 if (!res.ok) return;
                 var json = await res.json();
                 applyWeather(json);

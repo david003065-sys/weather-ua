@@ -842,6 +842,7 @@ func (s *Server) APIWeather(w http.ResponseWriter, r *http.Request) {
 	fillAPIHourlyPayload(&resp, data, lang)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		s.logger.Printf("encode api weather: %v", err)
 	}
@@ -950,6 +951,7 @@ func (s *Server) APIPlaceWeather(w http.ResponseWriter, r *http.Request) {
 	fillAPIHourlyPayload(&resp, data, lang)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		s.logger.Printf("encode api place weather: %v", err)
 	}

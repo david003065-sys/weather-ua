@@ -173,34 +173,35 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Weather API: network-first strategy (always fetch fresh data, fallback to cache)
   if (isWeatherAPIRequest(url.pathname)) {
     event.respondWith(
       (async () => {
         const apiCache = await caches.open(API_CACHE);
-        const cached = await apiCache.match(request);
-        const networkPromise = fetch(request)
-          .then(async (response) => {
-            if (cacheableAPIResponse(response)) {
-              await apiCache.put(request, response.clone());
-              await trimCache(API_CACHE, MAX_CACHE_ITEMS);
-              event.waitUntil(notifyClientsAPIUpdated(request.url));
-            }
-            return response;
-          })
-          .catch(() => null);
 
-        if (cached) {
-          event.waitUntil(networkPromise);
-          return cached;
+        // Try network first
+        try {
+          const networkResponse = await fetch(request);
+          if (cacheableAPIResponse(networkResponse)) {
+            // Update cache with fresh data
+            await apiCache.put(request, networkResponse.clone());
+            await trimCache(API_CACHE, MAX_CACHE_ITEMS);
+            event.waitUntil(notifyClientsAPIUpdated(request.url));
+          }
+          return networkResponse;
+        } catch (networkError) {
+          // Network failed: fallback to cache
+          const cached = await apiCache.match(request);
+          if (cached) {
+            return cached;
+          }
+          // No cache available: return offline error
+          return new Response('{"error":"offline"}', {
+            status: 503,
+            statusText: "Offline",
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+          });
         }
-
-        const network = await networkPromise;
-        if (network) return network;
-        return new Response('{"error":"offline"}', {
-          status: 503,
-          statusText: "Offline",
-          headers: { "Content-Type": "application/json; charset=utf-8" },
-        });
       })()
     );
     return;
