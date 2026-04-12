@@ -11,6 +11,10 @@
     const cityId = app.dataset.cityId || "";
     const lang = document.documentElement.lang || "ru";
 
+    // Chart.js instances for cleanup (prevent memory leaks)
+    let hourlyChartInstance = null;
+    let trendChartInstance = null;
+
     /**
      * @returns {Record<string, string>} Parsed `__CLIENT_I18N__` JSON or `{}`.
      */
@@ -336,8 +340,16 @@
             precipChances.push(Number.isNaN(pc) ? -1 : pc);
         }
 
+        // Destroy previous instance to prevent memory leak
+        if (hourlyChartInstance) {
+            hourlyChartInstance.destroy();
+            hourlyChartInstance = null;
+        }
+        // Also cleanup any orphaned chart attached to canvas
         const existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
-        if (existing) existing.destroy();
+        if (existing) {
+            existing.destroy();
+        }
         if (!labels.length) return;
 
         var isDark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -365,7 +377,7 @@
             }
         };
 
-        new Chart(canvas, {
+        hourlyChartInstance = new Chart(canvas, {
             type: "line",
             data: {
                 labels: labels,
@@ -453,6 +465,20 @@
             }
         });
     }
+
+    /**
+     * Cleanup Chart.js instances when page is being unloaded (optional optimization)
+     */
+    window.addEventListener("beforeunload", function () {
+        if (hourlyChartInstance) {
+            hourlyChartInstance.destroy();
+            hourlyChartInstance = null;
+        }
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+            trendChartInstance = null;
+        }
+    });
 
     /**
      * Rebuilds hourly strip DOM from API `hourly` array and triggers chart + drag-scroll init.
@@ -759,6 +785,12 @@
         if (!window.Chart || !canvas) return;
 
         try {
+            // Destroy previous instance to prevent memory leak
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
+                trendChartInstance = null;
+            }
+            // Also cleanup any orphaned chart attached to canvas
             var existing = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
             if (existing) {
                 existing.destroy();
@@ -779,7 +811,7 @@
             const max = JSON.parse(canvas.dataset.max || "[]");
 
             const ctx = canvas.getContext("2d");
-            new Chart(ctx, {
+            trendChartInstance = new Chart(ctx, {
                 type: "line",
                 data: {
                     labels: labels,
@@ -860,6 +892,14 @@
         }
         window.addEventListener("weather-theme-change", bootChart);
     }
+
+    // Cleanup on page unload for trend chart
+    window.addEventListener("beforeunload", function () {
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+            trendChartInstance = null;
+        }
+    });
 
     // Geo/default city (index page only)
     /**

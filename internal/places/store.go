@@ -460,12 +460,13 @@ func (s *Store) searchFTS(ctx context.Context, qNorm, qLatin string, limit int) 
 	if s.hasPopulation {
 		ftsOrderBy = `(CASE WHEN p.population > 100000 THEN 1 ELSE 0 END) DESC, p.population DESC, LENGTH(p.name_uk) ASC`
 	}
-	// bm25() требует имя FTS-таблицы (places_fts), а не алиас — иначе SQLite: "near \"(\": syntax error".
+	// FTS5: слева от MATCH должно быть имя виртуальной таблицы, не алиас — иначе
+	// "no such column: f" (modernc и обычный SQLite одинаково).
 	sqlFTS := fmt.Sprintf(`
 SELECT %s
-FROM places_fts f
-JOIN places p ON p.id = f.rowid
-WHERE f MATCH ?
+FROM places_fts
+JOIN places p ON p.id = places_fts.rowid
+WHERE places_fts MATCH ?
 ORDER BY %s
 LIMIT ?;
 `, prefixedPlaceColumns("p", s.hasPopulation), ftsOrderBy)
