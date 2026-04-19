@@ -993,3 +993,77 @@ html[data-theme="light"] #weather-bg {
     background: #1a78c2 !important;
 }
 
+/* =============================================================================
+   Header Clock — City local time display
+   ============================================================================= */
+.header-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0.75rem;
+    margin: 0 0.25rem;
+    min-width: 3.5rem;
+    height: 2.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.header-clock__time {
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: #fff;
+    line-height: 1;
+}
+
+.header-clock__city {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 5rem;
+}
+
+/* Light theme adjustments */
+html[data-theme="light"] .header-clock {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] .header-clock__time {
+    color: #0f172a;
+}
+
+html[data-theme="light"] .header-clock__city {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+/* Hide clock on very small screens */
+@media (max-width: 480px) {
+    .header-clock {
+        display: none;
+    }
+}
+
+/* Compact mode for medium screens */
+@media (max-width: 768px) {
+    .header-clock {
+        padding: 0 0.5rem;
+        min-width: 3rem;
+    }
+    .header-clock__time {
+        font-size: 0.85rem;
+    }
+    .header-clock__city {
+        font-size: 0.6rem;
+        max-width: 4rem;
+    }
+}
+

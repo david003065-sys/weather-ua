@@ -2606,3 +2606,91 @@ if (document.readyState === "loading") {
 } else {
     initNotFoundSearch();
 }
+
+// --- Header Clock — City local time display ---
+(function () {
+    var clockTimeEl = document.getElementById("js-clock-time");
+    var clockCityEl = document.getElementById("js-clock-city");
+    if (!clockTimeEl) return;
+
+    var timezone = null;
+    var utcOffsetSeconds = 0;
+    var cityName = "";
+
+    // Read timezone from embedded weather JSON
+    try {
+        var weatherScript = document.getElementById("__WEATHER__");
+        if (weatherScript && weatherScript.textContent) {
+            var weatherData = JSON.parse(weatherScript.textContent);
+            if (weatherData) {
+                timezone = weatherData.timezone || null;
+                utcOffsetSeconds = weatherData.utcOffsetSeconds || 0;
+                cityName = weatherData.cityName || "";
+            }
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+
+    // Fallback: use browser timezone if no data
+    if (!timezone && !utcOffsetSeconds) {
+        var tzMatch = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tzMatch) timezone = tzMatch;
+    }
+
+    // Short city name for display
+    function getShortCityName(name) {
+        if (!name) return "";
+        // Shorten common Ukrainian city names
+        var shorts = {
+            "Київ": "Київ",
+            "Kyiv": "Kyiv",
+            "Дніпро": "Дніпро",
+            "Dnipro": "Dnipro",
+            "Львів": "Львів",
+            "Lviv": "Lviv",
+            "Одеса": "Одеса",
+            "Odesa": "Odesa",
+            "Харків": "Харків",
+            "Kharkiv": "Kharkiv",
+            "Запоріжжя": "Запоріжжя",
+            "Zaporizhzhia": "Zaporizhzhia"
+        };
+        if (shorts[name]) return shorts[name];
+        // Limit length
+        if (name.length > 10) return name.substring(0, 9) + "…";
+        return name;
+    }
+
+    if (cityName && clockCityEl) {
+        clockCityEl.textContent = getShortCityName(cityName);
+    }
+
+    function updateClock() {
+        var now = new Date();
+        var localTime;
+
+        if (timezone) {
+            // Use timezone from weather data
+            try {
+                localTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+            } catch (e) {
+                localTime = now;
+            }
+        } else if (utcOffsetSeconds) {
+            // Use UTC offset
+            var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            localTime = new Date(utc + utcOffsetSeconds * 1000);
+        } else {
+            localTime = now;
+        }
+
+        var hours = String(localTime.getHours()).padStart(2, "0");
+        var minutes = String(localTime.getMinutes()).padStart(2, "0");
+        clockTimeEl.textContent = hours + ":" + minutes;
+    }
+
+    // Update immediately and then every minute
+    updateClock();
+    setInterval(updateClock, 60000);
+})();
