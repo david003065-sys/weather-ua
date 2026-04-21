@@ -2606,3 +2606,87 @@ if (document.readyState === "loading") {
 } else {
     initNotFoundSearch();
 }
+
+// --- Nav Clock — City local time display (desktop only) ---
+(function () {
+    var clockTimeEl = document.getElementById("nav-clock-time");
+    var clockTzEl = document.getElementById("nav-clock-tz");
+    if (!clockTimeEl || !clockTzEl) return;
+
+    var timezone = null;
+    var utcOffsetSeconds = 0;
+    var cityName = "";
+    var isIndex = false;
+
+    // Read timezone and city data from embedded weather JSON
+    try {
+        var weatherScript = document.getElementById("__WEATHER__");
+        if (weatherScript && weatherScript.textContent) {
+            var weatherData = JSON.parse(weatherScript.textContent);
+            if (weatherData) {
+                timezone = weatherData.timezone || null;
+                utcOffsetSeconds = weatherData.utcOffsetSeconds || 0;
+                cityName = weatherData.cityName || "";
+            }
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+
+    // Detect if we're on index page (no specific city)
+    var path = window.location.pathname || "/";
+    isIndex = path === "/" || path === "";
+
+    // Fallback for index page: show Kyiv time
+    if (isIndex && !timezone && !utcOffsetSeconds) {
+        utcOffsetSeconds = 10800; // UTC+3 in seconds (Kyiv)
+        cityName = "Київ";
+    }
+
+    // Format UTC offset for display (e.g., "UTC+3", "UTC-5")
+    function formatUtcOffset(seconds) {
+        if (!seconds && seconds !== 0) return "";
+        var hours = Math.round(seconds / 3600);
+        if (hours === 0) return "UTC";
+        var sign = hours > 0 ? "+" : "";
+        return "UTC" + sign + hours;
+    }
+
+    // Update timezone label
+    if (cityName) {
+        clockTzEl.textContent = cityName + " · " + formatUtcOffset(utcOffsetSeconds || (timezone ? 0 : 10800));
+    } else if (timezone || utcOffsetSeconds) {
+        clockTzEl.textContent = formatUtcOffset(utcOffsetSeconds);
+    } else {
+        clockTzEl.textContent = "UTC+3";
+    }
+
+    function updateClock() {
+        var now = new Date();
+        var localTime;
+
+        if (timezone) {
+            // Use timezone from weather data
+            try {
+                localTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+            } catch (e) {
+                localTime = now;
+            }
+        } else if (utcOffsetSeconds) {
+            // Use UTC offset
+            var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            localTime = new Date(utc + utcOffsetSeconds * 1000);
+        } else {
+            localTime = now;
+        }
+
+        var hours = String(localTime.getHours()).padStart(2, "0");
+        var minutes = String(localTime.getMinutes()).padStart(2, "0");
+        var seconds = String(localTime.getSeconds()).padStart(2, "0");
+        clockTimeEl.textContent = hours + ":" + minutes + ":" + seconds;
+    }
+
+    // Update immediately and then every second
+    updateClock();
+    setInterval(updateClock, 1000);
+})();

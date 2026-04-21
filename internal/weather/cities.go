@@ -27,6 +27,36 @@ var cities = []City{
 		Latitude:  48.486,
 		Longitude: 34.016,
 	},
+	{
+		ID:        "kramatorsk",
+		Name:      "Краматорськ",
+		Latitude:  48.7265,
+		Longitude: 37.5323,
+	},
+	{
+		ID:        "lviv",
+		Name:      "Львів",
+		Latitude:  49.8397,
+		Longitude: 24.0297,
+	},
+	{
+		ID:        "odesa",
+		Name:      "Одеса",
+		Latitude:  46.4825,
+		Longitude: 30.7233,
+	},
+	{
+		ID:        "kharkiv",
+		Name:      "Харків",
+		Latitude:  49.9935,
+		Longitude: 36.2304,
+	},
+	{
+		ID:        "zaporizhzhia",
+		Name:      "Запоріжжя",
+		Latitude:  47.8388,
+		Longitude: 35.1396,
+	},
 }
 
 func AllCities() []City {

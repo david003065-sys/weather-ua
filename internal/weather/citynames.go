@@ -31,6 +31,31 @@ var localizedCityNames = map[string]cityNameLoc{
 		UK: "Вільногірськ",
 		EN: "Vilnohorsk",
 	},
+	"kramatorsk": {
+		RU: "Краматорск",
+		UK: "Краматорськ",
+		EN: "Kramatorsk",
+	},
+	"lviv": {
+		RU: "Львов",
+		UK: "Львів",
+		EN: "Lviv",
+	},
+	"odesa": {
+		RU: "Одесса",
+		UK: "Одеса",
+		EN: "Odesa",
+	},
+	"kharkiv": {
+		RU: "Харьков",
+		UK: "Харків",
+		EN: "Kharkiv",
+	},
+	"zaporizhzhia": {
+		RU: "Запорожье",
+		UK: "Запоріжжя",
+		EN: "Zaporizhzhia",
+	},
 }
 
 func normalizeCityID(id string) string {

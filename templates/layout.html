@@ -185,6 +185,12 @@
                         <a href="{{ .Path }}?lang=ru" class="lang-switch__item {{ if or (eq .Lang "ru") (not .Lang) }}lang-switch__item--active{{ end }}">RU</a>
                     </div>
                 </div>
+
+                {{/* Годинник міста — тільки десктоп */}}
+                <div class="nav-clock" id="nav-clock">
+                    <span class="nav-clock__time" id="nav-clock-time">--:--:--</span>
+                    <span class="nav-clock__tz" id="nav-clock-tz"></span>
+                </div>
             </div>
         </div>
     </header>
