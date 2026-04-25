@@ -143,7 +143,7 @@
         ].join("\n");
     }
 
-    /** Stops the 1s `setInterval` used to poll `/api/pulse`. */
+    /** Stops the 3s `setInterval` used to poll `/api/pulse`. */
     function stopPolling() {
         if (pollTimer) {
             clearInterval(pollTimer);
@@ -270,7 +270,7 @@
         }, 50);
 
         fetchPulse();
-        pollTimer = setInterval(fetchPulse, 1000);
+        pollTimer = setInterval(fetchPulse, 3000);
     }
 
     /** Opens the dashboard if not already open (idempotent). */

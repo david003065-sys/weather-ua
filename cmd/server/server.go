@@ -89,7 +89,8 @@ func Run() error {
 	mux.Handle("/api/find-city", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.APIFindCity(w, r)
 	}))
-	mux.Handle("/api/pulse", apiRoute(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+	// /api/pulse: internal monitoring endpoint (no rate limiting, protected by obscurity in pulse.js)
+	mux.HandleFunc("/api/pulse", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
 		s.HandlePulse(w, r)
 	}))
 
