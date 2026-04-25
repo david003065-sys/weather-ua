@@ -109,6 +109,21 @@ func Run() error {
 		http.ServeFile(w, r, "static/sw.js")
 	})
 
+	// SEO: sitemap and robots.txt (no rate limiting required)
+	mux.HandleFunc("/sitemap.xml", readyOr503(func(s *handlers.Server, w http.ResponseWriter, r *http.Request) {
+		s.Sitemap(w, r)
+	}))
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "https://weather-ua.onrender.com"
+		}
+		robots := "User-agent: *\nAllow: /\nSitemap: " + baseURL + "/sitemap.xml\n"
+		_, _ = w.Write([]byte(robots))
+	})
+
 	// Heavy init in background so ListenAndServe starts immediately.
 	go func() {
 		tmpl, err := template.ParseGlob("templates/*.html")

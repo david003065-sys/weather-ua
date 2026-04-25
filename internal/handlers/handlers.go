@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -1984,6 +1985,89 @@ func (s *Server) computePlaceDuplicates(ctx context.Context, p *places.Place, la
 	// Ссылка на главную с предзаполненным поиском
 	dupURL := "/?lang=" + lang + "&query=" + url.QueryEscape(displayName)
 	return count, label, dupURL
+}
+
+// Sitemap generates dynamic sitemap.xml for SEO (all cities and places).
+func (s *Server) Sitemap(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://weather-ua.onrender.com"
+	}
+	// Ensure no trailing slash
+	baseURL = strings.TrimSuffix(baseURL, "/")
+
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+
+	var buf strings.Builder
+	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
+	buf.WriteString("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">")
+
+	// Homepage
+	buf.WriteString("<url>")
+	buf.WriteString("<loc>" + xmlEscape(baseURL) + "/</loc>")
+	buf.WriteString("<changefreq>hourly</changefreq>")
+	buf.WriteString("<priority>1.0</priority>")
+	buf.WriteString("</url>")
+
+	// Static cities
+	for _, c := range weather.AllCities() {
+		buf.WriteString("<url>")
+		buf.WriteString("<loc>" + xmlEscape(baseURL+"/city/"+c.ID) + "</loc>")
+		buf.WriteString("<changefreq>hourly</changefreq>")
+		buf.WriteString("<priority>0.9</priority>")
+		buf.WriteString("</url>")
+	}
+
+	// Places from SQLite (with population-based priority)
+	ps := s.getPlacesStore()
+	if ps != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		// Get all places with population info
+		placesList, err := ps.Search(ctx, "", 50000) // Empty query = all places
+		if err == nil {
+			for _, p := range placesList {
+				priority := placePriority(p.Population)
+				buf.WriteString("<url>")
+				buf.WriteString("<loc>" + xmlEscape(baseURL+"/place/"+strconv.FormatInt(p.ID, 10)) + "</loc>")
+				buf.WriteString("<changefreq>hourly</changefreq>")
+				buf.WriteString("<priority>" + priority + "</priority>")
+				buf.WriteString("</url>")
+			}
+		}
+	}
+
+	buf.WriteString("</urlset>")
+	_, _ = w.Write([]byte(buf.String()))
+}
+
+// placePriority returns priority based on population.
+func placePriority(population int64) string {
+	switch {
+	case population > 10000:
+		return "0.8"
+	case population >= 1000:
+		return "0.7"
+	default:
+		return "0.5"
+	}
+}
+
+// xmlEscape basic XML escaping for URLs.
+func xmlEscape(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	s = strings.ReplaceAll(s, "'", "&apos;")
+	return s
 }
 
 func detectLang(r *http.Request) string {
