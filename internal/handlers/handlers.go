@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,17 +17,19 @@ import (
 	"time"
 	"unicode"
 
+	"bss/internal/analytics"
 	"bss/internal/i18n"
 	"bss/internal/places"
 	"bss/internal/weather"
 )
 
 type Server struct {
-	tmpl     *template.Template
-	weather  *weather.Client
-	places   *places.Store
-	placesMu sync.RWMutex
-	logger   *log.Logger
+	tmpl      *template.Template
+	weather   *weather.Client
+	places    *places.Store
+	placesMu  sync.RWMutex
+	logger    *log.Logger
+	analytics *analytics.Analytics
 }
 
 var serverStartTime = time.Now()
@@ -46,13 +49,18 @@ func (s *Server) SetPlacesStore(ps *places.Store) {
 	s.placesMu.Unlock()
 }
 
+func (s *Server) SetAnalytics(a *analytics.Analytics) {
+	s.analytics = a
+}
+
 // pulseJSON is the stable JSON shape for GET /api/pulse (used by static/pulse.js).
 type pulseJSON struct {
-	Goroutines    int     `json:"goroutines"`
-	MemoryAllocMB float64 `json:"memory_alloc_mb"`
-	MemorySysMB   float64 `json:"memory_sys_mb"`
-	GCCycles      uint32  `json:"gc_cycles"`
-	Uptime        string  `json:"uptime"`
+	Goroutines    int                        `json:"goroutines"`
+	MemoryAllocMB float64                    `json:"memory_alloc_mb"`
+	MemorySysMB   float64                    `json:"memory_sys_mb"`
+	GCCycles      uint32                     `json:"gc_cycles"`
+	Uptime        string                     `json:"uptime"`
+	Analytics     analytics.AnalyticsSummary `json:"analytics,omitempty"`
 }
 
 func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +68,11 @@ func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", http.MethodGet)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// Track this request
+	if s.analytics != nil {
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
 	}
 
 	var m runtime.MemStats
@@ -73,6 +86,11 @@ func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 		Uptime:        time.Since(serverStartTime).String(),
 	}
 
+	// Include analytics summary
+	if s.analytics != nil {
+		resp.Analytics = s.analytics.Summary()
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 
@@ -82,6 +100,28 @@ func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write(body)
+}
+
+// getClientIP extracts client IP from request.
+func (s *Server) getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header (for proxies like Render)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// Take first IP if multiple
+		if idx := strings.Index(xff, ","); idx != -1 {
+			return strings.TrimSpace(xff[:idx])
+		}
+		return xff
+	}
+	// Check X-Real-Ip
+	if xri := r.Header.Get("X-Real-Ip"); xri != "" {
+		return xri
+	}
+	// Fall back to RemoteAddr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func (s *Server) getPlacesStore() *places.Store {
@@ -245,6 +285,11 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
+	}
+
+	// Track request
+	if s.analytics != nil {
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
 	}
 
 	lang := detectLang(r)
@@ -501,6 +546,12 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	if !weather.IsKnownCity(cityID) {
 		s.renderNotFound(w, r)
 		return
+	}
+
+	// Track city view
+	if s.analytics != nil {
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.analytics.TrackCity(cityID)
 	}
 
 	lang := detectLang(r)
@@ -1253,6 +1304,12 @@ func (s *Server) PlacesSuggest(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("[]"))
 		return
 	}
+
+	// Track search query
+	if s.analytics != nil {
+		s.analytics.TrackSearch(norm)
+	}
+
 	limitStr := r.URL.Query().Get("limit")
 	limit := 10
 	if limitStr != "" {
@@ -1410,6 +1467,11 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.renderNotFound(w, r)
 		return
+	}
+
+	// Track place view
+	if s.analytics != nil {
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
 	}
 
 	lang := detectLang(r)

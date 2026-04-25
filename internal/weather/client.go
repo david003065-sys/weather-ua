@@ -62,6 +62,7 @@ type Client struct {
 	httpClient *http.Client
 	cacheTTL   time.Duration
 	logger     Logger
+	analytics  AnalyticsTracker
 
 	mu    sync.RWMutex
 	cache map[string]CachedWeather
@@ -69,6 +70,11 @@ type Client struct {
 	sf singleflight.Group
 
 	persistCh chan struct{} // non-blocking signal to flush cache to disk
+}
+
+// AnalyticsTracker is a minimal interface for tracking API errors.
+type AnalyticsTracker interface {
+	TrackError()
 }
 
 func NewClient(cacheTTL, timeout time.Duration) *Client {
@@ -91,6 +97,11 @@ func NewClient(cacheTTL, timeout time.Duration) *Client {
 // SetLogger задаёт логгер для сообщений кэша.
 func (c *Client) SetLogger(l Logger) {
 	c.logger = l
+}
+
+// SetAnalytics задаёт трекер для аналитики ошибок.
+func (c *Client) SetAnalytics(a AnalyticsTracker) {
+	c.analytics = a
 }
 
 // ── disk persistence ──
@@ -441,6 +452,9 @@ func (c *Client) singleflightFetch(ctx context.Context, cacheKey string, city Ci
 	if err != nil {
 		if c.logger != nil {
 			c.logger.Printf("provider error key=%s: %v", cacheKey, err)
+		}
+		if c.analytics != nil {
+			c.analytics.TrackError()
 		}
 		c.mu.RLock()
 		entry = c.cache[cacheKey]
@@ -839,12 +853,12 @@ type weatherAPIForecastDay struct {
 }
 
 type weatherAPIHour struct {
-	TimeEpoch    int64   `json:"time_epoch"`
-	Time         string  `json:"time"`
-	TempC        float64 `json:"temp_c"`
-	FeelslikeC   float64 `json:"feelslike_c"`
-	PrecipMM     float64 `json:"precip_mm"`
-	SnowCM       float64 `json:"snow_cm"`
+	TimeEpoch  int64   `json:"time_epoch"`
+	Time       string  `json:"time"`
+	TempC      float64 `json:"temp_c"`
+	FeelslikeC float64 `json:"feelslike_c"`
+	PrecipMM   float64 `json:"precip_mm"`
+	SnowCM     float64 `json:"snow_cm"`
 	// WeatherAPI returns these as JSON numbers (not quoted strings).
 	ChanceOfRain int `json:"chance_of_rain"`
 	ChanceOfSnow int `json:"chance_of_snow"`

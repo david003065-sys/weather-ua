@@ -9,10 +9,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"syscall"
 	"sync/atomic"
+	"syscall"
 	"time"
 
+	"bss/internal/analytics"
 	"bss/internal/handlers"
 	"bss/internal/middleware"
 	"bss/internal/places"
@@ -138,7 +139,13 @@ func Run() error {
 		weatherClient.SetLogger(logger)
 		logger.Printf("weather client created once, cache TTL 15m")
 
+		// Analytics: lightweight self-hosted tracking
+		analyticsTracker := analytics.New("data/analytics.json")
+		weatherClient.SetAnalytics(analyticsTracker)
+		logger.Printf("analytics initialized")
+
 		srv := handlers.NewServer(tmpl, weatherClient, nil, logger)
+		srv.SetAnalytics(analyticsTracker)
 		srvPtr.Store(srv)
 		logger.Printf("core server dependencies are ready")
 
@@ -202,4 +209,3 @@ func Run() error {
 		return nil
 	}
 }
-

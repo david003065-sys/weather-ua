@@ -75,6 +75,13 @@
             uptime = (parts[0] || data.uptime) + "s";
         }
 
+        // Analytics section
+        var analytics = data && data.analytics ? data.analytics : {};
+        var totalReq = asFiniteNumber(analytics.total_requests);
+        var todayReq = asFiniteNumber(analytics.today_requests);
+        var uniqueIPs = asFiniteNumber(analytics.unique_ips_today);
+        var apiErrors = asFiniteNumber(analytics.api_errors);
+
         var lines = [];
         lines.push("> PULSE STREAM ONLINE");
         lines.push("> ------------------------------");
@@ -82,6 +89,44 @@
         lines.push("> memory     : " + memory);
         lines.push("> gc         : " + gcCycles);
         lines.push("> uptime     : " + uptime);
+
+        // Analytics block
+        lines.push(">");
+        lines.push("> ANALYTICS");
+        lines.push("> ------------------------------");
+        lines.push("> requests   : " + (totalReq != null ? totalReq.toLocaleString() : "n/a"));
+        lines.push("> today      : " + (todayReq != null ? todayReq.toLocaleString() : "n/a"));
+        lines.push("> unique IPs : " + (uniqueIPs != null ? uniqueIPs.toLocaleString() : "n/a"));
+        lines.push("> API errors : " + (apiErrors != null ? apiErrors.toLocaleString() : "n/a"));
+
+        // Top cities
+        var topCities = analytics.top_cities || [];
+        if (topCities.length > 0) {
+            lines.push(">");
+            lines.push("> TOP CITIES");
+            lines.push("> ------------------------------");
+            for (var i = 0; i < Math.min(5, topCities.length); i++) {
+                var city = topCities[i];
+                var name = city.name || "unknown";
+                var views = asFiniteNumber(city.views);
+                lines.push("> " + String(i + 1) + ". " + name + " : " + (views != null ? views.toLocaleString() : "n/a"));
+            }
+        }
+
+        // Top searches
+        var topSearches = analytics.top_searches || [];
+        if (topSearches.length > 0) {
+            lines.push(">");
+            lines.push("> TOP SEARCHES");
+            lines.push("> ------------------------------");
+            for (var j = 0; j < Math.min(5, topSearches.length); j++) {
+                var search = topSearches[j];
+                var query = search.query || "unknown";
+                var count = asFiniteNumber(search.count);
+                lines.push("> " + String(j + 1) + ". " + query + " : " + (count != null ? count.toLocaleString() : "n/a"));
+            }
+        }
+
         outputEl.textContent = lines.join("\n");
     }
 
