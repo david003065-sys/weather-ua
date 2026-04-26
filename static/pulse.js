@@ -183,6 +183,17 @@
             }
         }
 
+        // SEO / Search Engine data
+        var botVisits = asFiniteNumber(analytics.bot_visits);
+        var indexedByGoogle = analytics.indexed_by_google;
+        var lastGoogleBot = analytics.last_google_bot;
+        lines.push(">");
+        lines.push("> SEO / INDEXING");
+        lines.push("> ------------------------------");
+        lines.push("> google index : " + (indexedByGoogle ? "YES" : "waiting..."));
+        lines.push("> bot visits   : " + (botVisits != null ? botVisits.toLocaleString() : "0"));
+        lines.push("> last crawl   : " + (lastGoogleBot || "never"));
+
         outputEl.textContent = lines.join("\n");
     }
 

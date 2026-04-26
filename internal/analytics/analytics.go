@@ -27,12 +27,14 @@ type Analytics struct {
 	StartedAt     time.Time
 
 	// Extended tracking
-	Referrers map[string]int64 // source → count (google, telegram, direct, etc)
-	Devices   map[string]int64 // device type → count (mobile, desktop, tablet)
-	Browsers  map[string]int64 // browser → count
-	OS        map[string]int64 // OS → count
-	Countries map[string]int64 // country code → count
-	Languages map[string]int64 // language → count
+	Referrers     map[string]int64 // source → count (google, telegram, direct, etc)
+	Devices       map[string]int64 // device type → count (mobile, desktop, tablet)
+	Browsers      map[string]int64 // browser → count
+	OS            map[string]int64 // OS → count
+	Countries     map[string]int64 // country code → count
+	Languages     map[string]int64 // language → count
+	BotVisits     int64            // search engine bot visits (Googlebot, etc)
+	LastGoogleBot time.Time        // when Googlebot last visited
 
 	persistCh chan struct{}
 	filePath  string
@@ -48,10 +50,13 @@ type AnalyticsSummary struct {
 	APIErrors      int64         `json:"api_errors"`
 
 	// Extended data
-	TopReferrers []ReferrerCount `json:"top_referrers"`
-	TopDevices   []DeviceCount   `json:"top_devices"`
-	TopBrowsers  []BrowserCount  `json:"top_browsers"`
-	TopCountries []CountryCount  `json:"top_countries"`
+	TopReferrers    []ReferrerCount `json:"top_referrers"`
+	TopDevices      []DeviceCount   `json:"top_devices"`
+	TopBrowsers     []BrowserCount  `json:"top_browsers"`
+	TopCountries    []CountryCount  `json:"top_countries"`
+	BotVisits       int64           `json:"bot_visits"`
+	IndexedByGoogle bool            `json:"indexed_by_google"`
+	LastGoogleBot   string          `json:"last_google_bot"`
 }
 
 type ReferrerCount struct {
@@ -163,10 +168,17 @@ func (a *Analytics) TrackExtended(referrer, userAgent, acceptLang, country strin
 		a.Countries[country]++
 	}
 
+	// Track search engine bot visits
+	if a.IsGoogleBot(userAgent) {
+		a.BotVisits++
+		a.LastGoogleBot = time.Now()
+	}
+
 	a.schedulePersist()
 }
 
 // parseReferrer extracts source name from URL.
+// Distinguishes between organic search and other properties.
 func (a *Analytics) parseReferrer(ref string) string {
 	if ref == "" {
 		return "direct"
@@ -177,10 +189,19 @@ func (a *Analytics) parseReferrer(ref string) string {
 		return "other"
 	}
 	host := strings.ToLower(u.Hostname())
+	path := strings.ToLower(u.Path)
 
 	// Map known sources
 	switch {
+	// Google - distinguish search from other properties
 	case strings.Contains(host, "google"):
+		// Check if it's a search results page
+		if strings.Contains(path, "/search") ||
+			strings.Contains(path, "/url") ||
+			u.Query().Get("q") != "" ||
+			u.Query().Get("query") != "" {
+			return "google-search"
+		}
 		return "google"
 	case strings.Contains(host, "facebook") || strings.Contains(host, "fb.me"):
 		return "facebook"
@@ -192,17 +213,29 @@ func (a *Analytics) parseReferrer(ref string) string {
 		return "instagram"
 	case strings.Contains(host, "youtube") || strings.Contains(host, "youtu.be"):
 		return "youtube"
+	// Search engines
 	case strings.Contains(host, "bing"):
 		return "bing"
 	case strings.Contains(host, "yahoo"):
 		return "yahoo"
 	case strings.Contains(host, "duckduckgo"):
 		return "duckduckgo"
+	case strings.Contains(host, "yandex"):
+		return "yandex"
+	case strings.Contains(host, "baidu"):
+		return "baidu"
 	case host == "" || host == "localhost":
 		return "direct"
 	default:
 		return "other"
 	}
+}
+
+// IsGoogleBot checks if User-Agent is Googlebot crawler.
+func (a *Analytics) IsGoogleBot(userAgent string) bool {
+	ua := strings.ToLower(userAgent)
+	return strings.Contains(ua, "googlebot") ||
+		strings.Contains(ua, "google-web-preview")
 }
 
 // parseUserAgent extracts device type, browser and OS from User-Agent string.
@@ -357,17 +390,33 @@ func (a *Analytics) Summary() AnalyticsSummary {
 	// Top countries
 	topCountries := a.topCountriesLocked(5)
 
+	// Format last Googlebot visit time
+	lastBot := "never"
+	if !a.LastGoogleBot.IsZero() {
+		since := time.Since(a.LastGoogleBot)
+		if since < time.Hour {
+			lastBot = fmt.Sprintf("%dm ago", int(since.Minutes()))
+		} else if since < 24*time.Hour {
+			lastBot = fmt.Sprintf("%dh ago", int(since.Hours()))
+		} else {
+			lastBot = fmt.Sprintf("%dd ago", int(since.Hours()/24))
+		}
+	}
+
 	return AnalyticsSummary{
-		TotalRequests:  total,
-		TodayRequests:  todayRequests,
-		TopCities:      topCities,
-		TopSearches:    topSearches,
-		UniqueIPsToday: uniqueToday,
-		APIErrors:      a.Errors,
-		TopReferrers:   topReferrers,
-		TopDevices:     topDevices,
-		TopBrowsers:    topBrowsers,
-		TopCountries:   topCountries,
+		TotalRequests:   total,
+		TodayRequests:   todayRequests,
+		TopCities:       topCities,
+		TopSearches:     topSearches,
+		UniqueIPsToday:  uniqueToday,
+		APIErrors:       a.Errors,
+		TopReferrers:    topReferrers,
+		TopDevices:      topDevices,
+		TopBrowsers:     topBrowsers,
+		TopCountries:    topCountries,
+		BotVisits:       a.BotVisits,
+		IndexedByGoogle: a.BotVisits > 0,
+		LastGoogleBot:   lastBot,
 	}
 }
 
@@ -587,6 +636,8 @@ func (a *Analytics) persistToDisk() {
 		OS            map[string]int64 `json:"os"`
 		Countries     map[string]int64 `json:"countries"`
 		Languages     map[string]int64 `json:"languages"`
+		BotVisits     int64            `json:"bot_visits"`
+		LastGoogleBot time.Time        `json:"last_google_bot"`
 	}{
 		Requests:      a.Requests,
 		TopCities:     a.TopCities,
@@ -601,6 +652,8 @@ func (a *Analytics) persistToDisk() {
 		OS:            a.OS,
 		Countries:     a.Countries,
 		Languages:     a.Languages,
+		BotVisits:     a.BotVisits,
+		LastGoogleBot: a.LastGoogleBot,
 	}
 	a.mu.RUnlock()
 
@@ -663,6 +716,8 @@ func (a *Analytics) loadFromDisk() {
 		OS            map[string]int64 `json:"os"`
 		Countries     map[string]int64 `json:"countries"`
 		Languages     map[string]int64 `json:"languages"`
+		BotVisits     int64            `json:"bot_visits"`
+		LastGoogleBot time.Time        `json:"last_google_bot"`
 	}
 
 	if err := json.NewDecoder(f).Decode(&data); err != nil {
@@ -715,6 +770,10 @@ func (a *Analytics) loadFromDisk() {
 	}
 	if data.Languages != nil {
 		a.Languages = data.Languages
+	}
+	a.BotVisits = data.BotVisits
+	if !data.LastGoogleBot.IsZero() {
+		a.LastGoogleBot = data.LastGoogleBot
 	}
 }
 
