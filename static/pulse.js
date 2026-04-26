@@ -293,14 +293,21 @@
         header.appendChild(title);
         header.appendChild(closeBtn);
 
+        // Content container with scrolling
+        var contentEl = document.createElement("div");
+        contentEl.style.overflow = "auto";
+        contentEl.style.maxHeight = "calc(100vh - 60px)";
+        contentEl.style.paddingRight = "10px";
+
         outputEl = document.createElement("pre");
         outputEl.style.margin = "0";
         outputEl.style.whiteSpace = "pre-wrap";
         outputEl.style.lineHeight = "1.5";
         outputEl.textContent = "> BOOTSTRAP...";
 
+        contentEl.appendChild(outputEl);
         overlayEl.appendChild(header);
-        overlayEl.appendChild(outputEl);
+        overlayEl.appendChild(contentEl);
         document.body.appendChild(overlayEl);
 
         pulseEscapeHandler = function (e) {
