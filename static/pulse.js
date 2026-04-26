@@ -267,12 +267,16 @@
         overlayEl.style.zIndex = "99999";
         overlayEl.style.padding = "20px";
         overlayEl.style.boxSizing = "border-box";
+        overlayEl.style.display = "flex";
+        overlayEl.style.flexDirection = "column";
+        overlayEl.style.overflow = "hidden";
 
         var header = document.createElement("div");
         header.style.display = "flex";
         header.style.alignItems = "center";
         header.style.justifyContent = "space-between";
         header.style.marginBottom = "14px";
+        header.style.flexShrink = "0";
 
         var title = document.createElement("div");
         title.textContent = "SYSTEM PULSE [///]";
@@ -296,8 +300,9 @@
         // Content container with scrolling
         var contentEl = document.createElement("div");
         contentEl.style.overflow = "auto";
-        contentEl.style.maxHeight = "calc(100vh - 60px)";
+        contentEl.style.flex = "1";
         contentEl.style.paddingRight = "10px";
+        contentEl.style.minHeight = "0";
 
         outputEl = document.createElement("pre");
         outputEl.style.margin = "0";
