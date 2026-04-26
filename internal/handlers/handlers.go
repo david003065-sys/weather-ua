@@ -124,6 +124,19 @@ func (s *Server) getClientIP(r *http.Request) string {
 	return host
 }
 
+// trackExtendedInfo collects detailed analytics from HTTP headers.
+func (s *Server) trackExtendedInfo(r *http.Request) {
+	if s.analytics == nil {
+		return
+	}
+	referrer := r.Header.Get("Referer")
+	userAgent := r.Header.Get("User-Agent")
+	acceptLang := r.Header.Get("Accept-Language")
+	// Country detection via CF-IPCountry header (Cloudflare/Render)
+	country := r.Header.Get("CF-IPCountry")
+	s.analytics.TrackExtended(referrer, userAgent, acceptLang, country)
+}
+
 func (s *Server) getPlacesStore() *places.Store {
 	s.placesMu.RLock()
 	ps := s.places
@@ -290,6 +303,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	// Track request
 	if s.analytics != nil {
 		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.trackExtendedInfo(r)
 	}
 
 	lang := detectLang(r)
@@ -552,6 +566,7 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 	if s.analytics != nil {
 		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
 		s.analytics.TrackCity(cityID)
+		s.trackExtendedInfo(r)
 	}
 
 	lang := detectLang(r)
@@ -1472,6 +1487,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 	// Track place view
 	if s.analytics != nil {
 		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.trackExtendedInfo(r)
 	}
 
 	lang := detectLang(r)

@@ -127,6 +127,62 @@
             }
         }
 
+        // Top referrers
+        var topReferrers = analytics.top_referrers || [];
+        if (topReferrers.length > 0) {
+            lines.push(">");
+            lines.push("> TOP SOURCES");
+            lines.push("> ------------------------------");
+            for (var k = 0; k < Math.min(5, topReferrers.length); k++) {
+                var ref = topReferrers[k];
+                var src = ref.source || "unknown";
+                var cnt = asFiniteNumber(ref.count);
+                lines.push("> " + String(k + 1) + ". " + src + " : " + (cnt != null ? cnt.toLocaleString() : "n/a"));
+            }
+        }
+
+        // Top devices
+        var topDevices = analytics.top_devices || [];
+        if (topDevices.length > 0) {
+            lines.push(">");
+            lines.push("> DEVICES");
+            lines.push("> ------------------------------");
+            for (var d = 0; d < Math.min(3, topDevices.length); d++) {
+                var dev = topDevices[d];
+                var devName = dev.device || "unknown";
+                var devCnt = asFiniteNumber(dev.count);
+                lines.push("> " + String(d + 1) + ". " + devName + " : " + (devCnt != null ? devCnt.toLocaleString() : "n/a"));
+            }
+        }
+
+        // Top browsers
+        var topBrowsers = analytics.top_browsers || [];
+        if (topBrowsers.length > 0) {
+            lines.push(">");
+            lines.push("> BROWSERS");
+            lines.push("> ------------------------------");
+            for (var b = 0; b < Math.min(3, topBrowsers.length); b++) {
+                var br = topBrowsers[b];
+                var brName = br.browser || "unknown";
+                var brCnt = asFiniteNumber(br.count);
+                lines.push("> " + String(b + 1) + ". " + brName + " : " + (brCnt != null ? brCnt.toLocaleString() : "n/a"));
+            }
+        }
+
+        // Top countries
+        var topCountries = analytics.top_countries || [];
+        if (topCountries.length > 0) {
+            lines.push(">");
+            lines.push("> COUNTRIES");
+            lines.push("> ------------------------------");
+            for (var c = 0; c < Math.min(3, topCountries.length); c++) {
+                var cntry = topCountries[c];
+                var cntryCode = cntry.country || "unknown";
+                var cntryCnt = asFiniteNumber(cntry.count);
+                lines.push("> " + String(c + 1) + ". " + cntryCode + " : " + (cntryCnt != null ? cntryCnt.toLocaleString() : "n/a"));
+            }
+        }
+
         outputEl.textContent = lines.join("\n");
     }
 
