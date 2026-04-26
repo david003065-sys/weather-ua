@@ -14,13 +14,15 @@ import (
 
 // Analytics holds in-memory counters and metrics.
 type Analytics struct {
-	mu          sync.RWMutex
-	Requests    map[string]int64     // path → count
-	TopCities   map[string]int64     // city slug → views
-	TopSearches map[string]int64     // search query → count
-	UniqueIPs   map[string]time.Time // IP → last visit
-	Errors      int64
-	StartedAt   time.Time
+	mu            sync.RWMutex
+	Requests      map[string]int64     // path → count
+	TopCities     map[string]int64     // city slug → views
+	TopSearches   map[string]int64     // search query → count
+	UniqueIPs     map[string]time.Time // IP → last visit
+	TodayRequests int64                // requests today (resets at midnight)
+	TodayDate     string               // YYYY-MM-DD for tracking day changes
+	Errors        int64
+	StartedAt     time.Time
 
 	persistCh chan struct{}
 	filePath  string
@@ -67,6 +69,14 @@ func New(filePath string) *Analytics {
 func (a *Analytics) TrackRequest(path string, ip string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	// Check if day changed and reset counter
+	today := time.Now().Format("2006-01-02")
+	if a.TodayDate != today {
+		a.TodayDate = today
+		a.TodayRequests = 0
+	}
+	a.TodayRequests++
 
 	a.Requests[path]++
 	if ip != "" {
@@ -115,11 +125,15 @@ func (a *Analytics) Summary() AnalyticsSummary {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	// Count today's requests (from midnight)
-	today := time.Now().Truncate(24 * time.Hour)
-	todayRequests := int64(0)
+	// Check if day changed (for reading without write lock)
+	todayDate := time.Now().Format("2006-01-02")
+	todayRequests := a.TodayRequests
+	if a.TodayDate != todayDate {
+		todayRequests = 0 // Day changed, counter will reset on next TrackRequest
+	}
 
 	// Count unique IPs from today
+	today := time.Now().Truncate(24 * time.Hour)
 	uniqueToday := int64(0)
 	for _, t := range a.UniqueIPs {
 		if t.After(today) {
@@ -141,7 +155,7 @@ func (a *Analytics) Summary() AnalyticsSummary {
 
 	return AnalyticsSummary{
 		TotalRequests:  total,
-		TodayRequests:  todayRequests, // Simplified - would need per-day tracking for accurate count
+		TodayRequests:  todayRequests,
 		TopCities:      topCities,
 		TopSearches:    topSearches,
 		UniqueIPsToday: uniqueToday,
@@ -270,17 +284,21 @@ func (a *Analytics) persistToDisk() {
 	a.mu.RLock()
 
 	data := struct {
-		Requests    map[string]int64 `json:"requests"`
-		TopCities   map[string]int64 `json:"top_cities"`
-		TopSearches map[string]int64 `json:"top_searches"`
-		Errors      int64            `json:"errors"`
-		StartedAt   time.Time        `json:"started_at"`
+		Requests      map[string]int64 `json:"requests"`
+		TopCities     map[string]int64 `json:"top_cities"`
+		TopSearches   map[string]int64 `json:"top_searches"`
+		TodayRequests int64            `json:"today_requests"`
+		TodayDate     string           `json:"today_date"`
+		Errors        int64            `json:"errors"`
+		StartedAt     time.Time        `json:"started_at"`
 	}{
-		Requests:    a.Requests,
-		TopCities:   a.TopCities,
-		TopSearches: a.TopSearches,
-		Errors:      a.Errors,
-		StartedAt:   a.StartedAt,
+		Requests:      a.Requests,
+		TopCities:     a.TopCities,
+		TopSearches:   a.TopSearches,
+		TodayRequests: a.TodayRequests,
+		TodayDate:     a.TodayDate,
+		Errors:        a.Errors,
+		StartedAt:     a.StartedAt,
 	}
 	a.mu.RUnlock()
 
@@ -330,11 +348,13 @@ func (a *Analytics) loadFromDisk() {
 	defer f.Close()
 
 	var data struct {
-		Requests    map[string]int64 `json:"requests"`
-		TopCities   map[string]int64 `json:"top_cities"`
-		TopSearches map[string]int64 `json:"top_searches"`
-		Errors      int64            `json:"errors"`
-		StartedAt   time.Time        `json:"started_at"`
+		Requests      map[string]int64 `json:"requests"`
+		TopCities     map[string]int64 `json:"top_cities"`
+		TopSearches   map[string]int64 `json:"top_searches"`
+		TodayRequests int64            `json:"today_requests"`
+		TodayDate     string           `json:"today_date"`
+		Errors        int64            `json:"errors"`
+		StartedAt     time.Time        `json:"started_at"`
 	}
 
 	if err := json.NewDecoder(f).Decode(&data); err != nil {
@@ -356,6 +376,17 @@ func (a *Analytics) loadFromDisk() {
 	a.Errors = data.Errors
 	if !data.StartedAt.IsZero() {
 		a.StartedAt = data.StartedAt
+	}
+
+	// Check if loaded data is from today
+	todayDate := time.Now().Format("2006-01-02")
+	if data.TodayDate == todayDate {
+		a.TodayRequests = data.TodayRequests
+		a.TodayDate = data.TodayDate
+	} else {
+		// Reset today's counter if data is from previous day
+		a.TodayRequests = 0
+		a.TodayDate = todayDate
 	}
 }
 
