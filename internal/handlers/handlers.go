@@ -1638,6 +1638,7 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		WeatherSourceText:   weatherSourceText(lang, data),
 		WeatherSourceKind:   weatherSourceKind(data),
 		WeatherUpdatedText:  weatherUpdatedText(lang, data),
+		RandomAdvice:        text.GetRandomAdvice(),
 		Forecast:            forecast,
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
