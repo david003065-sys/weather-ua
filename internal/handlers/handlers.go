@@ -184,6 +184,7 @@ type IndexPageData struct {
 	WeatherSourceText   string
 	// WeatherSourceKind: live_api | server_cache | server_cache_stale | no_data (SSR; browser_cache только в JS).
 	WeatherSourceKind  string
+	RandomAdvice       string
 	WeatherUpdatedText string
 	TodayLabel         string
 	TodayMin           float64
@@ -249,6 +250,7 @@ type CityPageData struct {
 	WeatherSourceText   string
 	WeatherSourceKind   string
 	WeatherUpdatedText  string
+	RandomAdvice        string
 	Forecast            []DailyView
 	TodayLabel          string
 	TodayMin            float64
@@ -420,6 +422,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		WeatherSourceText:   weatherSourceText(lang, heroData),
 		WeatherSourceKind:   weatherSourceKind(heroData),
 		WeatherUpdatedText:  weatherUpdatedText(lang, heroData),
+		RandomAdvice:        text.GetRandomAdvice(),
 		TodayLabel:          todayLabel,
 		TodayMin:            todayMin,
 		TodayMax:            todayMax,

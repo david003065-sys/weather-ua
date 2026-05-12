@@ -1,5 +1,7 @@
 package i18n
 
+import "time"
+
 // UI is the full SSR string bundle for one language (templates + meta).
 type UI struct {
 	BrandTop              string
@@ -83,6 +85,7 @@ type UI struct {
 	NotFoundDesc     string
 	NotFoundHome     string
 	NotFoundSearch   string
+	SarcasticAdvice  []string
 }
 
 // For returns all UI strings for SSR.
@@ -165,6 +168,23 @@ func For(lang string) UI {
 			NotFoundDesc:            "Try searching or go back to home",
 			NotFoundHome:            "Home",
 			NotFoundSearch:          "Search",
+			SarcasticAdvice: []string{
+				"Perfect day to cancel all plans and pretend you're not home.",
+				"Going outside today is as big a mistake as many of your life decisions.",
+				"Precipitation expected in the form of your tears over missed opportunities.",
+				"The sun shines so bright it almost hides your depression.",
+				"Ideal weather conditions for a quality existential crisis.",
+				"Today's weather matches your mood: unpredictable and disappointing.",
+				"At least the weather doesn't judge you like your mother does.",
+				"Perfect weather to stay inside and question all your life choices.",
+				"The forecast calls for 100% chance of regret.",
+				"Today's weather: cold, gloomy, and emotionally unavailable.",
+				"Great day to contemplate the meaningless void of existence.",
+				"Weather so bad even your therapist would cancel the session.",
+				"At least it's not raining inside your apartment. Yet.",
+				"Today's forecast: cloudy with a chance of existential dread.",
+				"Perfect weather for staying in bed and avoiding responsibilities.",
+			},
 		}
 	case "uk":
 		return UI{
@@ -243,6 +263,23 @@ func For(lang string) UI {
 			NotFoundDesc:            "Спробуйте пошук або поверніться на головну",
 			NotFoundHome:            "На головну",
 			NotFoundSearch:          "Пошук",
+			SarcasticAdvice: []string{
+				"Чудовий день, щоб скасувати всі плани і робити вигляд, що тебе немає вдома.",
+				"Виходити на вулицю сьогодні — така ж помилка, як і багато твоїх життєвих рішень.",
+				"Очікуються опади у вигляді твоїх сліз по пропущених можливостях.",
+				"Сонце світить так яскраво, що майже приховує твою депресію.",
+				"Ідеальні погодні умови для якісного екзистенційного кризису.",
+				"Погода сьогодні збігається з твоїм настроєм: непередбачувана і розчаровуюча.",
+				"Щоправда, погода не засуджує тебе так, як твоя мама.",
+				"Чудова погода, щоб сидіти вдома і сумніватися у всіх життєвих виборах.",
+				"Прогноз обіцяє 100% шансів на жаль.",
+				"Погода сьогодні: холодна, похмура і емоційно недоступна.",
+				"Чудовий день, щоб роздумувати про безглузду порожнечу буття.",
+				"Погода настільки погана, що навіть твій психотерапевт скасував би сесію.",
+				"Щоправда, поки що не дощить у твоїй квартирі. Ще.",
+				"Прогноз на сьогодні: хмарно з можливістю екзистенційного жаху.",
+				"Чудова погода, щоб лежати в ліжку і уникати відповідальності.",
+			},
 		}
 	default: // ru
 		return UI{
@@ -321,6 +358,34 @@ func For(lang string) UI {
 			NotFoundDesc:            "Попробуйте поиск или вернитесь на главную",
 			NotFoundHome:            "На главную",
 			NotFoundSearch:          "Поиск",
+			SarcasticAdvice: []string{
+				"Отличный день, чтобы отменить все планы и сделать вид, что тебя нет дома.",
+				"Выходить на улицу сегодня — это такая же ошибка, как и многие твои жизненные решения.",
+				"Ожидаются осадки в виде твоих слез по упущенным возможностям.",
+				"Солнце светит так ярко, что почти скрывает твою депрессию.",
+				"Идеальные погодные условия для качественного экзистенциального кризиса.",
+				"Погода сегодня совпадает с твоим настроем: непредсказуемая и разочаровывающая.",
+				"Зато погода не осуждает тебя так, как твоя мама.",
+				"Отличная погода, чтобы сидеть дома и сомневаться во всех жизненных выборах.",
+				"Прогноз обещает 100% шанс сожаления.",
+				"Погода сегодня: холодная, унылая и эмоционально недоступная.",
+				"Чудный день, чтобы размышлять о бессмысленной пустоте бытия.",
+				"Погода настолько плохая, что даже твой психотерапевт отменил бы сеанс.",
+				"Зато пока что не льёт у тебя в квартире дождь. Пока.",
+				"Прогноз на сегодня: облачно с возможностью экзистенциального ужаса.",
+				"Отличная погода, чтобы лежать в кровати и избегать ответственности.",
+			},
 		}
 	}
+}
+
+// GetRandomAdvice returns a random sarcastic advice phrase from the UI bundle.
+// Returns SmartAdviceTitle if SarcasticAdvice is empty or unavailable.
+func (ui UI) GetRandomAdvice() string {
+	if len(ui.SarcasticAdvice) == 0 {
+		return ui.SmartAdviceTitle
+	}
+	// Use math/rand for simplicity (not crypto-secure needed for UI text)
+	n := len(ui.SarcasticAdvice)
+	return ui.SarcasticAdvice[time.Now().UnixNano()%int64(n)]
 }
