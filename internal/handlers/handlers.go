@@ -70,9 +70,9 @@ func (s *Server) HandlePulse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Track this request
+	// Track this request (bots excluded from "today" and "unique IPs")
 	if s.analytics != nil {
-		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r), r.UserAgent())
 	}
 
 	var m runtime.MemStats
@@ -300,9 +300,9 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Track request
+	// Track request (bots excluded from "today" and "unique IPs")
 	if s.analytics != nil {
-		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r), r.UserAgent())
 		s.trackExtendedInfo(r)
 	}
 
@@ -562,9 +562,9 @@ func (s *Server) City(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Track city view
+	// Track city view (bots excluded from "today" and "unique IPs")
 	if s.analytics != nil {
-		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r), r.UserAgent())
 		s.analytics.TrackCity(cityID)
 		s.trackExtendedInfo(r)
 	}
@@ -1484,9 +1484,9 @@ func (s *Server) Place(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Track place view
+	// Track place view (bots excluded from "today" and "unique IPs")
 	if s.analytics != nil {
-		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r))
+		s.analytics.TrackRequest(r.URL.Path, s.getClientIP(r), r.UserAgent())
 		s.trackExtendedInfo(r)
 	}
 

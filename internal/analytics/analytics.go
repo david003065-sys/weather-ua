@@ -113,9 +113,13 @@ func New(filePath string) *Analytics {
 }
 
 // TrackRequest records a request to a path from an IP.
-func (a *Analytics) TrackRequest(path string, ip string) {
+// If userAgent indicates a bot/crawler, it's excluded from "today requests" and "unique IPs"
+// but still counted in total Requests for debugging purposes.
+func (a *Analytics) TrackRequest(path string, ip string, userAgent string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	isBot := a.IsBot(userAgent)
 
 	// Check if day changed and reset counter
 	today := time.Now().Format("2006-01-02")
@@ -123,12 +127,20 @@ func (a *Analytics) TrackRequest(path string, ip string) {
 		a.TodayDate = today
 		a.TodayRequests = 0
 	}
-	a.TodayRequests++
 
+	// Only count humans in "today" stats, not bots
+	if !isBot {
+		a.TodayRequests++
+	}
+
+	// Track all requests (including bots) for total stats
 	a.Requests[path]++
-	if ip != "" {
+
+	// Only track unique IPs for humans, not bots
+	if ip != "" && !isBot {
 		a.UniqueIPs[ip] = time.Now()
 	}
+
 	a.schedulePersist()
 }
 
@@ -236,6 +248,32 @@ func (a *Analytics) IsGoogleBot(userAgent string) bool {
 	ua := strings.ToLower(userAgent)
 	return strings.Contains(ua, "googlebot") ||
 		strings.Contains(ua, "google-web-preview")
+}
+
+// IsBot checks if User-Agent is any search engine crawler/bot.
+// Returns true for Googlebot, Bingbot, Yandex, etc.
+// Bots are excluded from "unique IPs" and "today requests" counts
+// to avoid inflating analytics with automated traffic.
+func (a *Analytics) IsBot(userAgent string) bool {
+	ua := strings.ToLower(userAgent)
+	botSignatures := []string{
+		"googlebot", "bingbot", "yandexbot", "duckduckbot",
+		"baiduspider", "facebookexternalhit", "twitterbot",
+		"linkedinbot", "whatsapp", "telegrambot", "slackbot",
+		"applebot", "petalbot", "ahrefsbot", "semrushbot",
+		"mj12bot", "dotbot", "bingpreview", "google-web-preview",
+	}
+	for _, sig := range botSignatures {
+		if strings.Contains(ua, sig) {
+			return true
+		}
+	}
+	// Generic bot/crawler detection
+	if strings.Contains(ua, "bot") || strings.Contains(ua, "crawler") ||
+		strings.Contains(ua, "spider") || strings.Contains(ua, "scraper") {
+		return true
+	}
+	return false
 }
 
 // parseUserAgent extracts device type, browser and OS from User-Agent string.

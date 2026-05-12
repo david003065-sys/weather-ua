@@ -12,11 +12,11 @@ func TestAnalytics_TrackRequest(t *testing.T) {
 
 	a := New(filePath)
 
-	// Track some requests
-	a.TrackRequest("/", "1.2.3.4")
-	a.TrackRequest("/city/kyiv", "1.2.3.4")
-	a.TrackRequest("/city/kyiv", "5.6.7.8")
-	a.TrackRequest("/api/weather/kyiv", "")
+	// Track some requests (with User-Agent to test bot filtering)
+	a.TrackRequest("/", "1.2.3.4", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+	a.TrackRequest("/city/kyiv", "1.2.3.4", "Mozilla/5.0 (Macintosh)")
+	a.TrackRequest("/city/kyiv", "5.6.7.8", "Mozilla/5.0 (iPhone)")
+	a.TrackRequest("/api/weather/kyiv", "", "Mozilla/5.0")
 
 	time.Sleep(100 * time.Millisecond) // let async operations complete
 
@@ -90,7 +90,7 @@ func TestAnalytics_PersistAndLoad(t *testing.T) {
 
 	// Create and populate
 	a1 := New(filePath)
-	a1.TrackRequest("/", "1.2.3.4")
+	a1.TrackRequest("/", "1.2.3.4", "Mozilla/5.0")
 	a1.TrackCity("kyiv")
 	a1.TrackSearch("погода")
 	a1.TrackError()
@@ -124,7 +124,7 @@ func TestAnalytics_CleanupOldIPs(t *testing.T) {
 	a := New(filePath)
 
 	// Add recent IP
-	a.TrackRequest("/", "1.2.3.4")
+	a.TrackRequest("/", "1.2.3.4", "Mozilla/5.0")
 
 	// Manually add old IP
 	a.mu.Lock()
@@ -169,5 +169,50 @@ func TestAnalytics_GetUptime(t *testing.T) {
 	uptime := a.GetUptime()
 	if uptime == "" {
 		t.Error("expected non-empty uptime")
+	}
+}
+
+func TestAnalytics_BotFiltering(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "analytics.json")
+
+	a := New(filePath)
+
+	// Track human requests
+	a.TrackRequest("/", "1.2.3.4", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+	a.TrackRequest("/", "5.6.7.8", "Mozilla/5.0 (Macintosh; Intel Mac OS X)")
+
+	// Track bot requests (should NOT count in today/unique IPs)
+	a.TrackRequest("/", "66.249.66.1", "Mozilla/5.0 (compatible; Googlebot/2.1)")
+	a.TrackRequest("/", "207.46.13.1", "Mozilla/5.0 (compatible; bingbot/2.0)")
+	a.TrackRequest("/sitemap.xml", "100.25.1.1", "Mozilla/5.0 (compatible; YandexBot/3.0)")
+
+	time.Sleep(50 * time.Millisecond)
+
+	summary := a.Summary()
+
+	// Total requests should include bots (4 humans + 3 bots = 7)
+	if summary.TotalRequests != 7 {
+		t.Errorf("expected 7 total requests (including bots), got %d", summary.TotalRequests)
+	}
+
+	// Today requests should ONLY count humans (2), not bots
+	if summary.TodayRequests != 2 {
+		t.Errorf("expected 2 human requests today (bots excluded), got %d", summary.TodayRequests)
+	}
+
+	// Unique IPs should ONLY count humans (2), not bots
+	if summary.UniqueIPsToday != 2 {
+		t.Errorf("expected 2 unique human IPs (bots excluded), got %d", summary.UniqueIPsToday)
+	}
+
+	// Bot visits should be tracked
+	if summary.BotVisits != 3 {
+		t.Errorf("expected 3 bot visits, got %d", summary.BotVisits)
+	}
+
+	// IndexedByGoogle should be true
+	if !summary.IndexedByGoogle {
+		t.Error("expected IndexedByGoogle to be true after Googlebot visit")
 	}
 }

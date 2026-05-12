@@ -228,6 +228,7 @@ html[data-theme="dark"] .weather-bg__light-clouds-canvas {
     opacity: 0;
     transition: opacity 1.2s ease;
     display: block;
+    pointer-events: none;
     /* opacity for rain/snow; no CSS transition on canvas pixels (atmosphere.js) */
 }
 
